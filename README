@@ -1,0 +1,28 @@
+meta-yassl
+==========
+
+This layer provides support for the CyaSSL embedded SSL library.
+
+CyaSSL is a lightweight SSL library written in C and targeted at
+embedded and RTOS environments - primarily because of its small size,
+speed, and feature set. With common build sizes between 30-100kB,
+it is typically up to 20 times smaller than OpenSSL. Other feature
+highlights include support for TLS 1.2 and DTLS, full client and
+server support, abstraction layers for easy porting, CRL and OCSP
+support, key and cert generation, and much more. For a full feature
+list, please visit the CyaSSL webpage at:
+
+http://www.yassl.com/yaSSL/Products-cyassl.html
+
+Maintenance
+-----------
+
+Layer maintainer: Chris Conlon <chris@yassl.com>
+
+License
+-------
+
+CyaSSL is open source and dual licensed under both the GPLv2
+and a standard commercial license. For commercial license
+questions, please contact yaSSL at info@yassl.com.
+
