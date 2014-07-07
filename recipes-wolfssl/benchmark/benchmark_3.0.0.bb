@@ -5,9 +5,9 @@ DESCRIPTION = "CyaSSL is a lightweight SSL library written in C and \
                a full TLS 1.2 client and server."
 HOMEPAGE = "http://www.yassl.com/yaSSL/Products-cyassl.html"
 BUGTRACKER = "http://github.com/cyassl/cyassl/issues"
-SECTION = "libs/network"
+SECTION = "base"
 LICENSE = "GPLv2"
-LIC_FILES_CHKSUM = "file://COPYING;md5=94d55d512a9ba36caa9b7df079bae19f"
+LIC_FILES_CHKSUM = "file://benchmark.c;beginline=1;endline=22;md5=8ec78656ef85d2a41baf7762ee937771"
 
 PR = "r1"
 
