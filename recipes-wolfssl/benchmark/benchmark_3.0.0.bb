@@ -22,7 +22,7 @@ S = "${WORKDIR}/${PN}-${PV}"
 #TARGET_ARCH = "i586"
 
 do_compile() {
-    clang -DNO_RABBIT -Wall -o benchmark /home/leah/wolfSSL/meta-wolfssl/recipes-wolfssl/benchmark/files/benchmark.c -lcyassl 
+    ${CC} ${CFLAGS} -DNO_RABBIT -Wall -o benchmark ${WORKDIR}/benchmark.c -lcyassl ${LDFLAGS} 
 }
 
 do_install() {
