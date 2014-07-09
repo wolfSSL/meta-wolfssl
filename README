@@ -1,4 +1,4 @@
-meta-yassl
+meta-wolfssl
 ==========
 
 This layer provides support for the CyaSSL embedded SSL library.
@@ -12,12 +12,12 @@ server support, abstraction layers for easy porting, CRL and OCSP
 support, key and cert generation, and much more. For a full feature
 list, please visit the CyaSSL webpage at:
 
-http://www.yassl.com/yaSSL/Products-cyassl.html
+http://www.wolfssl.com/yaSSL/Products-cyassl.html
 
 Maintenance
 -----------
 
-Layer maintainer: Chris Conlon <chris@yassl.com>
+Layer maintainer: Chris Conlon <chris@wolfssl.com>
 
 License
 -------
