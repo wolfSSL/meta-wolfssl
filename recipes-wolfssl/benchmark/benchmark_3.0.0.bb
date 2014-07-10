@@ -19,10 +19,10 @@ SRC_URI[sha256sum] = "204427833d78a98d54728b3af52dca0ef58dcbea1f1cdfa8ef9c46e828
 S = "${WORKDIR}/${PN}-${PV}" 
 
 do_compile() {
-    ${CC} ${CFLAGS} -DNO_RABBIT -Wall -o benchmark ${WORKDIR}/benchmark.c -lcyassl ${LDFLAGS} 
+    ${CC} ${CFLAGS} -DNO_RABBIT -DUSE_CERT_BUFFERS_2048 -Wall -o benchmark ${WORKDIR}/benchmark.c -lcyassl ${LDFLAGS} 
 }
 
 do_install() {
-    install -d ${D}${bindir}
+    install -d ${D}${bindir}/ctaocrypt
     install -m 0755 ${S}/benchmark ${D}${bindir}
 }
