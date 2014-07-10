@@ -1,7 +1,7 @@
 meta-wolfssl
 ==========
 
-This layer provides support for the CyaSSL embedded SSL library.
+`This layer provides support for the CyaSSL embedded SSL library.
 
 CyaSSL is a lightweight SSL library written in C and targeted at
 embedded and RTOS environments - primarily because of its small size,
@@ -13,7 +13,7 @@ support, key and cert generation, and much more. For a full feature
 list, please visit the CyaSSL webpage at:
 
 http://www.wolfssl.com/yaSSL/Products-cyassl.html
-
+`
 Setup
 -----
 Clone meta-wolfssl onto your machine. 
