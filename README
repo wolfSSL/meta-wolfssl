@@ -14,6 +14,28 @@ list, please visit the CyaSSL webpage at:
 
 http://www.wolfssl.com/yaSSL/Products-cyassl.html
 
+Setup
+-----
+    Clone meta-wolfssl onto your machine. 
+
+    After installing YoctoProject/OpenEmbedded components and then running 
+    thei build command:
+    
+    1. Insert the meta-wolfssl file location into the build's bblayers.conf
+       file in BBLAYERS ?= "" section.
+    2. Edit the build's local.conf file to include this line:
+       
+        IMAGE_INSTALL_append = " cyassl" (include benchmark and/or ctaocrypt
+                                          test recipes if needed)
+    3. Edit an image file to include this line:
+
+        IMAGE_INSTALL += "cyassl"
+
+Once you have built your image, the location on the new machine for cyassl 
+will be in /usr/libs, while benchmark and ctaocrypt will be located in 
+/usr/bin.
+
+
 Maintenance
 -----------
 
