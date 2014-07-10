@@ -16,6 +16,10 @@ http://www.wolfssl.com/yaSSL/Products-cyassl.html
 
 Setup
 -----
+
+`For detailed image writing and installation instructions, see our 
+Beginner's Guide.`
+
 Clone meta-wolfssl onto your machine. 
 
 After installing YoctoProject/OpenEmbedded components and then running 
