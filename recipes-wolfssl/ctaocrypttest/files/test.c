@@ -2632,7 +2632,7 @@ byte GetEntropy(ENTROPY_CMD cmd, byte* out)
 
 #if !defined(USE_CERT_BUFFERS_1024) && !defined(USE_CERT_BUFFERS_2048)
     #ifdef FREESCALE_MQX
-        static const char* clientKey  = "a:\\certs\\client-key.der";
+        static const char* clientKey  = "a:\\client-key.der";
         static const char* clientCert = "a:\\certs\\client-cert.der";
         #ifdef CYASSL_CERT_GEN
             static const char* caKeyFile  = "a:\\certs\\ca-key.der";
@@ -2643,7 +2643,7 @@ byte GetEntropy(ENTROPY_CMD cmd, byte* out)
             #endif
         #endif
     #elif defined(CYASSL_MKD_SHELL)
-        static char* clientKey = "certs/client-key.der";
+        static char* clientKey = "client-key.der";
         static char* clientCert = "certs/client-cert.der";
         void set_clientKey(char *key) {  clientKey = key ; }
         void set_clientCert(char *cert) {  clientCert = cert ; }
@@ -2660,7 +2660,7 @@ byte GetEntropy(ENTROPY_CMD cmd, byte* out)
             #endif
         #endif
     #else
-        static const char* clientKey  = "./certs/client-key.der";
+        static const char* clientKey  = "client-key.der";
         static const char* clientCert = "./certs/client-cert.der";
         #ifdef CYASSL_CERT_GEN
             static const char* caKeyFile  = "./certs/ca-key.der";

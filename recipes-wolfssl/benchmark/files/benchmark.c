@@ -779,13 +779,13 @@ int main(int argc, char** argv)
 
 #if !defined(USE_CERT_BUFFERS_1024) && !defined(USE_CERT_BUFFERS_2048) && \
     defined(CYASSL_MDK_SHELL)
-    static char *certRSAname = "certs/rsa2048.der" ;
+    static char *certRSAname = "rsa2048.der" ;
     static void set_Bench_RSA_File(char * cert) { certRSAname = cert ; }   
     /* set by shell command */
 #elif defined(CYASSL_MDK_SHELL)
     /* nothing */
 #else
-    static const char *certRSAname = "certs/rsa2048.der" ;
+    static const char *certRSAname = "rsa2048.der" ;
 #endif
 
     void bench_rsa(void)
@@ -884,13 +884,13 @@ int main(int argc, char** argv)
 
 #if !defined(USE_CERT_BUFFERS_1024) && !defined(USE_CERT_BUFFERS_2048) && \
     defined(CYASSL_MDK_SHELL)
-    static char *certDHname = "certs/dh2048.der" ;
+    static char *certDHname = "dh2048.der" ;
     void set_Bench_DH_File(char * cert) { certDHname = cert ; }    
     /* set by shell command */
 #elif defined(CYASSL_MDK_SHELL)
     /* nothing */
 #else
-    static const char *certDHname = "certs/dh2048.der" ;
+    static const char *certDHname = "dh2048.der" ;
 #endif
 
     void bench_dh(void)
