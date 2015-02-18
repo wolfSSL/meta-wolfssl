@@ -1,7 +1,9 @@
 meta-wolfssl
 ==========
 
-This layer provides support for the CyaSSL embedded SSL library.
+This layer provides a bbappend file for configuring cURL with wolfSSL. 
+The wolfSSL recipe can be located [here.](
+https://github.com/openembedded/meta-oe/tree/master/meta-networking/recipes-connectivity/cyassl)
 
 CyaSSL is a lightweight SSL library written in C and targeted at
 embedded and RTOS environments - primarily because of its small size,
