@@ -8,6 +8,6 @@ EXTRA_OECONF = "--with-zlib=${STAGING_LIBDIR}/../ \
                 --disable-ldap \    
                 --disable-ldaps \   
                 --with-ca-bundle=${sysconfdir}/ssl/certs/ca-certificates.crt \  
-                --with-cyassl \
+                --with-wolfssl \
                 --without-gnutls \
                 "      
