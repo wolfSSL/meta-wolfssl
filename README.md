@@ -14,7 +14,7 @@ server support, abstraction layers for easy porting, CRL and OCSP
 support, key and cert generation, and much more. For a full feature
 list, please visit the wolfSSL webpage at:
 
-http://www.wolfssl.com/wolfSSL/Products-wolfssl.html
+https://www.wolfssl.com/wolfSSL/Products-wolfssl.html
 
 Setup
 -----
