@@ -3,7 +3,7 @@ meta-wolfssl
 
 This layer provides a bbappend file for configuring cURL with wolfSSL.
 The wolfSSL recipe can be located [here.](
-https://github.com/openembedded/meta-openembedded/blob/master/meta-networking/recipes-connectivity/wolfssl/wolfssl_3.9.0.bb)
+https://github.com/openembedded/meta-openembedded/blob/master/meta-networking/recipes-connectivity/wolfssl/wolfssl_3.14.4.bb)
 
 wolfSSL (formerly CyaSSL) is a lightweight SSL/TLS library written in C and
 targeted at embedded and RTOS environments - primarily because of its small
