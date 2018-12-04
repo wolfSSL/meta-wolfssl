@@ -12,7 +12,6 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 PROVIDES += "cyassl"
 RPROVIDES_${PN} = "cyassl"
 
-S = "${WORKDIR}/${PN}-${PV}"
 SRC_URI[md5sum] = "bc2dff70ba6e91aa3748d36ae6c6bc3d"
 SRC_URI[sha256sum] = "f6c04c25355b340373931f43f8041b3cef78b61122e8a8edf9ee63c07b7a58be"
 SRC_URI = "https://www.wolfssl.com/wolfssl-3.15.5.zip"
@@ -22,3 +21,4 @@ inherit autotools
 PACKAGECONFIG ??= "${@bb.utils.filter('DISTRO_FEATURES', 'ipv6', d)}"
 PACKAGECONFIG[ipv6] = "--enable-ipv6,--disable-ipv6,"
 
+BBCLASSEXTEND += "native nativesdk"

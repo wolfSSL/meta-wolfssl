@@ -12,8 +12,6 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=2c1c00f9d3ed9e24fa69b932b7e7aff2"
 
 DEPENDS += "wolfssl"
 
-S = "${WORKDIR}/${PN}-${PV}"
-
 SRC_URI[md5sum] = "d314a8d300add5148beb6d93e9beb4b0"
 SRC_URI[sha256sum] = "4a987c6156422c45733bcfaf4c029c4c91e088ae7fdb0a2f186631d7a7bed6d3"
 SRC_URI = "https://www.wolfssl.com/wolfmqtt-1.1.0.zip \
