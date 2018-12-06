@@ -18,7 +18,4 @@ SRC_URI = "https://www.wolfssl.com/wolfssl-3.15.5.zip"
 
 inherit autotools
 
-PACKAGECONFIG ??= "${@bb.utils.filter('DISTRO_FEATURES', 'ipv6', d)}"
-PACKAGECONFIG[ipv6] = "--enable-ipv6,--disable-ipv6,"
-
 BBCLASSEXTEND += "native nativesdk"
