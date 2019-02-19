@@ -10,6 +10,7 @@ This layer currently provides recipes for the following wolfSSL products:
 - [wolfSSL embedded SSL/TLS library](https://www.wolfssl.com/products/wolfssl/)
 - [wolfSSH lightweight SSH library](https://www.wolfssl.com/products/wolfssh/)
 - [wolfMQTT lightweight MQTT client library](https://www.wolfssl.com/products/wolfmqtt/)
+- [wolfTPM portable TPM 2.0 library](https://www.wolfssl.com/products/wolftpm/)
 
 This layer currently provides bbappend files for the following open source
 projects:
@@ -71,6 +72,18 @@ After installing your build's YoctoProject/OpenEmbedded components:
 
 Once your image has been built, the default location for the wolfSSL library
 on your machine will be in the '/usr/lib' directory.
+
+Note: If you need to install the development headers for these libraries, you
+will want to use the "-dev" variant of the package. For example, to install
+both the wolfSSL library and headers into your image, use "wolfssl-dev" along
+with IMAGE_INSTALL_append, ie:
+
+```
+IMAGE_INSTALL_append = "wolfssl-dev"
+```
+
+After building your image, you will find wolfSSL headers in the
+"/usr/include" directory.
 
 Customizing the wolfSSL Library Configuration
 ---------------------------------------------
