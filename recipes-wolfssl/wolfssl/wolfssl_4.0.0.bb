@@ -1,7 +1,7 @@
 SUMMARY = "wolfSSL Lightweight Embedded SSL/TLS Library"
-DESCRIPTION = "wolfSSL, formerly CyaSSL, is a lightweight SSL library written \
-               in C and optimized for embedded and RTOS environments. It can \
-               be up to 20 times smaller than OpenSSL while still supporting \
+DESCRIPTION = "wolfSSL is a lightweight SSL/TLS library written in C and \
+               optimized for embedded and RTOS environments. It can be up \
+               to 20 times smaller than OpenSSL while still supporting \
                a full TLS client and server, up to TLS 1.3"
 HOMEPAGE = "https://www.wolfssl.com/products/wolfssl"
 BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
@@ -12,9 +12,9 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 PROVIDES += "cyassl"
 RPROVIDES_${PN} = "cyassl"
 
-SRC_URI[md5sum] = "6ec08c09e3f51cccbb1686b4fd45f92f"
-SRC_URI[sha256sum] = "4cc318c49580d3b9c361fe258fac6106624aa744f1d34e03977b587766a753ee"
-SRC_URI = "https://www.wolfssl.com/wolfssl-3.15.7.zip"
+SRC_URI[md5sum] = "97020ccc97baf558ba918ba67fdb62dd"
+SRC_URI[sha256sum] = "b6360ecc97127c29c0757d762b537dc1c6853c5e0d9394315bf1c0399c2777b7"
+SRC_URI = "https://www.wolfssl.com/wolfssl-4.0.0.zip"
 
 inherit autotools
 

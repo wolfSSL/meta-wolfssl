@@ -1,6 +1,6 @@
 /* benchmark.c
  *
- * Copyright (C) 2006-2017 wolfSSL Inc.
+ * Copyright (C) 2006-2019 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -33,20 +33,19 @@
 /* Macro to disable benchmark */
 #ifndef NO_CRYPT_BENCHMARK
 
-#if defined(XMALLOC_USER) || defined(FREESCALE_MQX)
-    /* MQX classic needs for EXIT_FAILURE */
-    #include <stdlib.h>  /* we're using malloc / free direct here */
+/* only for stack size check */
+#ifdef HAVE_STACK_SIZE
+    #include <wolfssl/ssl.h>
+    #include <wolfssl/test.h>
 #endif
 
-#ifdef WOLFSSL_STATIC_MEMORY
-    #include <wolfssl/wolfcrypt/memory.h>
-    static WOLFSSL_HEAP_HINT* HEAP_HINT;
+#ifdef USE_FLAT_BENCHMARK_H
+    #include "benchmark.h"
 #else
-    #define HEAP_HINT NULL
-#endif /* WOLFSSL_STATIC_MEMORY */
+    #include "wolfcrypt/benchmark/benchmark.h"
+#endif
 
-#include <string.h>
-
+/* printf mappings */
 #ifdef FREESCALE_MQX
     #include <mqx.h>
     #if MQX_USE_IO_OLD
@@ -60,15 +59,65 @@
 
     #undef printf
     #define printf PRINTF
+#elif defined(WOLFSSL_DEOS)
+    #include <deos.h>
+    #undef printf
+    #define printf printx
 #elif defined(MICRIUM)
       #include <bsp_ser.h>
       void BSP_Ser_Printf (CPU_CHAR* format, ...);
       #undef printf
       #define printf BSP_Ser_Printf
+#elif defined(WOLFSSL_ZEPHYR)
+    #include <stdio.h>
+    #define BENCH_EMBEDDED
+    #define printf printfk
+    static int printfk(const char *fmt, ...)
+    {
+        int ret;
+        char line[150];
+        va_list ap;
+
+        va_start(ap, fmt);
+
+        ret = vsnprintf(line, sizeof(line), fmt, ap);
+        line[sizeof(line)-1] = '\0';
+        printk("%s", line);
+
+        va_end(ap);
+
+        return ret;
+    }
+
+#elif defined(WOLFSSL_TELIT_M2MB)
+    #include <stdarg.h>
+    #include <stdio.h>
+    #include <string.h>
+    #include "wolfssl/wolfcrypt/wc_port.h" /* for m2mb headers */
+    #include "m2m_log.h" /* for M2M_LOG_INFO - not standard API */
+    /* remap printf */
+    #undef printf
+    #define printf M2M_LOG_INFO
+    /* OS requires occasional sleep() */
+    #ifndef TEST_SLEEP_MS
+        #define TEST_SLEEP_MS 50
+    #endif
+    #define TEST_SLEEP() m2mb_os_taskSleep(M2MB_OS_MS2TICKS(TEST_SLEEP_MS))
+    /* don't use file system for these tests, since ./certs dir isn't loaded */
+    #undef  NO_FILESYSTEM
+    #define NO_FILESYSTEM
+
 #else
+    #if defined(XMALLOC_USER) || defined(FREESCALE_MQX)
+        /* MQX classic needs for EXIT_FAILURE */
+        #include <stdlib.h>  /* we're using malloc / free direct here */
+    #endif
+
+    #include <string.h>
     #include <stdio.h>
 #endif
 
+#include <wolfssl/wolfcrypt/memory.h>
 #include <wolfssl/wolfcrypt/random.h>
 #include <wolfssl/wolfcrypt/des3.h>
 #include <wolfssl/wolfcrypt/arc4.h>
@@ -115,18 +164,25 @@
 #include <wolfssl/wolfcrypt/error-crypt.h>
 #include <wolfssl/wolfcrypt/types.h>
 
+#ifdef WOLFSSL_ASYNC_CRYPT
+    #include <wolfssl/wolfcrypt/async.h>
+#endif
+
+
+#ifdef WOLFSSL_STATIC_MEMORY
+    static WOLFSSL_HEAP_HINT* HEAP_HINT;
+#else
+    #define HEAP_HINT NULL
+#endif /* WOLFSSL_STATIC_MEMORY */
+
 #ifndef EXIT_FAILURE
 #define EXIT_FAILURE 1
 #endif
 
-/* only for stack size check */
-#ifdef HAVE_STACK_SIZE
-    #include <wolfssl/ssl.h>
-    #include <wolfssl/test.h>
-#endif
-
-#ifdef WOLFSSL_ASYNC_CRYPT
-    #include <wolfssl/wolfcrypt/async.h>
+/* optional macro to add sleep between tests */
+#ifndef TEST_SLEEP
+    /* stub the sleep macro */
+    #define TEST_SLEEP()
 #endif
 
 
@@ -224,6 +280,7 @@ typedef struct bench_alg {
     int val;
 } bench_alg;
 
+#ifndef MAIN_NO_ARGS
 /* All recognized cipher algorithm choosing command line options. */
 static const bench_alg bench_cipher_opt[] = {
     { "-cipher",             -1                      },
@@ -406,6 +463,7 @@ static const bench_alg bench_other_opt[] = {
 #endif
     { NULL, 0}
 };
+#endif /* MAIN_NO_ARGS */
 
 #endif /* !WOLFSSL_BENCHMARK_ALL && !NO_MAIN_DRIVER */
 
@@ -420,7 +478,9 @@ static const bench_alg bench_other_opt[] = {
 #endif
 
 static int lng_index = 0;
+
 #ifndef NO_MAIN_DRIVER
+#ifndef MAIN_NO_ARGS
 static const char* bench_Usage_msg1[][10] = {
     /* 0 English  */
     {   "-? <num>    Help, print this usage\n            0: English, 1: Japanese\n",
@@ -449,6 +509,7 @@ static const char* bench_Usage_msg1[][10] = {
     },
 #endif
 };
+#endif /* MAIN_NO_ARGS */
 #endif
 
 static const char* bench_result_words1[][4] = {
@@ -462,6 +523,7 @@ static const char* bench_result_words1[][4] = {
     defined(HAVE_ECC) || !defined(NO_DH) || defined(HAVE_ECC_ENCRYPT) || \
     defined(HAVE_CURVE25519) || defined(HAVE_CURVE25519_SHARED_SECRET)  || \
     defined(HAVE_ED25519)
+#if !defined(WOLFSSL_RSA_PUBLIC_ONLY) || defined(WOLFSSL_PUBLIC_MP)
 
 static const char* bench_desc_words[][9] = {
     /* 0           1          2         3        4        5         6            7            8 */
@@ -471,6 +533,7 @@ static const char* bench_desc_words[][9] = {
 #endif
 };
 
+#endif
 #endif
 
 #if defined(__GNUC__) && defined(__x86_64__) && !defined(NO_ASM) && !defined(WOLFSSL_SGX)
@@ -548,11 +611,6 @@ static const char* bench_desc_words[][9] = {
     #pragma warning(disable: 4996)
 #endif
 
-#ifdef USE_FLAT_BENCHMARK_H
-    #include "benchmark.h"
-#else
-    #include "wolfcrypt/benchmark/benchmark.h"
-#endif
 
 #ifdef WOLFSSL_CURRTIME_REMAP
     #define current_time WOLFSSL_CURRTIME_REMAP
@@ -572,7 +630,7 @@ static const char* bench_desc_words[][9] = {
 #endif
 #endif
 
-#if (!defined(NO_RSA) && !defined(WOLFSSL_RSA_PUBLIC_ONLY)) || !defined(NO_DH) \
+#if (!defined(NO_RSA) && !defined(WOLFSSL_RSA_VERIFY_ONLY)) || !defined(NO_DH) \
                         || defined(WOLFSSL_KEYGEN) || defined(HAVE_ECC) \
                         || defined(HAVE_CURVE25519) || defined(HAVE_ED25519)
     #define HAVE_LOCAL_RNG
@@ -586,12 +644,14 @@ static const char* bench_desc_words[][9] = {
 #endif
 
 #if defined(BENCH_ASYM)
+#if !defined(WOLFSSL_RSA_PUBLIC_ONLY) || defined(WOLFSSL_PUBLIC_MP)
 static const char* bench_result_words2[][5] = {
     { "ops took", "sec"     , "avg" , "ops/sec", NULL },            /* 0 English  */
 #ifndef NO_MULTIBYTE_PRINT
     { "回処理を", "秒で実施", "平均", "処理/秒", NULL },            /* 1 Japanese */
 #endif
 };
+#endif
 #endif
 
 /* Asynchronous helper macros */
@@ -902,8 +962,9 @@ static THREAD_LS_T byte* bench_iv = NULL;
             /* print final stat */
             if (isLast) {
                 if (bstat->type == BENCH_STAT_SYM) {
-                    printf("%-12s%s %8.3f MB/s\n", bstat->desc,
-                        BENCH_ASYNC_GET_NAME(bstat->doAsync), bstat->perfsec);
+                    printf("%-16s%s %8.3f %s/s\n", bstat->desc,
+                        BENCH_ASYNC_GET_NAME(bstat->doAsync), bstat->perfsec,
+                        base2 ? "MB" : "mB");
                 }
                 else {
                     printf("%-5s %4d %-9s %s %.3f ops/sec\n",
@@ -959,8 +1020,8 @@ static void bench_stats_sym_finish(const char* desc, int doAsync, int count,
 
     if (base2) {
         /* determine if we should show as KB or MB */
-        if (blocks > (1024 * 1024)) {
-            blocks /= (1024 * 1024);
+        if (blocks > (1024ul * 1024ul)) {
+            blocks /= (1024ul * 1024ul);
             blockType = "MB";
         }
         else if (blocks > 1024) {
@@ -973,8 +1034,8 @@ static void bench_stats_sym_finish(const char* desc, int doAsync, int count,
     }
     else {
         /* determine if we should show as kB or mB */
-        if (blocks > (1000 * 1000)) {
-            blocks /= (1000 * 1000);
+        if (blocks > (1000ul * 1000ul)) {
+            blocks /= (1000ul * 1000ul);
             blockType = "mB";
         }
         else if (blocks > 1000) {
@@ -1015,9 +1076,12 @@ static void bench_stats_sym_finish(const char* desc, int doAsync, int count,
 
     (void)doAsync;
     (void)ret;
+
+    TEST_SLEEP();
 }
 
 #ifdef BENCH_ASYM
+#if !defined(WOLFSSL_RSA_PUBLIC_ONLY) || defined(WOLFSSL_PUBLIC_MP)
 static void bench_stats_asym_finish(const char* algo, int strength,
     const char* desc, int doAsync, int count, double start, int ret)
 {
@@ -1057,7 +1121,10 @@ static void bench_stats_asym_finish(const char* algo, int strength,
 
     (void)doAsync;
     (void)ret;
+
+    TEST_SLEEP();
 }
+#endif
 #endif /* BENCH_ASYM */
 
 static WC_INLINE void bench_stats_free(void)
@@ -1125,8 +1192,13 @@ static void* benchmarks_do(void* args)
     if (bench_buf_size % 16)
         bench_buf_size += 16 - (bench_buf_size % 16);
 
-    bench_plain = (byte*)XMALLOC((size_t)bench_buf_size, HEAP_HINT, DYNAMIC_TYPE_WOLF_BIGINT);
-    bench_cipher = (byte*)XMALLOC((size_t)bench_buf_size, HEAP_HINT, DYNAMIC_TYPE_WOLF_BIGINT);
+#ifdef WOLFSSL_AFALG_XILINX_AES
+    bench_plain = (byte*)aligned_alloc(64, (size_t)bench_buf_size + 16);
+    bench_cipher = (byte*)aligned_alloc(64, (size_t)bench_buf_size + 16);
+#else
+    bench_plain = (byte*)XMALLOC((size_t)bench_buf_size + 16, HEAP_HINT, DYNAMIC_TYPE_WOLF_BIGINT);
+    bench_cipher = (byte*)XMALLOC((size_t)bench_buf_size + 16, HEAP_HINT, DYNAMIC_TYPE_WOLF_BIGINT);
+#endif
     if (bench_plain == NULL || bench_cipher == NULL) {
         XFREE(bench_plain, HEAP_HINT, DYNAMIC_TYPE_WOLF_BIGINT);
         XFREE(bench_cipher, HEAP_HINT, DYNAMIC_TYPE_WOLF_BIGINT);
@@ -1166,7 +1238,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_aescbc(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_AES)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_AES) && \
+        !defined(NO_HW_BENCH)
         bench_aescbc(1);
     #endif
     }
@@ -1176,7 +1249,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_aesgcm(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_AES)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_AES) && \
+        !defined(NO_HW_BENCH)
         bench_aesgcm(1);
     #endif
     }
@@ -1186,7 +1260,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_aesecb(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_AES)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_AES) && \
+        !defined(NO_HW_BENCH)
         bench_aesecb(1);
     #endif
     }
@@ -1218,7 +1293,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_arc4(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_ARC4)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_ARC4) && \
+        !defined(NO_HW_BENCH)
         bench_arc4(1);
     #endif
     }
@@ -1244,7 +1320,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_des(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_3DES)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_3DES) && \
+        !defined(NO_HW_BENCH)
         bench_des(1);
     #endif
     }
@@ -1259,7 +1336,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_md5(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_MD5)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_MD5) && \
+        !defined(NO_HW_BENCH)
         bench_md5(1);
     #endif
     }
@@ -1273,7 +1351,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_sha(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA) && \
+        !defined(NO_HW_BENCH)
         bench_sha(1);
     #endif
     }
@@ -1283,7 +1362,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_sha224(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA224)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA224) && \
+        !defined(NO_HW_BENCH)
         bench_sha224(1);
     #endif
     }
@@ -1293,7 +1373,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_sha256(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA256)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA256) && \
+        !defined(NO_HW_BENCH)
         bench_sha256(1);
     #endif
     }
@@ -1303,7 +1384,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_sha384(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA384)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA384) && \
+        !defined(NO_HW_BENCH)
         bench_sha384(1);
     #endif
     }
@@ -1313,7 +1395,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_sha512(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA512)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA512) && \
+        !defined(NO_HW_BENCH)
         bench_sha512(1);
     #endif
     }
@@ -1324,7 +1407,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_sha3_224(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA3)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA3) && \
+        !defined(NO_HW_BENCH)
         bench_sha3_224(1);
     #endif
     }
@@ -1334,7 +1418,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_sha3_256(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA3)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA3) && \
+        !defined(NO_HW_BENCH)
         bench_sha3_256(1);
     #endif
     }
@@ -1344,7 +1429,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_sha3_384(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA3)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA3) && \
+        !defined(NO_HW_BENCH)
         bench_sha3_384(1);
     #endif
     }
@@ -1354,7 +1440,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_sha3_512(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA512)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA3) && \
+        !defined(NO_HW_BENCH)
         bench_sha3_512(1);
     #endif
     }
@@ -1379,7 +1466,8 @@ static void* benchmarks_do(void* args)
         #ifndef NO_SW_BENCH
             bench_hmac_md5(0);
         #endif
-        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_HMAC)
+        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_HMAC) && \
+                defined(WC_ASYNC_ENABLE_MD5) && !defined(NO_HW_BENCH)
             bench_hmac_md5(1);
         #endif
         }
@@ -1389,7 +1477,8 @@ static void* benchmarks_do(void* args)
         #ifndef NO_SW_BENCH
             bench_hmac_sha(0);
         #endif
-        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA)
+        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_HMAC) && \
+                defined(WC_ASYNC_ENABLE_SHA) && !defined(NO_HW_BENCH)
             bench_hmac_sha(1);
         #endif
         }
@@ -1399,7 +1488,8 @@ static void* benchmarks_do(void* args)
         #ifndef NO_SW_BENCH
             bench_hmac_sha224(0);
         #endif
-        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA224)
+        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_HMAC) && \
+                defined(WC_ASYNC_ENABLE_SHA224) && !defined(NO_HW_BENCH)
             bench_hmac_sha224(1);
         #endif
         }
@@ -1409,7 +1499,8 @@ static void* benchmarks_do(void* args)
         #ifndef NO_SW_BENCH
             bench_hmac_sha256(0);
         #endif
-        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA256)
+        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_HMAC) && \
+                defined(WC_ASYNC_ENABLE_SHA256) && !defined(NO_HW_BENCH)
             bench_hmac_sha256(1);
         #endif
         }
@@ -1419,7 +1510,8 @@ static void* benchmarks_do(void* args)
         #ifndef NO_SW_BENCH
             bench_hmac_sha384(0);
         #endif
-        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA384)
+        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_HMAC) && \
+                defined(WC_ASYNC_ENABLE_SHA384) && !defined(NO_HW_BENCH)
             bench_hmac_sha384(1);
         #endif
         }
@@ -1429,7 +1521,8 @@ static void* benchmarks_do(void* args)
         #ifndef NO_SW_BENCH
             bench_hmac_sha512(0);
         #endif
-        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_SHA512)
+        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_HMAC) && \
+                defined(WC_ASYNC_ENABLE_SHA512) && !defined(NO_HW_BENCH)
             bench_hmac_sha512(1);
         #endif
         }
@@ -1452,7 +1545,8 @@ static void* benchmarks_do(void* args)
                 bench_rsaKeyGen(0);
             }
         #endif
-        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_RSA_KEYGEN)
+        #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_RSA_KEYGEN) \
+                && !defined(NO_HW_BENCH)
             if (bench_asym_algs & BENCH_RSA_SZ) {
                 bench_rsaKeyGen_size(1, bench_size);
             }
@@ -1466,7 +1560,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_rsa(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_RSA)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_RSA) && \
+        !defined(NO_HW_BENCH)
         bench_rsa(1);
     #endif
     }
@@ -1476,7 +1571,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_rsa_key(0, bench_size);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_RSA)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_RSA) && \
+        !defined(NO_HW_BENCH)
         bench_rsa_key(1, bench_size);
     #endif
     }
@@ -1488,7 +1584,8 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_dh(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_DH)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_DH) && \
+        !defined(NO_HW_BENCH)
         bench_dh(1);
     #endif
     }
@@ -1506,18 +1603,17 @@ static void* benchmarks_do(void* args)
     #ifndef NO_SW_BENCH
         bench_eccMakeKey(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_ECC)
-        /* async supported in simulator only */
-        #ifdef WOLFSSL_ASYNC_CRYPT_TEST
-            bench_eccMakeKey(1);
-        #endif
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_ECC) && \
+        !defined(NO_HW_BENCH)
+        bench_eccMakeKey(1);
     #endif
     }
     if (bench_all || (bench_asym_algs & BENCH_ECC)) {
     #ifndef NO_SW_BENCH
         bench_ecc(0);
     #endif
-    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_ECC)
+    #if defined(WOLFSSL_ASYNC_CRYPT) && defined(WC_ASYNC_ENABLE_ECC) && \
+        !defined(NO_HW_BENCH)
         bench_ecc(1);
     #endif
     }
@@ -1604,13 +1700,13 @@ int benchmark_init(void)
 
     if (csv_format == 1) {
         printf("wolfCrypt Benchmark (block bytes %d, min %.1f sec each)\n",
-        BENCH_SIZE, BENCH_MIN_RUNTIME_SEC);
+        (int)BENCH_SIZE, BENCH_MIN_RUNTIME_SEC);
         printf("This format allows you to easily copy the output to a csv file.");
         printf("\n\nSymmetric Ciphers:\n\n");
         printf("Algorithm,MB/s,Cycles per byte,\n");
     } else {
         printf("wolfCrypt Benchmark (block bytes %d, min %.1f sec each)\n",
-        BENCH_SIZE, BENCH_MIN_RUNTIME_SEC);
+        (int)BENCH_SIZE, BENCH_MIN_RUNTIME_SEC);
     }
 
 #ifdef HAVE_WNR
@@ -1664,8 +1760,13 @@ int benchmark_test(void *args)
 
 #if defined(WOLFSSL_ASYNC_CRYPT) && !defined(WC_NO_ASYNC_THREADING)
 {
-    int i;
-    int numCpus = wc_AsyncGetNumberOfCpus();
+    int i, numCpus;
+
+#ifdef WC_ASYNC_BENCH_THREAD_COUNT
+    numCpus = WC_ASYNC_BENCH_THREAD_COUNT;
+#else
+    numCpus = wc_AsyncGetNumberOfCpus();
+#endif
 
     printf("CPUs: %d\n", numCpus);
 
@@ -1698,6 +1799,8 @@ int benchmark_test(void *args)
     benchmarks_do(NULL);
 #endif
 
+    printf("Benchmark complete\n");
+
     ret = benchmark_free();
 
     EXIT_TEST(ret);
@@ -1709,7 +1812,7 @@ void bench_rng(void)
 {
     int    ret, i, count;
     double start;
-    int    pos, len, remain;
+    long   pos, len, remain;
     WC_RNG myrng;
 
 #ifndef HAVE_FIPS
@@ -1993,11 +2096,11 @@ exit:
 
 void bench_aesgcm(int doAsync)
 {
-#ifdef WOLFSSL_AES_128
+#if defined(WOLFSSL_AES_128) && !defined(WOLFSSL_AFALG_XILINX_AES)
     bench_aesgcm_internal(doAsync, bench_key, 16, bench_iv, 12,
                           "AES-128-GCM-enc", "AES-128-GCM-dec");
 #endif
-#ifdef WOLFSSL_AES_192
+#if defined(WOLFSSL_AES_192) && !defined(WOLFSSL_AFALG_XILINX_AES)
     bench_aesgcm_internal(doAsync, bench_key, 24, bench_iv, 12,
                           "AES-192-GCM-enc", "AES-192-GCM-dec");
 #endif
@@ -3488,7 +3591,7 @@ void bench_blake2(void)
     Blake2b b2b;
     byte    digest[64];
     double  start;
-    int     ret, i, count;
+    int     ret = 0, i, count;
 
     if (digest_stream) {
         ret = wc_InitBlake2b(&b2b, 64);
@@ -3544,7 +3647,7 @@ void bench_blake2(void)
 
 #ifdef WOLFSSL_CMAC
 
-void bench_cmac(void)
+static void bench_cmac_helper(int keySz, const char* outMsg)
 {
     Cmac    cmac;
     byte    digest[AES_BLOCK_SIZE];
@@ -3554,7 +3657,7 @@ void bench_cmac(void)
 
     bench_stats_start(&count, &start);
     do {
-        ret = wc_InitCmac(&cmac, bench_key, 16, WC_CMAC_AES, NULL);
+        ret = wc_InitCmac(&cmac, bench_key, keySz, WC_CMAC_AES, NULL);
         if (ret != 0) {
             printf("InitCmac failed, ret = %d\n", ret);
             return;
@@ -3575,9 +3678,19 @@ void bench_cmac(void)
         }
         count += i;
     } while (bench_stats_sym_check(start));
-    bench_stats_sym_finish("AES-CMAC", 0, count, bench_size, start, ret);
+    bench_stats_sym_finish(outMsg, 0, count, bench_size, start, ret);
 }
 
+void bench_cmac(void)
+{
+#ifdef WOLFSSL_AES_128
+    bench_cmac_helper(16, "AES-128-CMAC");
+#endif
+#ifdef WOLFSSL_AES_256
+    bench_cmac_helper(32, "AES-256-CMAC");
+#endif
+
+}
 #endif /* WOLFSSL_CMAC */
 
 #ifdef HAVE_SCRYPT
@@ -3866,7 +3979,8 @@ void bench_rsaKeyGen_size(int doAsync, int keySz)
 #define RSA_BUF_SIZE 384  /* for up to 3072 bit */
 
 #if !defined(WOLFSSL_RSA_VERIFY_INLINE) && !defined(WOLFSSL_RSA_PUBLIC_ONLY)
-#elif defined(USE_CERT_BUFFERS_2048)
+#elif defined(WOLFSSL_PUBLIC_MP)
+    #if defined(USE_CERT_BUFFERS_2048)
 static unsigned char rsa_2048_sig[] = {
     0x8c, 0x9e, 0x37, 0xbf, 0xc3, 0xa6, 0xba, 0x1c,
     0x53, 0x22, 0x40, 0x4b, 0x8b, 0x0d, 0x3c, 0x0e,
@@ -3901,7 +4015,7 @@ static unsigned char rsa_2048_sig[] = {
     0x4c, 0xef, 0xe8, 0xd4, 0x4d, 0x6a, 0x33, 0x7d,
     0x9e, 0xd2, 0x51, 0xe6, 0x41, 0xbf, 0x4f, 0xa2
 };
-#elif defined(USE_CERT_BUFFERS_3072)
+    #elif defined(USE_CERT_BUFFERS_3072)
 static unsigned char rsa_3072_sig[] = {
     0x1a, 0xd6, 0x0d, 0xfd, 0xe3, 0x41, 0x95, 0x76,
     0x27, 0x16, 0x7d, 0xc7, 0x94, 0x16, 0xca, 0xa8,
@@ -3952,10 +4066,12 @@ static unsigned char rsa_3072_sig[] = {
     0x5e, 0xe9, 0xd0, 0xa7, 0xb4, 0x2a, 0x45, 0xdf,
     0x15, 0x7d, 0x0d, 0x5b, 0xef, 0xc6, 0x23, 0xac
 };
-#else
-    #error Not Supported Yet!
+    #else
+        #error Not Supported Yet!
+    #endif
 #endif
 
+#if !defined(WOLFSSL_RSA_PUBLIC_ONLY) || defined(WOLFSSL_PUBLIC_MP)
 static void bench_rsa_helper(int doAsync, RsaKey rsaKey[BENCH_MAX_PENDING],
         int rsaKeySz)
 {
@@ -3970,34 +4086,31 @@ static void bench_rsa_helper(int doAsync, RsaKey rsaKey[BENCH_MAX_PENDING],
 #ifndef WOLFSSL_RSA_VERIFY_ONLY
     DECLARE_VAR_INIT(message, byte, len, messageStr, HEAP_HINT);
 #endif
-
-    #ifdef USE_CERT_BUFFERS_1024
-        DECLARE_ARRAY(enc, byte, BENCH_MAX_PENDING, 128, HEAP_HINT);
-        #if !defined(WOLFSSL_RSA_VERIFY_INLINE) && \
-                        !defined(WOLFSSL_RSA_PUBLIC_ONLY)
-            DECLARE_ARRAY(out, byte, BENCH_MAX_PENDING, 128, HEAP_HINT);
-        #else
-            byte* out[BENCH_MAX_PENDING];
-        #endif
-    #elif defined(USE_CERT_BUFFERS_2048)
-        DECLARE_ARRAY(enc, byte, BENCH_MAX_PENDING, 256, HEAP_HINT);
-        #if !defined(WOLFSSL_RSA_VERIFY_INLINE) && \
-                        !defined(WOLFSSL_RSA_PUBLIC_ONLY)
-            DECLARE_ARRAY(out, byte, BENCH_MAX_PENDING, 256, HEAP_HINT);
-        #else
-            byte* out[BENCH_MAX_PENDING];
-        #endif
-    #elif defined(USE_CERT_BUFFERS_3072)
-        DECLARE_ARRAY(enc, byte, BENCH_MAX_PENDING, 384, HEAP_HINT);
-        #if !defined(WOLFSSL_RSA_VERIFY_INLINE) && \
-                        !defined(WOLFSSL_RSA_PUBLIC_ONLY)
-            DECLARE_ARRAY(out, byte, BENCH_MAX_PENDING, 384, HEAP_HINT);
-        #else
-            byte* out[BENCH_MAX_PENDING];
+    #if !defined(WOLFSSL_MDK5_COMPLv5)
+      /* MDK5 compiler regard this as a executable statement, and does not allow declarations after the line. */
+        DECLARE_ARRAY_DYNAMIC_DEC(enc, byte, BENCH_MAX_PENDING, rsaKeySz, HEAP_HINT);
+      #else
+          byte* enc[BENCH_MAX_PENDING];
+          int idxenc;
+      #endif
+    #if !defined(WOLFSSL_RSA_VERIFY_INLINE) && \
+                    !defined(WOLFSSL_RSA_PUBLIC_ONLY)
+        #if !defined(WOLFSSL_MDK5_COMPLv5)
+          /* MDK5 compiler regard this as a executable statement, and does not allow declarations after the line. */
+            DECLARE_ARRAY_DYNAMIC_DEC(out, byte, BENCH_MAX_PENDING, rsaKeySz, HEAP_HINT);
+            #else
+                int idxout;
+              byte* out[BENCH_MAX_PENDING];
         #endif
     #else
-        #error "need a cert buffer size"
-    #endif /* USE_CERT_BUFFERS */
+        byte* out[BENCH_MAX_PENDING];
+    #endif
+
+    DECLARE_ARRAY_DYNAMIC_EXE(enc, byte, BENCH_MAX_PENDING, rsaKeySz, HEAP_HINT);
+    #if !defined(WOLFSSL_RSA_VERIFY_INLINE) && \
+                    !defined(WOLFSSL_RSA_PUBLIC_ONLY)
+        DECLARE_ARRAY_DYNAMIC_EXE(out, byte, BENCH_MAX_PENDING, rsaKeySz, HEAP_HINT);
+    #endif
 
     if (!rsa_sign_verify) {
 #ifndef WOLFSSL_RSA_VERIFY_ONLY
@@ -4145,16 +4258,19 @@ exit_rsa_verify:
                                                                     start, ret);
     }
 
-    FREE_ARRAY(enc, BENCH_MAX_PENDING, HEAP_HINT);
-    FREE_ARRAY(out, BENCH_MAX_PENDING, HEAP_HINT);
+    FREE_ARRAY_DYNAMIC(enc, BENCH_MAX_PENDING, HEAP_HINT);
+#if !defined(WOLFSSL_RSA_VERIFY_INLINE) && !defined(WOLFSSL_RSA_PUBLIC_ONLY)
+    FREE_ARRAY_DYNAMIC(out, BENCH_MAX_PENDING, HEAP_HINT);
+#endif
     FREE_VAR(message, HEAP_HINT);
 }
-
+#endif
 
 void bench_rsa(int doAsync)
 {
     int         ret = 0, i;
     RsaKey      rsaKey[BENCH_MAX_PENDING];
+#if !defined(WOLFSSL_RSA_PUBLIC_ONLY) || defined(WOLFSSL_PUBLIC_MP)
     int         rsaKeySz = RSA_BUF_SIZE * 8; /* used in printf */
     size_t      bytes;
     const byte* tmp;
@@ -4175,6 +4291,7 @@ void bench_rsa(int doAsync)
 #else
     #error "need a cert buffer size"
 #endif /* USE_CERT_BUFFERS */
+#endif
 
     /* clear for done cleanup */
     XMEMSET(rsaKey, 0, sizeof(rsaKey));
@@ -4187,12 +4304,15 @@ void bench_rsa(int doAsync)
             goto exit_bench_rsa;
         }
 
+#ifndef WOLFSSL_RSA_VERIFY_ONLY
     #ifdef WC_RSA_BLINDING
         ret = wc_RsaSetRNG(&rsaKey[i], &rng);
         if (ret != 0)
             goto exit_bench_rsa;
     #endif
+#endif
 
+#ifndef WOLFSSL_RSA_PUBLIC_ONLY
         /* decode the private key */
         idx = 0;
         if ((ret = wc_RsaPrivateKeyDecode(tmp, &idx, &rsaKey[i],
@@ -4200,9 +4320,30 @@ void bench_rsa(int doAsync)
             printf("wc_RsaPrivateKeyDecode failed! %d\n", ret);
             goto exit_bench_rsa;
         }
+#elif defined(WOLFSSL_PUBLIC_MP)
+    #ifdef USE_CERT_BUFFERS_2048
+        ret = mp_read_unsigned_bin(&rsaKey[i].n, &tmp[12], 256);
+        if (ret != 0) {
+            printf("wc_RsaPrivateKeyDecode failed! %d\n", ret);
+            goto exit_bench_rsa;
+        }
+        ret = mp_set_int(&rsaKey[i].e, WC_RSA_EXPONENT);
+        if (ret != 0) {
+            printf("wc_RsaPrivateKeyDecode failed! %d\n", ret);
+            goto exit_bench_rsa;
+        }
+    #else
+        #error Not supported yet!
+    #endif
+        (void)idx;
+        (void)bytes;
+#endif
+
     }
 
+#if !defined(WOLFSSL_RSA_PUBLIC_ONLY) || defined(WOLFSSL_PUBLIC_MP)
     bench_rsa_helper(doAsync, rsaKey, rsaKeySz);
+#endif
 exit_bench_rsa:
     /* cleanup */
     for (i = 0; i < BENCH_MAX_PENDING; i++) {
@@ -4218,7 +4359,7 @@ void bench_rsa_key(int doAsync, int rsaKeySz)
     int     ret = 0, i, pending = 0;
     RsaKey  rsaKey[BENCH_MAX_PENDING];
     int     isPending[BENCH_MAX_PENDING];
-    int     exp = 65537;
+    long    exp = 65537l;
 
     /* clear for done cleanup */
     XMEMSET(rsaKey, 0, sizeof(rsaKey));
@@ -4713,8 +4854,8 @@ void bench_ecc(int doAsync)
 #endif
 #if !defined(NO_ASN) && defined(HAVE_ECC_SIGN)
     DECLARE_ARRAY(sig, byte, BENCH_MAX_PENDING, ECC_MAX_SIG_SIZE, HEAP_HINT);
-#endif
     DECLARE_ARRAY(digest, byte, BENCH_MAX_PENDING, BENCH_ECC_SIZE, HEAP_HINT);
+#endif
 
     /* clear for done cleanup */
     XMEMSET(&genKey, 0, sizeof(genKey));
@@ -4856,8 +4997,8 @@ exit:
 #endif
 #if !defined(NO_ASN) && defined(HAVE_ECC_SIGN)
     FREE_ARRAY(sig, BENCH_MAX_PENDING, HEAP_HINT);
-#endif
     FREE_ARRAY(digest, BENCH_MAX_PENDING, HEAP_HINT);
+#endif
 }
 
 
@@ -5026,7 +5167,7 @@ void bench_ed25519KeyGen(void)
     do {
         for (i = 0; i < genTimes; i++) {
             wc_ed25519_init(&genKey);
-            wc_ed25519_make_key(&rng, 32, &genKey);
+            (void)wc_ed25519_make_key(&rng, 32, &genKey);
             wc_ed25519_free(&genKey);
         }
         count += i;
@@ -5210,6 +5351,17 @@ exit_ed_verify:
 #elif defined(WOLFSSL_SGX)
     double current_time(int reset);
 
+#elif defined(WOLFSSL_DEOS)
+    double current_time(int reset)
+    {
+        const uint32_t systemTickTimeInHz = 1000000 / systemTickInMicroseconds();
+        uint32_t *systemTickPtr = systemTickPointer();
+
+        (void)reset;
+
+        return (double) *systemTickPtr/systemTickTimeInHz;
+    }
+
 #elif defined(MICRIUM)
     double current_time(int reset)
     {
@@ -5218,6 +5370,21 @@ exit_ed_verify:
         (void)reset;
         return (double) CPU_TS_Get32()/CPU_TS_TmrFreqGet(&err);
     }
+#elif defined(WOLFSSL_ZEPHYR)
+
+    #include <time.h>
+
+    double current_time(int reset)
+    {
+        (void)reset;
+
+     #if defined(CONFIG_ARCH_POSIX)
+         k_cpu_idle();
+     #endif
+
+        return (double)k_uptime_get() / 1000;
+    }
+
 #else
 
     #include <sys/time.h>
@@ -5262,6 +5429,8 @@ void benchmark_configure(int block_size)
 }
 
 #ifndef NO_MAIN_DRIVER
+
+#ifndef MAIN_NO_ARGS
 
 #ifndef WOLFSSL_BENCHMARK_ALL
 /* Display the algorithm string and keep to 80 characters per line.
@@ -5344,13 +5513,18 @@ static int string_matches(const char* arg, const char* str)
     int len = (int)XSTRLEN(str) + 1;
     return XSTRNCMP(arg, str, len) == 0;
 }
+#endif /* MAIN_NO_ARGS */
+
 #ifdef WOLFSSL_ESPIDF
-int app_main( )
+int wolf_benchmark_task( )
+#elif defined(MAIN_NO_ARGS)
+int main()
 #else
 int main(int argc, char** argv)
 #endif
 {
     int ret = 0;
+#ifndef MAIN_NO_ARGS
     int optMatched;
 #ifdef WOLFSSL_ESPIDF
     int argc = construct_argv();
@@ -5359,7 +5533,9 @@ int main(int argc, char** argv)
 #ifndef WOLFSSL_BENCHMARK_ALL
     int i;
 #endif
+#endif
 
+#ifndef MAIN_NO_ARGS
     while (argc > 1) {
         if (string_matches(argv[1], "-?")) {
             if(--argc>1){
@@ -5465,6 +5641,7 @@ int main(int argc, char** argv)
         argc--;
         argv++;
     }
+#endif /* MAIN_NO_ARGS */
 
 #ifdef HAVE_STACK_SIZE
     ret = StackSizeCheck(NULL, benchmark_test);
