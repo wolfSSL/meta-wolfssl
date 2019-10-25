@@ -12,8 +12,6 @@ LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=cfa4c4919fe921b3a72
 
 DEPENDS += "wolfssl"
 
-SRC_URI[md5sum] = "e63ee2efe3f8847c0ada4b884a408715"
-SRC_URI[sha256sum] = "ec1cf65283bfaf9433b7f937dd8ab8aa54d7691e6646e5f3b84aea034d1d3b1e"
 SRC_URI = "file://test.c file://test.h"
 
 S = "${WORKDIR}"
@@ -26,4 +24,3 @@ do_install() {
     install -d ${D}${bindir}
     install -m 0755 ${S}/wolfcrypttest ${D}${bindir}
 }
-
