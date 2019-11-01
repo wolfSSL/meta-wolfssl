@@ -60,14 +60,15 @@ After installing your build's YoctoProject/OpenEmbedded components:
    $ bitbake wolfssl
    $ bitbake wolfssh
    $ bitbake wolfmqtt
+   $ bitbake wolftpm
    ```
 
 2. Edit your build's local.conf file to install the libraries you would like
-   included (ie: wolfssl, wolfssh, wolfmqtt) by adding a IMAGE_INSTALL_append
+   included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) by adding a IMAGE_INSTALL_append
    line:
 
     ```
-    IMAGE_INSTALL_append = "wolfssl wolfssh wolfmqtt"
+    IMAGE_INSTALL_append = "wolfssl wolfssh wolfmqtt wolftpm"
     ```
 
 Once your image has been built, the default location for the wolfSSL library
@@ -115,7 +116,7 @@ application.
 Example Application Recipes
 ---------------------------
 
-Several wolfSSL example appliation recipes are included in this layer. These
+Several wolfSSL example application recipes are included in this layer. These
 include:
 
 - wolfCrypt test application      (depends on wolfssl)
@@ -141,7 +142,7 @@ variable. For example, to install the wolfSSL, wolfSSH, and wolfMQTT libraries
 in addition to the wolfCrypt test and benchmark applications:
 
 ```
-IMAGE_INSTALL_append = "wolfssl wolfssh wolfmqtt wolfcrypttest wolfcryptbenchmark"
+IMAGE_INSTALL_append = "wolfssl wolfssh wolfmqtt wolftpm wolfcrypttest wolfcryptbenchmark"
 ```
 
 When your image builds, these will be installed to the '/usr/bin' system
@@ -168,4 +169,3 @@ wolfSSL is open source and dual licensed under both the GPLv2
 and a standard commercial license. For commercial license
 questions, please contact wolfSSL at licensing@wolfssl.com. For product
 support inquiries please contact support@wolfssl.com.
-
