@@ -11,8 +11,8 @@ LIC_FILES_CHKSUM = "file://LICENSING;md5=2c2d0ee3db6ceba278dd43212ed03733"
 
 DEPENDS += "wolfssl"
 
-SRC_URI[md5sum] = "6c4fb04bc898400e81b7e5ca96e76dcc"
-SRC_URI[sha256sum] = "797fc18d5599e82013412ee0ab482df4cb6dd6915ac3ab7605309acbfd955830"
+SRC_URI[md5sum] = "d7ad6b88de80bfff171bcf069987fa93"
+SRC_URI[sha256sum] = "3e9ecb4aef9af54edc1674e54ebc64950aa77b8b4c92136486c411eabec94262"
 SRC_URI = "https://www.wolfssl.com/wolfssh-${PV}.zip"
 
 inherit autotools

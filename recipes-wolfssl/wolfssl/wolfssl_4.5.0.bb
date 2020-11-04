@@ -14,8 +14,8 @@ RPROVIDES_${PN} = "cyassl"
 PROVIDES += "wolfssl"
 RPROVIDES_${PN} = "wolfssl"
 
-SRC_URI[md5sum] = "b0f9dbc7a9e322762d5d36384a9cecc6"
-SRC_URI[sha256sum] = "6d9cb110947efebd637f5d480bf810c30e915041b1eb8671e3c487d37d14047a"
+SRC_URI[md5sum] = "1401b232874c33309b593c5f838e4f26"
+SRC_URI[sha256sum] = "db2dd2c85e36130bb6dd666edca70c1bd642afa10ef0a5ac69e9142a26d25b3f"
 SRC_URI = "https://www.wolfssl.com/wolfssl-${PV}.zip"
 
 inherit autotools
