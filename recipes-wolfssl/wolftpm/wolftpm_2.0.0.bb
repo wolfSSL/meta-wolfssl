@@ -12,8 +12,8 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
 DEPENDS += "wolfssl"
 
-SRC_URI[md5sum] = "a16e4a841d879c13e30d5f1c9a7dafc9"
-SRC_URI[sha256sum] = "6440b96a558e4ac9ca138f05c41b21d2cea988ae2b4a8699140e8e9adf0c477f"
+SRC_URI[md5sum] = "f0d3b91139917b404e75a93d6a24d8fb"
+SRC_URI[sha256sum] = "e99914a4cbfef7f0e311f48d107685ac5e1574f41709f578aa3502604b290468"
 SRC_URI = "https://www.wolfssl.com/wolftpm-${PV}.zip \
            file://0001-fix-have-wolfssl-m4-rule.patch"
 
