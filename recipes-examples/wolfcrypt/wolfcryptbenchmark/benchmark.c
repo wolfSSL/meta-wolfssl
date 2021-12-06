@@ -33,6 +33,7 @@
 #include <wolfssl/wolfcrypt/settings.h>
 #include <wolfssl/version.h>
 #include <wolfssl/wolfcrypt/wc_port.h>
+#include <wolfssl/wolfcrypt/ecc.h>
 
 /* Macro to disable benchmark */
 #ifndef NO_CRYPT_BENCHMARK
@@ -61,6 +62,7 @@
     #define printf PRINTF
 #elif defined(WOLFSSL_DEOS)
     #include <deos.h>
+    #include <printx.h>
     #undef printf
     #define printf printx
 #elif defined(MICRIUM)
@@ -108,7 +110,10 @@
     #undef  NO_FILESYSTEM
     #define NO_FILESYSTEM
 
-#elif defined(ANDROID)
+/* ANDROID_V454 (for android studio) displays information in a textview
+ * and redirects printf to the textview output instead of using
+ * __android_log_print() */
+#elif defined(ANDROID) && !defined(ANDROID_V454)
     #ifdef XMALLOC_USER
         #include <stdlib.h>  /* we're using malloc / free direct here */
     #endif
@@ -137,6 +142,9 @@
     #ifdef XPRINTF
         #undef  printf
         #define printf XPRINTF
+    #elif defined(NETOS)
+        #undef printf
+        #define printf dc_log_printf
     #endif
 #endif
 
@@ -192,9 +200,6 @@
 #endif
 
 #include <wolfssl/wolfcrypt/dh.h>
-#ifdef HAVE_NTRU
-    #include "libntruencrypt/ntru_crypto.h"
-#endif
 #include <wolfssl/wolfcrypt/random.h>
 #include <wolfssl/wolfcrypt/error-crypt.h>
 #include <wolfssl/wolfcrypt/types.h>
@@ -293,8 +298,6 @@
 #define BENCH_RSA                0x00000002
 #define BENCH_RSA_SZ             0x00000004
 #define BENCH_DH                 0x00000010
-#define BENCH_NTRU               0x00000100
-#define BENCH_NTRU_KEYGEN        0x00000200
 #define BENCH_ECC_MAKEKEY        0x00001000
 #define BENCH_ECC                0x00002000
 #define BENCH_ECC_ENCRYPT        0x00004000
@@ -505,10 +508,6 @@ static const bench_alg bench_asym_opt[] = {
 #ifndef NO_DH
     { "-dh",                 BENCH_DH                },
 #endif
-#ifdef HAVE_NTRU
-    { "-ntru",               BENCH_NTRU              },
-    { "-ntru-kg",            BENCH_NTRU_KEYGEN       },
-#endif
 #ifdef HAVE_ECC
     { "-ecc-kg",             BENCH_ECC_MAKEKEY       },
     { "-ecc",                BENCH_ECC               },
@@ -634,7 +633,7 @@ static const char* bench_result_words1[][4] = {
 #endif
 };
 
-#if !defined(NO_RSA) || defined(HAVE_NTRU) || \
+#if !defined(NO_RSA) || \
     defined(HAVE_ECC) || !defined(NO_DH) || defined(HAVE_ECC_ENCRYPT) || \
     defined(HAVE_CURVE25519) || defined(HAVE_CURVE25519_SHARED_SECRET)  || \
     defined(HAVE_ED25519) || defined(HAVE_CURVE448) || \
@@ -775,13 +774,15 @@ static const char* bench_desc_words[][14] = {
 
 #if defined(HAVE_ED25519) || defined(HAVE_CURVE25519) || \
     defined(HAVE_CURVE448) || defined(HAVE_ED448) || \
-    defined(HAVE_ECC) || defined(HAVE_NTRU) || !defined(NO_DH) || \
+    defined(HAVE_ECC) || !defined(NO_DH) || \
     !defined(NO_RSA) || defined(HAVE_SCRYPT)
     #define BENCH_ASYM
 #endif
 
 #if defined(BENCH_ASYM)
-#if defined(HAVE_ECC) || !defined(NO_RSA) || !defined(NO_DH)
+#if defined(HAVE_ECC) || !defined(NO_RSA) || !defined(NO_DH) || \
+    defined(HAVE_CURVE25519) || defined(HAVE_ED25519) || \
+    defined(HAVE_CURVE448) || defined(HAVE_ED448)
 static const char* bench_result_words2[][5] = {
     { "ops took", "sec"     , "avg" , "ops/sec", NULL },            /* 0 English  */
 #ifndef NO_MULTIBYTE_PRINT
@@ -1065,10 +1066,13 @@ typedef enum bench_stat_type {
     BENCH_STAT_SYM,
 } bench_stat_type_t;
 #if defined(WOLFSSL_ASYNC_CRYPT) && !defined(WC_NO_ASYNC_THREADING)
+    #ifndef BENCH_MAX_NAME_SZ
+    #define BENCH_MAX_NAME_SZ 24
+    #endif
     typedef struct bench_stats {
         struct bench_stats* next;
         struct bench_stats* prev;
-        const char* algo;
+        char algo[BENCH_MAX_NAME_SZ+1]; /* may not be static, so make copy */
         const char* desc;
         double perfsec;
         int strength;
@@ -1086,16 +1090,21 @@ typedef enum bench_stat_type {
         const char* algo, int strength, const char* desc, int doAsync,
         double perfsec, const char* perftype, int ret)
     {
-        bench_stats_t* bstat;
+        bench_stats_t* bstat = NULL;
 
         /* protect bench_stats_head and bench_stats_tail access */
         pthread_mutex_lock(&bench_lock);
 
-        /* locate existing in list */
-        for (bstat = bench_stats_head; bstat != NULL; bstat = bstat->next) {
-            /* match based on algo, strength and desc */
-            if (bstat->algo == algo && bstat->strength == strength && bstat->desc == desc && bstat->doAsync == doAsync) {
-                break;
+        if (algo != NULL) {
+            /* locate existing in list */
+            for (bstat = bench_stats_head; bstat != NULL; bstat = bstat->next) {
+                /* match based on algo, strength and desc */
+                if (XSTRNCMP(bstat->algo, algo, BENCH_MAX_NAME_SZ) == 0 &&
+                    bstat->strength == strength &&
+                    bstat->desc == desc &&
+                    bstat->doAsync == doAsync) {
+                    break;
+                }
             }
         }
 
@@ -1117,10 +1126,10 @@ typedef enum bench_stat_type {
                 bench_stats_tail = bstat; /* add to the end either way */
             }
         }
-
         if (bstat) {
             bstat->type = type;
-            bstat->algo = algo;
+            if (algo != NULL)
+                XSTRNCPY(bstat->algo, algo, BENCH_MAX_NAME_SZ);
             bstat->strength = strength;
             bstat->desc = desc;
             bstat->doAsync = doAsync;
@@ -1129,17 +1138,8 @@ typedef enum bench_stat_type {
             bstat->perftype = perftype;
             if (bstat->lastRet > ret)
                 bstat->lastRet = ret; /* track last error */
-
-            pthread_mutex_unlock(&bench_lock);
-
-            /* wait until remaining are complete */
-            while (bstat->finishCount < g_threadCount) {
-                wc_AsyncThreadYield();
-            }
         }
-        else {
-            pthread_mutex_unlock(&bench_lock);
-        }
+        pthread_mutex_unlock(&bench_lock);
 
         return bstat;
     }
@@ -1291,7 +1291,7 @@ static void bench_stats_sym_finish(const char* desc, int doAsync, int count,
         }
     }
 
-    /* caclulcate blocks per second */
+    /* calculate blocks per second */
     if (total > 0) {
         persec = (1 / total) * blocks;
     }
@@ -1323,7 +1323,9 @@ static void bench_stats_sym_finish(const char* desc, int doAsync, int count,
 }
 
 #ifdef BENCH_ASYM
-#if defined(HAVE_ECC) || !defined(NO_RSA) || !defined(NO_DH)
+#if defined(HAVE_ECC) || !defined(NO_RSA) || !defined(NO_DH) || \
+    defined(HAVE_CURVE25519) || defined(HAVE_ED25519) || \
+    defined(HAVE_CURVE448) || defined(HAVE_ED448)
 static void bench_stats_asym_finish(const char* algo, int strength,
     const char* desc, int doAsync, int count, double start, int ret)
 {
@@ -1867,13 +1869,6 @@ static void* benchmarks_do(void* args)
     }
 #endif
 
-#ifdef HAVE_NTRU
-    if (bench_all || (bench_asym_algs & BENCH_NTRU))
-        bench_ntru();
-    if (bench_all || (bench_asym_algs & BENCH_NTRU_KEYGEN))
-        bench_ntruKeyGen();
-#endif
-
 #ifdef HAVE_ECC
     if (bench_all || (bench_asym_algs & BENCH_ECC_MAKEKEY) ||
             (bench_asym_algs & BENCH_ECC) ||
@@ -1894,6 +1889,14 @@ static void* benchmarks_do(void* args)
             }
 
             do {
+            #ifdef WOLFCRYPT_HAVE_SAKKE
+                /* SAKKE is not useable with ECDH/ECDSA. Run separate test. */
+                if (curveId == ECC_SAKKE_1) {
+                    curveId++;
+                    continue;
+                }
+            #endif
+
                 if (wc_ecc_get_curve_size_from_id(curveId) !=
                         ECC_BAD_ARG_E) {
                     bench_ecc_curve(curveId);
@@ -2001,26 +2004,8 @@ exit:
     XFREE(bench_iv, HEAP_HINT, DYNAMIC_TYPE_WOLF_BIGINT);
 #endif
 
-#ifdef WOLF_CRYPTO_CB
-#ifdef HAVE_INTEL_QA_SYNC
-    wc_CryptoCb_CleanupIntelQa(&devId);
-#endif
-#ifdef HAVE_CAVIUM_OCTEON_SYNC
-    wc_CryptoCb_CleanupOcteon(&devId);
-#endif
-#endif
-
-#ifdef WOLFSSL_ASYNC_CRYPT
-    /* free event queue */
-    wolfEventQueue_Free(&eventQueue);
-#endif
-
 #if defined(HAVE_LOCAL_RNG)
     wc_FreeRng(&gRng);
-#endif
-
-#ifdef WOLFSSL_ASYNC_CRYPT
-    wolfAsync_DevClose(&devId);
 #endif
 
 /* cleanup the thread if fixed point cache is enabled and have thread local */
@@ -2055,6 +2040,9 @@ int benchmark_init(void)
         printf("wolfCrypt_Init failed %d\n", ret);
         return EXIT_FAILURE;
     }
+#ifdef WC_RNG_SEED_CB
+    wc_SetSeed_Cb(wc_GenerateSeed);
+#endif
 
     bench_stats_init();
 
@@ -2087,18 +2075,35 @@ int benchmark_free(void)
 {
     int ret;
 
+    if (gPrintStats || devId != INVALID_DEVID) {
+        bench_stats_print();
+    }
+
+    bench_stats_free();
+
+#ifdef WOLF_CRYPTO_CB
+#ifdef HAVE_INTEL_QA_SYNC
+    wc_CryptoCb_CleanupIntelQa(&devId);
+#endif
+#ifdef HAVE_CAVIUM_OCTEON_SYNC
+    wc_CryptoCb_CleanupOcteon(&devId);
+#endif
+#endif
+
+#ifdef WOLFSSL_ASYNC_CRYPT
+    /* free event queue */
+    wolfEventQueue_Free(&eventQueue);
+
+    /* close device */
+    wolfAsync_DevClose(&devId);
+#endif
+
 #ifdef HAVE_WNR
     ret = wc_FreeNetRandom();
     if (ret < 0) {
         printf("Failed to free netRandom context %d\n", ret);
     }
 #endif
-
-    if (gPrintStats || devId != INVALID_DEVID) {
-        bench_stats_print();
-    }
-
-    bench_stats_free();
 
     if ((ret = wolfCrypt_Cleanup()) != 0) {
         printf("error %d with wolfCrypt_Cleanup\n", ret);
@@ -2135,7 +2140,13 @@ int benchmark_test(void *args)
         g_threadCount = WC_ASYNC_BENCH_THREAD_COUNT;
     #else
         g_threadCount = wc_AsyncGetNumberOfCpus();
+        if (g_threadCount > 0) {
+            g_threadCount /= 2; /* use physical core count */
+        }
     #endif
+    }
+    if (g_threadCount <= 0) {
+        g_threadCount = 1;
     }
 
     printf("CPUs: %d\n", g_threadCount);
@@ -2394,10 +2405,23 @@ static void bench_aesgcm_internal(int doAsync, const byte* key, word32 keySz,
             /* while free pending slots in queue, submit ops */
             for (i = 0; i < BENCH_MAX_PENDING; i++) {
                 if (bench_async_check(&ret, BENCH_ASYNC_GET_DEV(&enc[i]), 0, &times, numBlocks, &pending)) {
+#ifndef BENCHMARK_AESGCM_STREAM
                     ret = wc_AesGcmEncrypt(&enc[i], bench_cipher,
                         bench_plain, BENCH_SIZE,
                         iv, ivSz, bench_tag, AES_AUTH_TAG_SZ,
                         bench_additional, aesAuthAddSz);
+#else
+                    ret = wc_AesGcmEncryptInit(&enc[i], NULL, 0, iv, ivSz);
+                    if (ret == 0) {
+                        ret = wc_AesGcmEncryptUpdate(&enc[i], bench_cipher,
+                            bench_plain, BENCH_SIZE, bench_additional,
+                            aesAuthAddSz);
+                    }
+                    if (ret == 0) {
+                        ret = wc_AesGcmEncryptFinal(&enc[i], bench_tag,
+                            AES_AUTH_TAG_SZ);
+                    }
+#endif
                     if (!bench_async_handle(&ret, BENCH_ASYNC_GET_DEV(&enc[i]), 0, &times, &pending)) {
                         goto exit_aes_gcm;
                     }
@@ -2433,10 +2457,23 @@ exit_aes_gcm:
             /* while free pending slots in queue, submit ops */
             for (i = 0; i < BENCH_MAX_PENDING; i++) {
                 if (bench_async_check(&ret, BENCH_ASYNC_GET_DEV(&dec[i]), 0, &times, numBlocks, &pending)) {
+#ifndef BENCHMARK_AESGCM_STREAM
                     ret = wc_AesGcmDecrypt(&dec[i], bench_plain,
                         bench_cipher, BENCH_SIZE,
                         iv, ivSz, bench_tag, AES_AUTH_TAG_SZ,
                         bench_additional, aesAuthAddSz);
+#else
+                    ret = wc_AesGcmDecryptInit(&enc[i], NULL, 0, iv, ivSz);
+                    if (ret == 0) {
+                        ret = wc_AesGcmDecryptUpdate(&enc[i], bench_plain,
+                            bench_cipher, BENCH_SIZE, bench_additional,
+                            aesAuthAddSz);
+                    }
+                    if (ret == 0) {
+                        ret = wc_AesGcmDecryptFinal(&enc[i], bench_tag,
+                            AES_AUTH_TAG_SZ);
+                    }
+#endif
                     if (!bench_async_handle(&ret, BENCH_ASYNC_GET_DEV(&dec[i]), 0, &times, &pending)) {
                         goto exit_aes_gcm_dec;
                     }
@@ -4651,18 +4688,17 @@ static void bench_rsa_helper(int doAsync, RsaKey rsaKey[BENCH_MAX_PENDING],
 #ifndef WOLFSSL_RSA_VERIFY_ONLY
     DECLARE_VAR(message, byte, TEST_STRING_SZ, HEAP_HINT);
 #endif
-    #if !defined(WOLFSSL_MDK5_COMPLv5)
+    #if !defined(WOLFSSL_MDK5_COMPLv5) && !defined(_WIN32_WCE)
     /* MDK5 compiler regard this as a executable statement, and does not allow declarations after the line. */
     DECLARE_ARRAY_DYNAMIC_DEC(enc, byte, BENCH_MAX_PENDING, rsaKeySz, HEAP_HINT);
     #else
         byte* enc[BENCH_MAX_PENDING];
     #endif
     #if !defined(WOLFSSL_RSA_VERIFY_INLINE) && !defined(WOLFSSL_RSA_PUBLIC_ONLY)
-        #if !defined(WOLFSSL_MDK5_COMPLv5)
+        #if !defined(WOLFSSL_MDK5_COMPLv5) && !defined(_WIN32_WCE)
           /* MDK5 compiler regard this as a executable statement, and does not allow declarations after the line. */
             DECLARE_ARRAY_DYNAMIC_DEC(out, byte, BENCH_MAX_PENDING, rsaKeySz, HEAP_HINT);
             #else
-                int idxout;
               byte* out[BENCH_MAX_PENDING];
         #endif
     #else
@@ -4880,8 +4916,9 @@ void bench_rsa(int doAsync)
     /* init keys */
     for (i = 0; i < BENCH_MAX_PENDING; i++) {
         /* setup an async context for each key */
-        if ((ret = wc_InitRsaKey_ex(&rsaKey[i], HEAP_HINT,
-                                        doAsync ? devId : INVALID_DEVID)) < 0) {
+	ret = wc_InitRsaKey_ex(&rsaKey[i], HEAP_HINT,
+			       doAsync ? devId : INVALID_DEVID);
+        if (ret < 0) {
             goto exit_bench_rsa;
         }
 
@@ -5013,7 +5050,11 @@ exit_bench_rsa_key:
     #endif
 #endif
 
+#ifdef HAVE_FFDHE_4096
+#define BENCH_DH_KEY_SIZE  512 /* for 4096 bit */
+#else
 #define BENCH_DH_KEY_SIZE  384 /* for 3072 bit */
+#endif
 #define BENCH_DH_PRIV_SIZE (BENCH_DH_KEY_SIZE/8)
 
 void bench_dh(int doAsync)
@@ -5034,8 +5075,12 @@ void bench_dh(int doAsync)
     word32 pubSz2 = BENCH_DH_KEY_SIZE;
     word32 privSz2 = BENCH_DH_PRIV_SIZE;
     word32 agreeSz[BENCH_MAX_PENDING];
-#ifdef HAVE_FFDHE_2048
+#if defined(HAVE_FFDHE_2048) || defined(HAVE_FFDHE_3072)
+#ifdef HAVE_PUBLIC_FFDHE
     const DhParams *params = NULL;
+#else
+    int paramName = 0;
+#endif
 #endif
 
     DECLARE_ARRAY(pub, byte, BENCH_MAX_PENDING, BENCH_DH_KEY_SIZE, HEAP_HINT);
@@ -5074,14 +5119,32 @@ void bench_dh(int doAsync)
     }
 #ifdef HAVE_FFDHE_2048
     else if (use_ffdhe == 2048) {
+#ifdef HAVE_PUBLIC_FFDHE
         params = wc_Dh_ffdhe2048_Get();
+#else
+        paramName = WC_FFDHE_2048;
+#endif
         dhKeySz = 2048;
     }
 #endif
 #ifdef HAVE_FFDHE_3072
     else if (use_ffdhe == 3072) {
+#ifdef HAVE_PUBLIC_FFDHE
         params = wc_Dh_ffdhe3072_Get();
+#else
+        paramName = WC_FFDHE_3072;
+#endif
         dhKeySz = 3072;
+    }
+#endif
+#ifdef HAVE_FFDHE_4096
+    else if (use_ffdhe == 4096) {
+#ifdef HAVE_PUBLIC_FFDHE
+        params = wc_Dh_ffdhe4096_Get();
+#else
+        paramName = WC_FFDHE_4096;
+#endif
+        dhKeySz = 4096;
     }
 #endif
 
@@ -5107,10 +5170,16 @@ void bench_dh(int doAsync)
     #endif
         }
     #if defined(HAVE_FFDHE_2048) || defined(HAVE_FFDHE_3072)
+    #ifdef HAVE_PUBLIC_FFDHE
         else if (params != NULL) {
             ret = wc_DhSetKey(&dhKey[i], params->p, params->p_len, params->g,
                                                                  params->g_len);
         }
+    #else
+        else if (paramName != 0) {
+            ret = wc_DhSetNamedKey(&dhKey[i], paramName);
+        }
+    #endif
     #endif
         if (ret != 0) {
             printf("DhKeyDecode failed %d, can't benchmark\n", ret);
@@ -5120,6 +5189,7 @@ void bench_dh(int doAsync)
 
     /* Key Gen */
     bench_stats_start(&count, &start);
+    PRIVATE_KEY_UNLOCK();
     do {
         /* while free pending slots in queue, submit ops */
         for (times = 0; times < genTimes || pending > 0; ) {
@@ -5139,6 +5209,7 @@ void bench_dh(int doAsync)
         } /* for times */
         count += times;
     } while (bench_stats_sym_check(start));
+    PRIVATE_KEY_LOCK();
 exit_dh_gen:
     bench_stats_asym_finish("DH", dhKeySz, desc[2], doAsync, count, start, ret);
 
@@ -5147,13 +5218,16 @@ exit_dh_gen:
     }
 
     /* Generate key to use as other public */
+    PRIVATE_KEY_UNLOCK();
     ret = wc_DhGenerateKeyPair(&dhKey[0], &gRng, priv2, &privSz2, pub2, &pubSz2);
+    PRIVATE_KEY_LOCK();
 #ifdef WOLFSSL_ASYNC_CRYPT
     ret = wc_AsyncWait(ret, &dhKey[0].asyncDev, WC_ASYNC_FLAG_NONE);
 #endif
 
     /* Key Agree */
     bench_stats_start(&count, &start);
+    PRIVATE_KEY_UNLOCK();
     do {
         for (times = 0; times < agreeTimes || pending > 0; ) {
             bench_async_poll(&pending);
@@ -5171,6 +5245,7 @@ exit_dh_gen:
         } /* for times */
         count += times;
     } while (bench_stats_sym_check(start));
+    PRIVATE_KEY_LOCK();
 exit:
     bench_stats_asym_finish("DH", dhKeySz, desc[3], doAsync, count, start, ret);
 
@@ -5186,220 +5261,6 @@ exit:
     FREE_ARRAY(agree, BENCH_MAX_PENDING, HEAP_HINT);
 }
 #endif /* !NO_DH */
-
-#ifdef HAVE_NTRU
-byte GetEntropy(ENTROPY_CMD cmd, byte* out);
-
-byte GetEntropy(ENTROPY_CMD cmd, byte* out)
-{
-    if (cmd == INIT)
-        return 1; /* using local rng */
-
-    if (out == NULL)
-        return 0;
-
-    if (cmd == GET_BYTE_OF_ENTROPY)
-        return (wc_RNG_GenerateBlock(&gRng, out, 1) == 0) ? 1 : 0;
-
-    if (cmd == GET_NUM_BYTES_PER_BYTE_OF_ENTROPY) {
-        *out = 1;
-        return 1;
-    }
-
-    return 0;
-}
-
-void bench_ntru(void)
-{
-    int    i;
-    double start;
-
-    byte   public_key[1027];
-    word16 public_key_len = sizeof(public_key);
-    byte   private_key[1120];
-    word16 private_key_len = sizeof(private_key);
-    word16 ntruBits = 128;
-    word16 type     = 0;
-    word32 ret;
-
-    byte ciphertext[1022];
-    word16 ciphertext_len;
-    byte plaintext[16];
-    word16 plaintext_len;
-    const char**desc = bench_desc_words[lng_index];
-
-    DRBG_HANDLE drbg;
-    static byte const aes_key[] = {
-        0xf3, 0xe9, 0x87, 0xbb, 0x18, 0x08, 0x3c, 0xaa,
-        0x7b, 0x12, 0x49, 0x88, 0xaf, 0xb3, 0x22, 0xd8
-    };
-
-    static byte const wolfsslStr[] = {
-        'w', 'o', 'l', 'f', 'S', 'S', 'L', ' ', 'N', 'T', 'R', 'U'
-    };
-
-    for (ntruBits = 128; ntruBits < 257; ntruBits += 64) {
-        switch (ntruBits) {
-            case 128:
-                type = NTRU_EES439EP1;
-                break;
-            case 192:
-                type = NTRU_EES593EP1;
-                break;
-            case 256:
-                type = NTRU_EES743EP1;
-                break;
-        }
-
-        ret = ntru_crypto_drbg_instantiate(ntruBits, wolfsslStr,
-                sizeof(wolfsslStr), (ENTROPY_FN) GetEntropy, &drbg);
-        if(ret != DRBG_OK) {
-            printf("NTRU drbg instantiate failed\n");
-            return;
-        }
-
-        /* set key sizes */
-        ret = ntru_crypto_ntru_encrypt_keygen(drbg, type, &public_key_len,
-                                                  NULL, &private_key_len, NULL);
-        if (ret != NTRU_OK) {
-            ntru_crypto_drbg_uninstantiate(drbg);
-            printf("NTRU failed to get key lengths\n");
-            return;
-        }
-
-        ret = ntru_crypto_ntru_encrypt_keygen(drbg, type, &public_key_len,
-                                     public_key, &private_key_len,
-                                     private_key);
-
-        ntru_crypto_drbg_uninstantiate(drbg);
-
-        if (ret != NTRU_OK) {
-            printf("NTRU keygen failed\n");
-            return;
-        }
-
-        ret = ntru_crypto_drbg_instantiate(ntruBits, NULL, 0,
-                (ENTROPY_FN)GetEntropy, &drbg);
-        if (ret != DRBG_OK) {
-            printf("NTRU error occurred during DRBG instantiation\n");
-            return;
-        }
-
-        ret = ntru_crypto_ntru_encrypt(drbg, public_key_len, public_key,
-                sizeof(aes_key), aes_key, &ciphertext_len, NULL);
-
-        if (ret != NTRU_OK) {
-            printf("NTRU error occurred requesting the buffer size needed\n");
-            return;
-        }
-
-        bench_stats_start(&i, &start);
-        for (i = 0; i < ntimes; i++) {
-            ret = ntru_crypto_ntru_encrypt(drbg, public_key_len, public_key,
-                    sizeof(aes_key), aes_key, &ciphertext_len, ciphertext);
-            if (ret != NTRU_OK) {
-                printf("NTRU encrypt error\n");
-                return;
-            }
-        }
-        bench_stats_asym_finish("NTRU", ntruBits, desc[6], 0, i, start, ret);
-
-        ret = ntru_crypto_drbg_uninstantiate(drbg);
-        if (ret != DRBG_OK) {
-            printf("NTRU error occurred uninstantiating the DRBG\n");
-            return;
-        }
-
-        ret = ntru_crypto_ntru_decrypt(private_key_len, private_key,
-                ciphertext_len, ciphertext, &plaintext_len, NULL);
-
-        if (ret != NTRU_OK) {
-            printf("NTRU decrypt error occurred getting the buffer size needed\n");
-            return;
-        }
-
-        plaintext_len = sizeof(plaintext);
-
-        bench_stats_start(&i, &start);
-        for (i = 0; i < ntimes; i++) {
-            ret = ntru_crypto_ntru_decrypt(private_key_len, private_key,
-                                      ciphertext_len, ciphertext,
-                                      &plaintext_len, plaintext);
-
-            if (ret != NTRU_OK) {
-                printf("NTRU error occurred decrypting the key\n");
-                return;
-            }
-        }
-        bench_stats_asym_finish("NTRU", ntruBits, desc[7], 0, i, start, ret);
-    }
-
-}
-
-void bench_ntruKeyGen(void)
-{
-    double start;
-    int    i;
-
-    byte   public_key[1027];
-    word16 public_key_len = sizeof(public_key);
-    byte   private_key[1120];
-    word16 private_key_len = sizeof(private_key);
-    word16 ntruBits = 128;
-    word16 type     = 0;
-    word32 ret;
-    const char**desc = bench_desc_words[lng_index];
-
-    DRBG_HANDLE drbg;
-    static uint8_t const pers_str[] = {
-                'w', 'o', 'l', 'f',  'S', 'S', 'L', ' ', 't', 'e', 's', 't'
-    };
-
-    for (ntruBits = 128; ntruBits < 257; ntruBits += 64) {
-        ret = ntru_crypto_drbg_instantiate(ntruBits, pers_str,
-                sizeof(pers_str), GetEntropy, &drbg);
-        if (ret != DRBG_OK) {
-            printf("NTRU drbg instantiate failed\n");
-            return;
-        }
-
-        switch (ntruBits) {
-            case 128:
-                type = NTRU_EES439EP1;
-                break;
-            case 192:
-                type = NTRU_EES593EP1;
-                break;
-            case 256:
-                type = NTRU_EES743EP1;
-                break;
-        }
-
-        /* set key sizes */
-        ret = ntru_crypto_ntru_encrypt_keygen(drbg, type, &public_key_len,
-                                                  NULL, &private_key_len, NULL);
-
-        bench_stats_start(&i, &start);
-        for (i = 0; i < genTimes; i++) {
-            ret = ntru_crypto_ntru_encrypt_keygen(drbg, type, &public_key_len,
-                                         public_key, &private_key_len,
-                                         private_key);
-        }
-        bench_stats_asym_finish("NTRU", ntruBits, desc[2], 0, i, start, ret);
-
-        if (ret != NTRU_OK) {
-            return;
-        }
-
-        ret = ntru_crypto_drbg_uninstantiate(drbg);
-
-        if (ret != NTRU_OK) {
-            printf("NTRU drbg uninstantiate failed\n");
-            return;
-        }
-    }
-}
-#endif
 
 #ifdef HAVE_ECC
 
@@ -5443,7 +5304,6 @@ void bench_eccMakeKey(int doAsync, int curveId)
     char name[BENCH_ECC_NAME_SZ];
     double start;
     const char**desc = bench_desc_words[lng_index];
-
 
 #ifdef WOLFSSL_ASYNC_CRYPT
     deviceID = doAsync ? devId : INVALID_DEVID;
@@ -5574,6 +5434,7 @@ void bench_ecc(int doAsync, int curveId)
 
     /* ECC Shared Secret */
     bench_stats_start(&count, &start);
+    PRIVATE_KEY_UNLOCK();
     do {
         for (times = 0; times < agreeTimes || pending > 0; ) {
             bench_async_poll(&pending);
@@ -5595,6 +5456,7 @@ void bench_ecc(int doAsync, int curveId)
         } /* for times */
         count += times;
     } while (bench_stats_sym_check(start));
+    PRIVATE_KEY_UNLOCK();
 exit_ecdhe:
     XSNPRINTF(name, BENCH_ECC_NAME_SZ, "ECDHE [%15s]", wc_ecc_get_name(curveId));
 
@@ -5717,7 +5579,7 @@ void bench_eccEncrypt(int curveId)
     ecc_key userA, userB;
     int     keySize;
     byte    msg[48];
-    byte    out[80];
+    byte    out[sizeof(msg) + WC_SHA256_DIGEST_SIZE + (MAX_ECC_BITS+3)/4 + 2];
     word32  outSz   = sizeof(out);
     word32  bench_plainSz = BENCH_SIZE;
     int     ret, i, count;
@@ -5913,8 +5775,8 @@ void bench_ed25519KeySign(void)
     byte   sig[ED25519_SIG_SIZE];
     byte   msg[512];
     word32 x = 0;
-#endif
     const char**desc = bench_desc_words[lng_index];
+#endif
 
     wc_ed25519_init(&genKey);
 
@@ -6070,8 +5932,8 @@ void bench_ed448KeySign(void)
     byte   sig[ED448_SIG_SIZE];
     byte   msg[512];
     word32 x = 0;
-#endif
     const char**desc = bench_desc_words[lng_index];
+#endif
 
     wc_ed448_init(&genKey);
 
@@ -6163,7 +6025,7 @@ void bench_eccsiPairGen(void)
     byte id[] = { 0x01, 0x23, 0x34, 0x45 };
     int ret;
 
-    mp_init(&ssk);
+    (void)mp_init(&ssk);
     pvt = wc_ecc_new_point();
     wc_InitEccsiKey(&genKey, NULL, INVALID_DEVID);
     (void)wc_MakeEccsiKey(&genKey, &gRng);
@@ -6202,7 +6064,7 @@ void bench_eccsiValidate(void)
     int valid;
     int ret;
 
-    mp_init(&ssk);
+    (void)mp_init(&ssk);
     pvt = wc_ecc_new_point();
     wc_InitEccsiKey(&genKey, NULL, INVALID_DEVID);
     (void)wc_MakeEccsiKey(&genKey, &gRng);
@@ -6247,7 +6109,7 @@ void bench_eccsi(void)
     int ret;
     int verified;
 
-    mp_init(&ssk);
+    (void)mp_init(&ssk);
     pvt = wc_ecc_new_point();
     (void)wc_InitEccsiKey(&genKey, NULL, INVALID_DEVID);
     (void)wc_MakeEccsiKey(&genKey, &gRng);
@@ -6493,10 +6355,10 @@ void bench_sakke(void)
     bench_stats_asym_finish("SAKKE", 1024, desc[10], 0, count, start, 0);
 
     len = 0;
-    wc_GenerateSakkeRskTable(&genKey, rsk, NULL, &len);
+    (void)wc_GenerateSakkeRskTable(&genKey, rsk, NULL, &len);
     if (len > 0) {
         table = (byte*)XMALLOC(len, HEAP_HINT, DYNAMIC_TYPE_TMP_BUFFER);
-        wc_GenerateSakkeRskTable(&genKey, rsk, table, &len);
+        (void)wc_GenerateSakkeRskTable(&genKey, rsk, table, &len);
     }
     (void)wc_SetSakkeRsk(&genKey, rsk, table, len);
 
@@ -6656,7 +6518,7 @@ void bench_sakke(void)
     double current_time(int reset)
     {
         const uint32_t systemTickTimeInHz = 1000000 / systemTickInMicroseconds();
-        uint32_t *systemTickPtr = systemTickPointer();
+        const volatile uint32_t *systemTickPtr = systemTickPointer();
 
         (void)reset;
 
@@ -6890,7 +6752,7 @@ static int string_matches(const char* arg, const char* str)
 }
 #endif /* MAIN_NO_ARGS */
 
-#ifdef WOLFSSL_ESPIDF
+#if defined(WOLFSSL_ESPIDF) || defined(_WIN32_WCE)
 int wolf_benchmark_task( )
 #elif defined(MAIN_NO_ARGS)
 int main()
@@ -6961,6 +6823,10 @@ int main(int argc, char** argv)
 #if !defined(NO_DH) && defined(HAVE_FFDHE_3072)
         else if (string_matches(argv[1], "-ffdhe3072"))
             use_ffdhe = 3072;
+#endif
+#if !defined(NO_DH) && defined(HAVE_FFDHE_4096)
+        else if (string_matches(argv[1], "-ffdhe4096"))
+            use_ffdhe = 4096;
 #endif
 #if defined(HAVE_ECC) && !defined(NO_ECC256)
         else if (string_matches(argv[1], "-p256"))
