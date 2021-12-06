@@ -14,10 +14,14 @@ RPROVIDES_${PN} = "cyassl"
 PROVIDES += "wolfssl"
 RPROVIDES_${PN} = "wolfssl"
 
-SRC_URI[md5sum] = "07cdb0d6ec7f927e33c91f2ad543325e"
-SRC_URI[sha256sum] = "149299b90a6546a91e781c645187254d19c510286bc0c2bffaad0326ad5a8b6e"
-SRC_URI = "https://www.wolfssl.com/wolfssl-${PV}.zip"
+SRC_URI = "git://github.com/wolfssl/wolfssl.git;tag=v${PV}-stable"
 
-inherit autotools
+S = "${WORKDIR}/git"
+
+inherit autotools pkgconfig
+
+do_configure_prepend() {
+    (cd ${S}; ./autogen.sh; cd -)
+}
 
 BBCLASSEXTEND += "native nativesdk"
