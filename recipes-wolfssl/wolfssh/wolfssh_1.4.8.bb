@@ -11,8 +11,14 @@ LIC_FILES_CHKSUM = "file://LICENSING;md5=2c2d0ee3db6ceba278dd43212ed03733"
 
 DEPENDS += "wolfssl"
 
-SRC_URI[md5sum] = "7217789cdf50d02bd7ebac07396dfed2"
-SRC_URI[sha256sum] = "db6c11e8fc99ec2c5192e95bda79e75a9818b31bbc456c7b8cce11c4ed9455c3"
-SRC_URI = "https://www.wolfssl.com/wolfssh-${PV}.zip"
+SRC_URI = "git://github.com/wolfssl/wolfssh.git;tag=v${PV}-stable"
 
-inherit autotools
+S = "${WORKDIR}/git"
+
+inherit autotools pkgconfig
+
+EXTRA_OECONF = "--with-wolfssl=${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
+
+do_configure_prepend() {
+    (cd ${S}; ./autogen.sh; cd -)
+}
