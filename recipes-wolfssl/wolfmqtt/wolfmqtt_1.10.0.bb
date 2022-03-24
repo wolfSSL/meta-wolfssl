@@ -12,7 +12,7 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=2c1c00f9d3ed9e24fa69b932b7e7aff2"
 
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;tag=v${PV} \
+SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;protocol=https;tag=v${PV} \
            file://0001-fix-have-wolfssl-m4-rule.patch"
 
 S = "${WORKDIR}/git"
