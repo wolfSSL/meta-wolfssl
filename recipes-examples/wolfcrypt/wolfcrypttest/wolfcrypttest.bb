@@ -5,9 +5,9 @@ HOMEPAGE = "https://www.wolfssl.com"
 BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
 SECTION = "x11/applications"
 
-FILESEXTRAPATHS_prepend := "${THISDIR}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}:"
 
-LICENSE = "GPLv2"
+LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=6084af2d13b5c768a1afd538bbe2abeb"
 
 DEPENDS += "wolfssl"

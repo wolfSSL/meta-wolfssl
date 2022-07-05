@@ -7,12 +7,12 @@ DESCRIPTION = "wolfTPM is a portable TPM 2.0 project, designed for embedded \
 HOMEPAGE = "https://www.wolfssl.com/products/wolftpm"
 BUGTRACKER = "https://github.com/wolfssl/wolftpm/issues"
 SECTION = "libs"
-LICENSE = "GPLv2"
+LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfTPM.git;protocol=https;tag=v${PV}"
+SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=fa3982627917856e30ac2ea5b6268e50d53c261a"
 
 S = "${WORKDIR}/git"
 
@@ -20,6 +20,6 @@ inherit autotools pkgconfig
 
 EXTRA_OECONF = "--with-wolfcrypt=${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
 
-do_configure_prepend() {
+do_configure:prepend() {
     (cd ${S}; ./autogen.sh; cd -)
 }
