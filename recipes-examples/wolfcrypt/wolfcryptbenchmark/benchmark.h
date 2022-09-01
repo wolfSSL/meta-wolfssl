@@ -1,6 +1,6 @@
 /* wolfcrypt/benchmark/benchmark.h
  *
- * Copyright (C) 2006-2021 wolfSSL Inc.
+ * Copyright (C) 2006-2022 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -27,6 +27,8 @@
 #ifdef __cplusplus
     extern "C" {
 #endif
+
+#include <wolfssl/wolfcrypt/types.h> /* Needed for 'byte' typedef */
 
 /* run all benchmark entry */
 #ifdef HAVE_STACK_SIZE
@@ -106,6 +108,7 @@ void bench_blake2b(void);
 void bench_blake2s(void);
 void bench_pbkdf2(void);
 void bench_falconKeySign(byte level);
+void bench_dilithiumKeySign(byte level, byte sym);
 void bench_pqcKemKeygen(word32 alg);
 void bench_pqcKemEncapDecap(word32 alg);
 
