@@ -36,6 +36,9 @@ THREAD_RETURN WOLFSSL_THREAD benchmark_test(void* args);
 #else
 int benchmark_test(void *args);
 #endif
+#ifndef NO_MAIN_DRIVER
+int wolfcrypt_benchmark_main(int argc, char** argv);
+#endif
 
 /* individual benchmarks */
 int  benchmark_init(void);
@@ -49,7 +52,7 @@ void bench_chacha20_poly1305_aead(void);
 void bench_aescbc(int useDeviceID);
 void bench_aesgcm(int useDeviceID);
 void bench_gmac(void);
-void bench_aesccm(void);
+void bench_aesccm(int useDeviceID);
 void bench_aesecb(int useDeviceID);
 void bench_aesxts(void);
 void bench_aesctr(void);
@@ -68,8 +71,10 @@ void bench_sha3_224(int useDeviceID);
 void bench_sha3_256(int useDeviceID);
 void bench_sha3_384(int useDeviceID);
 void bench_sha3_512(int useDeviceID);
+void bench_shake128(int useDeviceID);
+void bench_shake256(int useDeviceID);
 int  bench_ripemd(void);
-void bench_cmac(void);
+void bench_cmac(int useDeviceID);
 void bench_scrypt(void);
 void bench_hmac_md5(int useDeviceID);
 void bench_hmac_sha(int useDeviceID);
@@ -83,12 +88,13 @@ void bench_rsaKeyGen_size(int useDeviceID, int keySz);
 void bench_rsa(int useDeviceID);
 void bench_rsa_key(int useDeviceID, int keySz);
 void bench_dh(int useDeviceID);
+void bench_kyber(int type);
 void bench_ecc_curve(int curveId);
 void bench_eccMakeKey(int useDeviceID, int curveId);
 void bench_ecc(int useDeviceID, int curveId);
 void bench_eccEncrypt(int curveId);
-void bench_curve25519KeyGen(void);
-void bench_curve25519KeyAgree(void);
+void bench_curve25519KeyGen(int useDeviceID);
+void bench_curve25519KeyAgree(int useDeviceID);
 void bench_ed25519KeyGen(void);
 void bench_ed25519KeySign(void);
 void bench_curve448KeyGen(void);
@@ -109,6 +115,7 @@ void bench_blake2s(void);
 void bench_pbkdf2(void);
 void bench_falconKeySign(byte level);
 void bench_dilithiumKeySign(byte level, byte sym);
+void bench_sphincsKeySign(byte level, byte optim);
 void bench_pqcKemKeygen(word32 alg);
 void bench_pqcKemEncapDecap(word32 alg);
 
