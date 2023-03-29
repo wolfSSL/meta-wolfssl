@@ -12,13 +12,13 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=2c1c00f9d3ed9e24fa69b932b7e7aff2"
 
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;protocol=https;tag=v${PV} \
-           file://0001-fix-have-wolfssl-m4-rule.patch"
+SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;protocol=https;tag=v${PV}"
 
 S = "${WORKDIR}/git"
 
 inherit autotools pkgconfig
 
+EXTRA_OECONF = "--with-libwolfssl-prefix=${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
 do_configure_prepend() {
     (cd ${S}; ./autogen.sh; cd -)
 }
