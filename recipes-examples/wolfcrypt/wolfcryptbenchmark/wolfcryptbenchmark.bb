@@ -8,7 +8,7 @@ SECTION = "x11/applications"
 FILESEXTRAPATHS_prepend := "${THISDIR}:"
 
 LICENSE = "GPLv2"
-LIC_FILES_CHKSUM = "file://benchmark.c;beginline=1;endline=20;md5=0e91b118566c76b2fb4ff7757b8f21a2"
+LIC_FILES_CHKSUM = "file://benchmark.c;beginline=1;endline=20;md5=aca0c406899b7421c67598ba3f55d1a5"
 
 DEPENDS += "wolfssl"
 
