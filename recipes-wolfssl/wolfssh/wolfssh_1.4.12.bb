@@ -11,7 +11,7 @@ LIC_FILES_CHKSUM = "file://LICENSING;md5=2c2d0ee3db6ceba278dd43212ed03733"
 
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfssh.git;nobranch=1;protocol=https;rev=ed97707a9c58d392fdbbbeaa1b3df0faa96d82d2"
+SRC_URI = "git://github.com/wolfssl/wolfssh.git;nobranch=1;protocol=https;rev=834a03ce847c219073ada47253b9ae31084bc8f6"
 
 S = "${WORKDIR}/git"
 
