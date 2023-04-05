@@ -14,7 +14,8 @@ RPROVIDES_${PN} = "cyassl"
 PROVIDES += "wolfssl"
 RPROVIDES_${PN} = "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=e722c15be860794179082a05d09e6a90dc77ccf0"
+SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=979707380c677dfa65e3ba48f19e149773a4a32d"
+SRC_URI += "file://6247.patch"
 
 S = "${WORKDIR}/git"
 
