@@ -57,14 +57,16 @@ After installing your build's Yocto/OpenEmbedded components:
    $ bitbake wolfssh
    $ bitbake wolfmqtt
    $ bitbake wolftpm
+   $ bitbake wolfssl-py
+   $ bitbake wolfcrypt-py
    ```
 
 2. Edit your build's local.conf file to install the libraries you would like
-   included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) by adding a
-   IMAGE_INSTALL_append line:
+   included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm wolfssl-py wolfcrypt-py) by adding a
+   IMAGE_INSTALL:append line:
 
     ```
-    IMAGE_INSTALL_append = "wolfssl wolfssh wolfmqtt wolftpm"
+    IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm "
     ```
 
 Once your image has been built, the default location for the wolfSSL library
@@ -73,10 +75,10 @@ on your machine will be in the "/usr/lib" directory.
 Note: If you need to install the development headers for these libraries, you
 will want to use the "-dev" variant of the package. For example, to install
 both the wolfSSL library and headers into your image, use "wolfssl-dev" along
-with IMAGE_INSTALL_append, ie:
+with IMAGE_INSTALL:append, ie:
 
 ```
-IMAGE_INSTALL_append = "wolfssl-dev"
+IMAGE_INSTALL:append = "wolfssl-dev"
 ```
 
 After building your image, you will find wolfSSL headers in the
@@ -171,7 +173,7 @@ variable. For example, to install the wolfSSL, wolfSSH, and wolfMQTT libraries
 in addition to the wolfCrypt test and benchmark applications:
 
 ```
-IMAGE_INSTALL_append = "wolfssl wolfssh wolfmqtt wolftpm wolfcrypttest wolfcryptbenchmark"
+IMAGE_INSTALL:append = "wolfssl wolfssh wolfmqtt wolftpm wolfcrypttest wolfcryptbenchmark"
 ```
 
 When your image builds, these will be installed to the '/usr/bin' system
@@ -183,6 +185,71 @@ Excluding Recipe from Build
 
 Recipes can be excluded from your build by deleting their respective ".bb" file,
 or by deleting the recipe directory.
+
+Wolfssl-py and Wolfcrypt-py Installation Requirements
+-----------------------------------------------------
+
+To use the python wrapper for wolfssl and wolfcrypt in a yocto build it will
+require python3, python3-cffi and wolfssl are built on the target system.
+
+It will be necassary then to make sure at minimum that the IMAGE_INSTALL:append 
+looks as follows:
+
+- if wolfSSL-py is desired on target system
+```
+IMAGE_INSTALL:append = " wolfssl wolfssl-py python3 "
+```
+- if wolfCrypt-py is desired on target system
+```
+IMAGE_INSTALL:append = " wolfssl wolfcrypt-py python3 "
+```
+- if wolfSSL-py and wolfCrypt-py are both desired on target system
+```
+Image_INSTALL:append = " wolfssl wolfssl-py wolfcrypt-py python3 python3-cffi"
+```
+
+Testing Wolfssl-py and Wolfcrypt-py
+-----------------------------------
+
+
+To test the python wrapper for wolfssl and wolfcrypt in a yocto build it will
+require python3, python3-pytest, python3-cffi and wolfssl are built on the target system.
+
+It will be necassary then to make sure at minimum that the IMAGE_INSTALL:append 
+looks as follows:
+
+
+- If wolfSSL-py and wolfCrypt-py are both desired on target system
+```
+Image_INSTALL:append = " wolfssl wolfssl-py wolfcrypt-py wolf-py-tests python3 python3-cffi python3-pytest"
+```
+
+This places the tests in the root home directory
+```
+$ cd /home/root
+$ ls
+    wolfcrypt-py-test wolfssl-py-test
+```
+
+navigate into the desired test:
+
+for wolfssl-py
+```
+$ cd /home/root/wolfssl-py-test
+
+```
+for wolfcrypt-py
+```
+$ cd /home/root/wolfcrypt-py-test
+```
+
+once in the desired test directory, begin the test by calling pytest
+```
+$ pytest
+```
+
+This should then result in a pass or fail for the desired suit.
+
 
 Maintenance
 -----------
