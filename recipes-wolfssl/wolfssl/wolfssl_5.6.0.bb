@@ -24,5 +24,11 @@ inherit autotools pkgconfig
 do_configure:prepend() {
     (cd ${S}; ./autogen.sh; cd -)
 }
+do_install:prepend(){
+    install -m 0755 -d ${D}/usr/bin/certs
+    cp -r ${S}/certs/statickeys ${D}/usr/bin/certs
+}
+
+
 
 BBCLASSEXTEND += "native nativesdk"
