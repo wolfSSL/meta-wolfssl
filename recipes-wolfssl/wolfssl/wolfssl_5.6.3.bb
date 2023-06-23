@@ -8,14 +8,14 @@ BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
 SECTION = "libs"
 LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
+DEPENDS += "util-linux-native"
 
 PROVIDES += "cyassl"
 RPROVIDES_${PN} = "cyassl"
 PROVIDES += "wolfssl"
 RPROVIDES_${PN} = "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=979707380c677dfa65e3ba48f19e149773a4a32d"
-SRC_URI += "file://6247.patch"
+SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=3b3c175af0e993ffaae251871421e206cc41963f"
 
 S = "${WORKDIR}/git"
 
