@@ -49,6 +49,34 @@ After installing your build's Yocto/OpenEmbedded components:
    ```
 
 2. Once the 'meta-wolfssl' layer has been added to your BBLAYERS collection,
+   you then will need to go to the local.conf file located in 
+   meta-wolfssl/conf/. The products that you want to compile will need to be
+   uncommented.
+
+   As an example if wolfssh is desired the following needs to occur:
+   From "meta-wolfssl" directory
+   ```
+   $ vim conf/layer.conf
+   ```
+   Then look for the text:
+   ```
+   # Uncomment if building wolfssh with wolfssl
+   #BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
+   #            ${LAYERDIR}/recipes-wolfssl/wolfssh/*.bbappend"
+   ```
+   Then uncomment by removing the #, it should look like this afterwards
+   ```
+   # Uncomment if building wolfssh with wolfssl
+   BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
+               ${LAYERDIR}/recipes-wolfssl/wolfssh/*.bbappend"
+   ```
+
+   This needs to be done in order to preform a bitbake operation on any of the 
+   products or tests. You should uncomment products you want to use and 
+   comment out products you don't want to use to avoid uneeded --enable-options
+   in your wolfssl version. wolfssl and wolfclu uncommented by default.
+
+3. Once the products that need to be compiled are uncommented,
    you can build the individual product recipes to make sure they compile
    successfully:
 
@@ -59,13 +87,12 @@ After installing your build's Yocto/OpenEmbedded components:
    $ bitbake wolftpm
    $ bitbake wolfclu
    ```
-
-2. Edit your build's local.conf file to install the libraries you would like
+4. Edit your build's local.conf file to install the libraries you would like
    included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) by adding a
-   IMAGE_INSTALL_append line:
+   IMAGE_INSTALL:append line:
 
     ```
-    IMAGE_INSTALL_append = "wolfssl wolfssh wolfmqtt wolftpm wolfclu"
+    IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
     ```
 
 Once your image has been built, the default location for the wolfSSL library
