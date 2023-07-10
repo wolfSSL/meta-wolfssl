@@ -1,0 +1,5 @@
+FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+SRC_URI += "file://net-snmp-5.9.patch"
+DEPENDS_remove = "openssl"
+DEPENDS += "wolfssl"
+EXTRA_OECONF += "--with-wolfssl=${STAGING_EXECPREFIXDIR}"
