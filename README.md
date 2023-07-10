@@ -57,14 +57,15 @@ After installing your build's Yocto/OpenEmbedded components:
    $ bitbake wolfssh
    $ bitbake wolfmqtt
    $ bitbake wolftpm
+   $ bitbake wolfclu
    ```
 
 2. Edit your build's local.conf file to install the libraries you would like
    included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) by adding a
-   IMAGE_INSTALL_append line:
+   IMAGE_INSTALL:append line:
 
     ```
-    IMAGE_INSTALL_append = "wolfssl wolfssh wolfmqtt wolftpm"
+    IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
     ```
 
 Once your image has been built, the default location for the wolfSSL library
@@ -73,14 +74,14 @@ on your machine will be in the "/usr/lib" directory.
 Note: If you need to install the development headers for these libraries, you
 will want to use the "-dev" variant of the package. For example, to install
 both the wolfSSL library and headers into your image, use "wolfssl-dev" along
-with IMAGE_INSTALL_append, ie:
+with IMAGE_INSTALL:append, ie:
 
 ```
-IMAGE_INSTALL_append = "wolfssl-dev"
+IMAGE_INSTALL:append = "wolfssl-dev"
 ```
 
 After building your image, you will find wolfSSL headers in the
-"/usr/include" directory.
+"/usr/include" directory and applications in "usr/bin".
 
 Customizing the wolfSSL Library Configuration
 ---------------------------------------------
@@ -171,7 +172,7 @@ variable. For example, to install the wolfSSL, wolfSSH, and wolfMQTT libraries
 in addition to the wolfCrypt test and benchmark applications:
 
 ```
-IMAGE_INSTALL_append = "wolfssl wolfssh wolfmqtt wolftpm wolfcrypttest wolfcryptbenchmark"
+IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu wolfcrypttest wolfcryptbenchmark "
 ```
 
 When your image builds, these will be installed to the '/usr/bin' system
