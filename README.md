@@ -57,16 +57,15 @@ After installing your build's Yocto/OpenEmbedded components:
    $ bitbake wolfssh
    $ bitbake wolfmqtt
    $ bitbake wolftpm
-   $ bitbake wolfssl-py
-   $ bitbake wolfcrypt-py
+   $ bitbake wolfclu
    ```
 
 2. Edit your build's local.conf file to install the libraries you would like
-   included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm wolfssl-py wolfcrypt-py) by adding a
+   included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) by adding a
    IMAGE_INSTALL:append line:
 
     ```
-    IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm "
+    IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
     ```
 
 Once your image has been built, the default location for the wolfSSL library
@@ -82,7 +81,7 @@ IMAGE_INSTALL:append = "wolfssl-dev"
 ```
 
 After building your image, you will find wolfSSL headers in the
-"/usr/include" directory.
+"/usr/include" directory and applications in "usr/bin".
 
 Customizing the wolfSSL Library Configuration
 ---------------------------------------------
@@ -173,7 +172,7 @@ variable. For example, to install the wolfSSL, wolfSSH, and wolfMQTT libraries
 in addition to the wolfCrypt test and benchmark applications:
 
 ```
-IMAGE_INSTALL:append = "wolfssl wolfssh wolfmqtt wolftpm wolfcrypttest wolfcryptbenchmark"
+IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu wolfcrypttest wolfcryptbenchmark "
 ```
 
 When your image builds, these will be installed to the '/usr/bin' system

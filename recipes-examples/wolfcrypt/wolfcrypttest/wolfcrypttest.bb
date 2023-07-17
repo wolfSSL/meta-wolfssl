@@ -12,12 +12,12 @@ LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=61d63fb8b820bae4d85
 
 DEPENDS += "wolfssl"
 
-SRC_URI = "file://test.c file://test.h"
+SRC_URI = "git://github.com/wolfSSL/wolfssl.git;branch=master;protocol=https;rev=9ffa9faecda87a7c0ce7521c83996c65d4e86943"
 
-S = "${WORKDIR}"
+S = "${WORKDIR}/git/wolfcrypt/test"
 
 do_compile() {
-    ${CC} ${CFLAGS} -DUSE_CERT_BUFFERS_2048 -DUSE_CERT_BUFFERS_256 -DUSE_FLAT_TEST_H -Wall -include wolfssl/options.h -o wolfcrypttest ${WORKDIR}/test.c -lwolfssl ${LDFLAGS}
+    ${CC} ${CFLAGS} -DUSE_CERT_BUFFERS_2048 -DUSE_CERT_BUFFERS_256 -DUSE_FLAT_TEST_H -Wall -include wolfssl/options.h -o wolfcrypttest ${S}/test.c -lwolfssl ${LDFLAGS}
 }
 
 do_install() {
