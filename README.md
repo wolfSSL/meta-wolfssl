@@ -218,7 +218,7 @@ Maintenance
 
 Layer maintainers:
 - Chris Conlon (<chris@wolfssl.com>)
-- Hayden Roche (<hayden@wolfssl.com>)
+- Jacob Barthelmeh (<jacob@wolfssl.com>)
 
 https://www.wolfssl.com
 
