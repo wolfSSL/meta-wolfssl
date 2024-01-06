@@ -12,7 +12,7 @@ LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=61d63fb8b820bae4d85
 
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfSSL/wolfssl.git;branch=master;protocol=https;rev=9ffa9faecda87a7c0ce7521c83996c65d4e86943"
+SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=66596ad9e1d7efa8479656872cf09c9c1870a02e"
 
 S = "${WORKDIR}/git/wolfcrypt/test"
 
