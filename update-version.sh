@@ -39,9 +39,9 @@ update() {
         REV=`git rev-list -n 1 $TAG`
         cd ..
         rm -rf $1
-
         git mv ./recipes-wolfssl/$1/$1_$CURRENT.bb ./recipes-wolfssl/$1/$1_$NEW.bb &> /dev/null
         sed -i "s/rev=.*/rev=$REV\"/" ./recipes-wolfssl/$1/$1_$NEW.bb
+        git add ./recipes-wolfssl/$1/$1_$NEW.bb
     else
         printf "version $CURRENT is the latest\n"
     fi
@@ -61,7 +61,9 @@ if [ "$CURRENT" != "$NEW" ]; then
     unzip wolfssl-$NEW.zip &> /dev/null
     mv wolfSSL-wolfssl-* wolfssl-$NEW &> /dev/null
     cp ./wolfssl-$NEW/wolfcrypt/benchmark/benchmark.{c,h} recipes-examples/wolfcrypt/wolfcryptbenchmark/ &> /dev/null
+    git add recipes-examples/wolfcrypt/wolfcryptbenchmark/* &> /dev/null
     cp ./wolfssl-$NEW/wolfcrypt/test/test.{c,h} recipes-examples/wolfcrypt/wolfcrypttest/ &> /dev/null
+    git add recipes-examples/wolfcrypt/wolfcrypttest/* &> /dev/null
     rm -rf ./wolfssl-$NEW* &> /dev/null
     printf "done\n"
     set +e
