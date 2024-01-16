@@ -28,9 +28,16 @@ get_new() {
 }
 
 update() {
-    if [ "CURRENT" != "NEW" ]; then
+    if [ "$CURRENT" != "$NEW" ]; then
         printf "updating from $CURRENT to $NEW\n"
         git mv ./recipes-wolfssl/$1/$1_$CURRENT.bb ./recipes-wolfssl/$1/$1_$NEW.bb &> /dev/null
+        if [ "$1" = "wolfssl" ]; then
+            printf "\tUpdating wolfcrypt test and benchmark...\n"
+            sed -i "s/WOLFCRYPT_V=.*/WOLFCRYPT_V=\"$NEW\"/" ./recipes-examples/wolfcrypt/wolfcrypttest/wolfcrypttest.bb
+            git add ./recipes-examples/wolfcrypt/wolfcrypttest/wolfcrypttest.bb &> /dev/null
+            sed -i  "s/WOLFCRYPT_V=.*/WOLFCRYPT_V=\"$NEW\"/" ./recipes-examples/wolfcrypt/wolfcryptbenchmark/wolfcryptbenchmark.bb
+            git add ./recipes-examples/wolfcrypt/wolfcryptbenchmark/wolfcryptbenchmark.bb &> /dev/null
+        fi 
     else
         printf "version $CURRENT is the latest\n"
     fi
@@ -41,20 +48,6 @@ printf "Checking version of wolfSSL to use..."
 get_current "wolfssl"
 get_new "wolfssl"
 update "wolfssl"
-
-# update benchmark and testwolfcrypt if needed
-if [ "CURRENT" != "NEW" ]; then
-    set -e
-    printf "Updating wolfSSL benchmark and test files..."
-    curl -L -o wolfssl-$NEW.zip https://api.github.com/repos/wolfSSL/wolfssl/zipball/v$NEW-stable &> /dev/null
-    unzip wolfssl-$NEW.zip &> /dev/null
-    mv wolfSSL-wolfssl-* wolfssl-$NEW &> /dev/null
-    cp ./wolfssl-$NEW/wolfcrypt/benchmark/benchmark.{c,h} recipes-examples/wolfcrypt/wolfcryptbenchmark/ &> /dev/null
-    cp ./wolfssl-$NEW/wolfcrypt/test/test.{c,h} recipes-examples/wolfcrypt/wolfcrypttest/ &> /dev/null
-    rm -rf ./wolfssl-$NEW* &> /dev/null
-    printf "done\n"
-    set +e
-fi
 
 printf "Checking version of wolfMQTT to use..."
 get_current "wolfmqtt"
