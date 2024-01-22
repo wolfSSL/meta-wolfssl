@@ -14,7 +14,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfclu.git;nobranch=1;protocol=https;rev=d830c2eb885d552b85eff57939f21ad9c37ec227"
+SRC_URI = "git://github.com/wolfssl/wolfclu.git;nobranch=1;protocol=https;rev=c862879aa92bba201b42ea87f5008f53febf4be3"
 
 S = "${WORKDIR}/git"
 
