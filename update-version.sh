@@ -64,4 +64,10 @@ get_current "wolftpm"
 get_new "wolftpm"
 update "wolftpm"
 
+printf "Checking version of wolfCLU to use..."
+get_current "wolfclu"
+get_new "wolfclu"
+update "wolfclu"
+
+
 exit 0
