@@ -37,63 +37,78 @@ git clone https://github.com/wolfSSL/meta-wolfssl.git
 
 After installing your build's Yocto/OpenEmbedded components:
 
-1. Insert the 'meta-wolfssl' layer location into your build's bblayers.conf
-   file, in the BBLAYERS section:
+1.  Insert the 'meta-wolfssl' layer location into your build's bblayers.conf
+    file, in the BBLAYERS section:
 
-   ```
-   BBLAYERS ?= " \
+    ```
+    BBLAYERS ?= " \
        ...
        /path/to/yocto/poky/meta-wolfssl \
        ...
-   "
-   ```
+    "
+    ```
 
-2. Once the 'meta-wolfssl' layer has been added to your BBLAYERS collection,
-   you then will need to go to the local.conf file located in 
-   meta-wolfssl/conf/. The products that you want to compile will need to be
-   uncommented.
+2.  Once the 'meta-wolfssl' layer has been added to your BBLAYERS collection,
+    you have two options
+   
+    1.  If you want to directly add wolfssl recipes to your image recipe 
+        proceed to step 3.
 
-   As an example if wolfssh is desired the following needs to occur:
-   From "meta-wolfssl" directory
-   ```
-   $ vim conf/layer.conf
-   ```
-   Then look for the text:
-   ```
-   # Uncomment if building wolfssh with wolfssl
-   #BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
-   #            ${LAYERDIR}/recipes-wolfssl/wolfssh/*.bbappend"
-   ```
-   Then uncomment by removing the #, it should look like this afterwards
-   ```
-   # Uncomment if building wolfssh with wolfssl
-   BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
+
+    2.  If you want to run `bitbake wolf*` on a particular recipe then it needs 
+        uncommented in `local.conf` located in `meta-wolfssl/conf/`. 
+
+        As an example if wolfssh is desired the following needs to occur:
+        From "meta-wolfssl" directory
+        ```
+        $ vim conf/layer.conf
+        ```
+        Then look for the text:
+        ```
+        # Uncomment if building wolfssh with wolfssl
+        #BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
+        #            ${LAYERDIR}/recipes-wolfssl/wolfssh/*.bbappend"
+        ```
+        Then uncomment by removing the #, it should look like this afterwards
+        ```
+        # Uncomment if building wolfssh with wolfssl
+        BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
                ${LAYERDIR}/recipes-wolfssl/wolfssh/*.bbappend"
-   ```
+        ```
 
-   This needs to be done in order to preform a bitbake operation on any of the 
-   products or tests. You should uncomment products you want to use and 
-   comment out products you don't want to use to avoid uneeded --enable-options
-   in your wolfssl version. wolfssl and wolfclu uncommented by default.
+        This needs to be done in order to preform a bitbake operation on any of the 
+        recipes. 
+        
+        You should make sure to comment out recipes you don't want to use to 
+        avoid uneeded --enable-options in your wolfssl version. wolfssl is 
+        uncommented by default.
 
-3. Once the products that need to be compiled are uncommented,
-   you can build the individual product recipes to make sure they compile
-   successfully:
+        Once the recipes that need to be compiled are uncommented,
+        you can build the individual product/test recipes to make sure they 
+        compile successfully:
 
-   ```
-   $ bitbake wolfssl
-   $ bitbake wolfssh
-   $ bitbake wolfmqtt
-   $ bitbake wolftpm
-   $ bitbake wolfclu
-   ```
-4. Edit your build's local.conf file to install the libraries you would like
-   included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) by adding a
-   IMAGE_INSTALL:append line:
+        ```
+        $ bitbake wolfssl
+        $ bitbake wolfssh
+        $ bitbake wolfmqtt
+        $ bitbake wolftpm
+        $ bitbake wolfclu
+        ```
+
+3.  Edit your build's local.conf file to install the recipes you would like
+    included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) by adding a
+    IMAGE_INSTALL:append line:
 
     ```
     IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
     ```
+    This will add the necassary --enable-* options necassary to use your
+    specific combination of recipes.
+
+    If you did step 2.2 make sure you comment out recipes that you don't desire
+    because leaving them uncommented may add unneed --enable-* options in your 
+    build, which could increase the size of the build and turn on uneeded 
+    features.
 
 Once your image has been built, the default location for the wolfSSL library
 on your machine will be in the "/usr/lib" directory.
