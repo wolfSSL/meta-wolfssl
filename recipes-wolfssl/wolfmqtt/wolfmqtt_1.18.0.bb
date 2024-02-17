@@ -24,3 +24,11 @@ EXTRA_OECONF = "--with-libwolfssl-prefix=${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfs
 do_configure:prepend() {
     (cd ${S}; ./autogen.sh; cd -)
 }
+
+# Add reproducible build flags                                                  
+CFLAGS:append = " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."                       
+CXXFLAGS:append = " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."                     
+LDFLAGS:append = " -Wl,--build-id=none"                                         
+
+# Ensure consistent locale                                                      
+export LC_ALL = "C" 

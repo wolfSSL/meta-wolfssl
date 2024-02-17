@@ -11,9 +11,6 @@ SECTION = "libs"
 LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://LICENSING.rst;md5=e4abd0c56c3f6dc95a7a7eed4c77414b"
 
-
-
-
 SRC_URI = "git://github.com/wolfSSL/wolfssl-py.git;nobranch=1;protocol=https;rev=0a8a76c6d426289d9019e10d02db9a5af051fba8"
 
 
@@ -33,15 +30,16 @@ inherit python_setuptools_build_meta
 
 S = "${WORKDIR}/git"
 
-
 WOLFSSL_YOCTO_DIR = "${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
 
-
 do_compile:prepend(){
-  
     export USE_LOCAL_WOLFSSL=${WOLFSSL_YOCTO_DIR}
-
 }
 
+# Add reproducible build flags
+CFLAGS += " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
+CXXFLAGS += " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
+LDFLAGS += " -Wl,--build-id=none"
 
-
+# Ensure consistent locale for build reproducibility
+export LC_ALL = "C"

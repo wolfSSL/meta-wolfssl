@@ -262,12 +262,12 @@ looks as follows:
 
 - If wolfSSL-py and wolfCrypt-py are both desired on target system
 ```
-Image_INSTALL:append = " wolfssl wolfssl-py wolfcrypt-py wolf-py-tests python3 python3-cffi python3-pytest"
+IMAGE_INSTALL:append = " wolfssl wolfssl-py wolfcrypt-py wolf-py-tests python3 python3-cffi python3-pytest"
 ```
 
 This places the tests in the root home directory
 ```
-$ cd /home/root
+$ cd /home/root/wolf-py-tests/
 $ ls
     wolfcrypt-py-test wolfssl-py-test
 ```
@@ -276,12 +276,12 @@ navigate into the desired test:
 
 for wolfssl-py
 ```
-$ cd /home/root/wolfssl-py-test
+$ cd /home/root/wolf-py-tests/wolfssl-py-test
 
 ```
 for wolfcrypt-py
 ```
-$ cd /home/root/wolfcrypt-py-test
+$ cd /home/root/wolf-py-tests/wolfcrypt-py-test
 ```
 
 once in the desired test directory, begin the test by calling pytest
