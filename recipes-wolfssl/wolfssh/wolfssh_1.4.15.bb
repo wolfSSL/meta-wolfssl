@@ -6,7 +6,7 @@ DESCRIPTION = "wolfSSH is a lightweight SSHv2 library written in ANSI C and \
 HOMEPAGE = "https://www.wolfssl.com/products/wolfssh"
 BUGTRACKER = "https://github.com/wolfssl/wolfssh/issues"
 SECTION = "libs"
-LICENSE = "GPLv3"
+LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://LICENSING;md5=2c2d0ee3db6ceba278dd43212ed03733"
 
 DEPENDS += "wolfssl"
@@ -22,3 +22,11 @@ EXTRA_OECONF = "--with-wolfssl=${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
 do_configure:prepend() {
     (cd ${S}; ./autogen.sh; cd -)
 }
+
+# Add reproducible build flags                                                  
+CFLAGS:append = " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."                       
+CXXFLAGS:append = " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."                     
+LDFLAGS:append = " -Wl,--build-id=none"                                         
+
+# Ensure consistent locale                                                      
+export LC_ALL = "C" 

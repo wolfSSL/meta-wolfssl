@@ -16,11 +16,11 @@ SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=66
 
 S = "${WORKDIR}/git/wolfcrypt/benchmark"
 
-do_compile() {
-    ${CC} ${CFLAGS} -DUSE_CERT_BUFFERS_2048 -DUSE_CERT_BUFFERS_256 -DUSE_FLAT_BENCHMARK_H -DBENCH_EMBEDDED -Wall -include wolfssl/options.h -o wolfcryptbenchmark ${S}/benchmark.c -lwolfssl ${LDFLAGS}
+do_configure[noexec] = "1"
+do_compile[noexec] = "1"
+do_install() {
+    install -d ${D}${datadir}/wolfcrypt-benchmark
+    echo "This is a dummy package" > ${D}${datadir}/wolfcrypt-benchmark/README.txt
 }
 
-do_install() {
-    install -d ${D}${bindir}
-    install -m 0755 ${S}/wolfcryptbenchmark ${D}${bindir}
-}
+FILES:${PN} += "${datadir}/wolfcrypt-benchmark/*"

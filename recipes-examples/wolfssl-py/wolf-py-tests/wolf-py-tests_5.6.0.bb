@@ -23,31 +23,15 @@ DEPENDS += " wolfssl-py \
 
 S = "${WORKDIR}/git"
 
+WOLF_PY_TEST_TARGET_DIR = "/home/root/wolf-py-tests"
+WOLF_PY_TEST_README = "README.txt"
 
-WOLFSSL_PY_TEST_DIR = "${TMPDIR}/work/${PACKAGE_ARCH}-${DISTRO}-${BUILD_OS}/wolfssl-py/${PV}-${PR}/git/*"
-WOLFSSL_PY_TEST_TARGET_DIR = "${D}/home/root/wolfssl-py-test"
+do_configure[noexec] = "1"
+do_compile[noexec] = "1"
 
-WOLFCRYPT_PY_TEST_DIR = "${TMPDIR}/work/${PACKAGE_ARCH}-${DISTRO}-${BUILD_OS}/wolfcrypt-py/${PV}-${PR}/git/*"
-WOLFCRYPT_PY_TEST_TARGET_DIR = "${D}/home/root/wolfcrypt-py-test"
-
-do_configure(){
+do_install() {
+    install -d ${D}${WOLF_PY_TEST_TARGET_DIR}
+    echo "This is a dummy package" > ${D}${WOLF_PY_TEST_TARGET_DIR}/${WOLF_PY_TEST_README}
 }
 
-do_compile(){
-}
-
-do_install:prepend(){
-  
-    install -m 0755 -d ${WOLFCRYPT_PY_TEST_TARGET_DIR}
-    install -m 0755 -d ${WOLFSSL_PY_TEST_TARGET_DIR}
-    cp -r ${WOLFSSL_PY_TEST_DIR} ${WOLFSSL_PY_TEST_TARGET_DIR}
-    cp -r ${WOLFCRYPT_PY_TEST_DIR} ${WOLFCRYPT_PY_TEST_TARGET_DIR}
-}
-
-FILES:${PN} += "  \ 
-                  /home/root/wolfcrypt-py-test/* \
-                  /home/root/wolfssl-py-test/* \
-               "
-
-
-
+FILES:${PN} += "${WOLF_PY_TEST_TARGET_DIR}/${WOLF_PY_TEST_README}"
