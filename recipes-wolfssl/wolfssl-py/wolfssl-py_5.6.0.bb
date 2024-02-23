@@ -26,15 +26,13 @@ RDEPENDS_${PN} += " python3 \
                     python3-cffi \
                   "
 
-inherit python_setuptools_build_meta  
+inherit setuptools3  
 
 S = "${WORKDIR}/git"
 
 WOLFSSL_YOCTO_DIR = "${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
 
-do_compile:prepend(){
-    export USE_LOCAL_WOLFSSL=${WOLFSSL_YOCTO_DIR}
-}
+export USE_LOCAL_WOLFSSL="${WOLFSSL_YOCTO_DIR}"
 
 # Add reproducible build flags
 CFLAGS += " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."

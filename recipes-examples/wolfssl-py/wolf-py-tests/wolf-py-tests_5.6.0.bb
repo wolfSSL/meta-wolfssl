@@ -11,11 +11,7 @@ SECTION = "libs"
 LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://LICENSING.rst;md5=e4abd0c56c3f6dc95a7a7eed4c77414b"
 
-
-
-
 SRC_URI = "git://github.com/wolfSSL/wolfssl-py.git;nobranch=1;protocol=https;rev=0a8a76c6d426289d9019e10d02db9a5af051fba8"
-
 
 DEPENDS += " wolfssl-py \
              wolfcrypt-py \
@@ -23,15 +19,34 @@ DEPENDS += " wolfssl-py \
 
 S = "${WORKDIR}/git"
 
-WOLF_PY_TEST_TARGET_DIR = "/home/root/wolf-py-tests"
-WOLF_PY_TEST_README = "README.txt"
-
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
 
-do_install() {
-    install -d ${D}${WOLF_PY_TEST_TARGET_DIR}
-    echo "This is a dummy package" > ${D}${WOLF_PY_TEST_TARGET_DIR}/${WOLF_PY_TEST_README}
-}
+WOLFCRYPT_TEST_PY_DIR = "/home/root/wolf-py-tests"
+WOLFCRYPT_TEST_PY_INSTALL_DIR = "${D}${WOLFCRYPT_TEST_PY_DIR}"
+WOLFCRYPT_TEST_PY_README = "README.txt"
+WOLFCRYPT_TEST_PY_README_DIR = "${WOLFCRYPT_TEST_PY_INSTALL_DIR}/${WOLFCRYPT_TEST_PY_README}"
 
-FILES:${PN} += "${WOLF_PY_TEST_TARGET_DIR}/${WOLF_PY_TEST_README}"
+python () {
+    distro_version = d.getVar('DISTRO_VERSION', True)
+    wolfcrypt_test_py_dir = d.getVar('WOLFCRYPT_TEST_PY_DIR', True)
+    wolfcrypt_test_py_install_dir = d.getVar('WOLFCRYPT_TEST_PY_INSTALL_DIR', True)
+    wolfcrypt_test_py_readme_dir = d.getVar('WOLFCRYPT_TEST_PY_README_DIR', True)
+
+    bb.note("Installing dummy file for wolfCrypt test example")
+    installDir = 'install -m 0755 -d "%s"\n' % wolfcrypt_test_py_install_dir
+    makeDummy = 'echo "This is a dummy package" > "%s"\n' % wolfcrypt_test_py_readme_dir
+
+    d.appendVar('do_install', installDir)
+    d.appendVar('do_install', makeDummy)
+
+    pn = d.getVar('PN', True)
+    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
+        files_var_name = 'FILES_' + pn
+    else:
+        files_var_name = 'FILES:' + pn
+    
+    current_files = d.getVar(files_var_name, True) or ""
+    new_files = current_files + ' ' + wolfcrypt_test_py_dir + '/*'
+    d.setVar(files_var_name, new_files)
+}

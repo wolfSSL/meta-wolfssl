@@ -1,0 +1,6 @@
+FILESEXTRAPATHS_prepend := "${THISDIR}/files:"
+SRC_URI += "file://bind-9.11.22.patch"
+DEPENDS_remove = "openssl"
+EXTRA_OECONF_remove = "--with-openssl=${STAGING_DIR_HOST}${prefix}"
+DEPENDS += " wolfssl"
+EXTRA_OECONF += " --with-wolfssl=${STAGING_EXECPREFIXDIR}"

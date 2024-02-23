@@ -12,6 +12,19 @@ This layer currently provides recipes for the following wolfSSL products:
 - [wolfSSH lightweight SSH library](https://www.wolfssl.com/products/wolfssh/)
 - [wolfMQTT lightweight MQTT client library](https://www.wolfssl.com/products/wolfmqtt/)
 - [wolfTPM portable TPM 2.0 library](https://www.wolfssl.com/products/wolftpm/)
+- [wolfSSL-py A Python wrapper for the wolfSSL library](https://github.com/wolfSSL/wolfssl-py)
+- [wolfCrypt-py A Python Wrapper for the wolfCrypt API](https://github.com/wolfSSL/wolfcrypt-py)
+
+These recipes have been tested using these versions of yocto:
+
+- Nanbield      (v4.3)
+- Kirkstone     (v4.0)
+- Hardknott     (v3.3)
+- Gatesgarth    (v3.2)
+- Dunfell       (v3.1)
+- Zeus          (v3.0)
+- Thud          (v2.6)
+- Sumo          (v2.5)    
 
 The wolfSSL library recipe is also included in the openembedded meta-networking
 layer, located [here](https://github.com/openembedded/meta-openembedded/tree/master/meta-networking/recipes-connectivity/wolfssl).
@@ -96,12 +109,22 @@ After installing your build's Yocto/OpenEmbedded components:
         ```
 
 3.  Edit your build's local.conf file to install the recipes you would like
-    included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) by adding a
+    to include (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) 
+    
+    - For Dunfell and newer versions of Yocto
     IMAGE_INSTALL:append line:
 
     ```
     IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
     ```
+    
+    - For versions of Yocto older than Dunfell
+    IMAGE_INSTALL_append line:
+
+    ```
+    IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
+    ```
+
     This will add the necassary --enable-* options necassary to use your
     specific combination of recipes.
 
@@ -118,9 +141,16 @@ will want to use the "-dev" variant of the package. For example, to install
 both the wolfSSL library and headers into your image, use "wolfssl-dev" along
 with IMAGE_INSTALL:append, ie:
 
+- For Dunfell and newer versions of Yocto
 ```
 IMAGE_INSTALL:append = "wolfssl-dev"
 ```
+
+- For versions of Yocto older than Dunfell
+```
+IMAGE_INSTALL_append = "wolfssl-dev"
+```
+
 
 After building your image, you will find wolfSSL headers in the
 "/usr/include" directory and applications in "usr/bin".
@@ -209,12 +239,19 @@ $ bitbake wolfcryptbenchmark
 ```
 
 To install these applications into your image, you will need to edit your
-"build/conf/local.conf" file and add them to the "IMAGE_INSTALL_append"
+"build/conf/local.conf" file and add them to the "IMAGE_INSTALL"
 variable. For example, to install the wolfSSL, wolfSSH, and wolfMQTT libraries
 in addition to the wolfCrypt test and benchmark applications:
 
+
+- For Dunfell and newer versions of Yocto
 ```
 IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu wolfcrypttest wolfcryptbenchmark "
+```
+
+- For versions of Yocto older than Dunfell
+```
+IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu wolfcrypttest wolfcryptbenchmark "
 ```
 
 When your image builds, these will be installed to the '/usr/bin' system
@@ -233,21 +270,39 @@ Wolfssl-py and Wolfcrypt-py Installation Requirements
 To use the python wrapper for wolfssl and wolfcrypt in a yocto build it will
 require python3, python3-cffi and wolfssl are built on the target system.
 
+If you are using older version of yocto (2.x) or (3.x), you will need to download 
+and add the meta-oe and meta-python recipes from openembedded's [meta-openembedded](https://github.com/openembedded/meta-openembedded) to the image.
+
 It will be necassary then to make sure at minimum that the IMAGE_INSTALL:append 
 looks as follows:
 
-- if wolfSSL-py is desired on target system
-```
-IMAGE_INSTALL:append = " wolfssl wolfssl-py python3 "
-```
-- if wolfCrypt-py is desired on target system
-```
-IMAGE_INSTALL:append = " wolfssl wolfcrypt-py python3 "
-```
-- if wolfSSL-py and wolfCrypt-py are both desired on target system
-```
-Image_INSTALL:append = " wolfssl wolfssl-py wolfcrypt-py python3 python3-cffi"
-```
+- For Dunfell and newer versions of Yocto
+    + if wolfSSL-py is desired on target system
+    ```
+    IMAGE_INSTALL:append = " wolfssl wolfssl-py python3 "
+    ```
+    + if wolfCrypt-py is desired on target system
+    ```
+    IMAGE_INSTALL:append = " wolfssl wolfcrypt-py python3 "
+    ```
+    + if wolfSSL-py and wolfCrypt-py are both desired on target system
+    ```
+    Image_INSTALL:append = " wolfssl wolfssl-py wolfcrypt-py python3 python3-cffi"
+    ```
+
+- For versions of Yocto older than Dunfell
+    + if wolfSSL-py is desired on target system
+    ```
+    IMAGE_INSTALL_append = " wolfssl wolfssl-py python3 "
+    ```
+    + if wolfCrypt-py is desired on target system
+    ```
+    IMAGE_INSTALL_append = " wolfssl wolfcrypt-py python3 "
+    ```
+    + if wolfSSL-py and wolfCrypt-py are both desired on target system
+    ```
+    Image_INSTALL_append = " wolfssl wolfssl-py wolfcrypt-py python3 python3-cffi"
+    ```
 
 Testing Wolfssl-py and Wolfcrypt-py
 -----------------------------------
@@ -261,28 +316,34 @@ looks as follows:
 
 
 - If wolfSSL-py and wolfCrypt-py are both desired on target system
-```
-IMAGE_INSTALL:append = " wolfssl wolfssl-py wolfcrypt-py wolf-py-tests python3 python3-cffi python3-pytest"
-```
+
+    + For Dunfell and newer versions of Yocto
+    ```
+    IMAGE_INSTALL:append = " wolfssl wolfssl-py wolfcrypt-py wolf-py-tests python3 python3-cffi python3-pytest"
+    ```
+
+    + For versions of Yocto older than Dunfell
+    ```
+    IMAGE_INSTALL_append = " wolfssl wolfssl-py wolfcrypt-py wolf-py-tests python3 python3-cffi python3-pytest"
+    ```
 
 This places the tests in the root home directory
 ```
 $ cd /home/root/wolf-py-tests/
-$ ls
-    wolfcrypt-py-test wolfssl-py-test
+$ ls wolfcrypt-py-test wolfssl-py-test
 ```
 
 navigate into the desired test:
 
-for wolfssl-py
-```
-$ cd /home/root/wolf-py-tests/wolfssl-py-test
+    + for wolfssl-py
+    ```
+    $ cd /home/root/wolf-py-tests/wolfssl-py-test
 
-```
-for wolfcrypt-py
-```
-$ cd /home/root/wolf-py-tests/wolfcrypt-py-test
-```
+    ```
+    + for wolfcrypt-py
+    ```
+    $ cd /home/root/wolf-py-tests/wolfcrypt-py-test
+    ```
 
 once in the desired test directory, begin the test by calling pytest
 ```
@@ -291,14 +352,21 @@ $ pytest
 
 This should then result in a pass or fail for the desired suit.
 
+If you are testing this with the core-image-minimal yocto build, make sure 
+to add a DNS server to /etc/resolv.conf like such with root perms
+
+```
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+```
 
 Maintenance
 -----------
 
 Layer maintainers:
-- Chris Conlon (<chris@wolfssl.com>)
-- Hayden Roche (<hayden@wolfssl.com>)
+- wolfSSL Support (<support@wolfssl.com>)
 
+Website
+-------
 https://www.wolfssl.com
 
 License

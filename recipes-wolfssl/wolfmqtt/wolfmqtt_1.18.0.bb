@@ -21,14 +21,21 @@ inherit autotools pkgconfig
 
 EXTRA_OECONF = "--with-libwolfssl-prefix=${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
 
-do_configure:prepend() {
-    (cd ${S}; ./autogen.sh; cd -)
+python() {
+    distro_version = d.getVar('DISTRO_VERSION', True)
+    autogen_command = 'cd ${S}; ./autogen.sh'
+    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
+        # For Dunfell and earlier
+        d.appendVar('do_configure_prepend', autogen_command)
+    else:
+        # For Kirkstone and later
+        d.appendVar('do_configure:prepend', autogen_command)
 }
 
-# Add reproducible build flags                                                  
-CFLAGS:append = " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."                       
-CXXFLAGS:append = " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."                     
-LDFLAGS:append = " -Wl,--build-id=none"                                         
+# Add reproducible build flags
+export CFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'
+export CXXFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'
+export LDFLAGS += ' -Wl,--build-id=none'
 
 # Ensure consistent locale                                                      
 export LC_ALL = "C" 

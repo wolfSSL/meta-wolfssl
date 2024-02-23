@@ -30,14 +30,13 @@ S = "${WORKDIR}/git"
 
 WOLFSSL_YOCTO_DIR = "${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
 
-do_compile:prepend(){
-    export USE_LOCAL_WOLFSSL=${WOLFSSL_YOCTO_DIR}
-}
 
+export USE_LOCAL_WOLFSSL="${WOLFSSL_YOCTO_DIR}"
 # Add reproducible build flags
 CFLAGS += " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
 CXXFLAGS += " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
 LDFLAGS += " -Wl,--build-id=none"
+
 
 # Ensure consistent locale for build reproducibility
 export LC_ALL = "C"
