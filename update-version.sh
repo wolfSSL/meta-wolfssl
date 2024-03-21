@@ -20,7 +20,7 @@
 
 
 get_current() {
-    CURRENT=`find recipes-wolfssl/$1/* | grep -Eo '[0-9]+.[0-9]+.[0-9]+'`
+    CURRENT=`find recipes-wolfssl/$1/*.bb | grep -Eo '[0-9]+.[0-9]+.[0-9]+'`
 }
 
 get_new() {
@@ -30,14 +30,25 @@ get_new() {
 update() {
     if [ "$CURRENT" != "$NEW" ]; then
         printf "updating from $CURRENT to $NEW\n"
+        TAG="v$NEW-stable"
+        if [ "$1" = "wolfmqtt" ] || [ "$1" == "wolftpm" ]; then
+            TAG="v$NEW"
+        fi
+        git clone -b $TAG git@github.com:wolfssl/$1 &> /dev/null
+        cd $1 &> /dev/null
+        REV=`git rev-list -n 1 $TAG`
+        cd ..
+        rm -rf $1
         git mv ./recipes-wolfssl/$1/$1_$CURRENT.bb ./recipes-wolfssl/$1/$1_$NEW.bb &> /dev/null
+        sed -i "s/rev=.*/rev=$REV\"/" ./recipes-wolfssl/$1/$1_$NEW.bb
+        git add ./recipes-wolfssl/$1/$1_$NEW.bb &> /dev/null
         if [ "$1" = "wolfssl" ]; then
             printf "\tUpdating wolfcrypt test and benchmark...\n"
-            sed -i "s/WOLFCRYPT_V=.*/WOLFCRYPT_V=\"$NEW\"/" ./recipes-examples/wolfcrypt/wolfcrypttest/wolfcrypttest.bb
+            sed -i "s/rev=.*/rev=$REV\"/" ./recipes-examples/wolfcrypt/wolfcrypttest/wolfcrypttest.bb
             git add ./recipes-examples/wolfcrypt/wolfcrypttest/wolfcrypttest.bb &> /dev/null
-            sed -i  "s/WOLFCRYPT_V=.*/WOLFCRYPT_V=\"$NEW\"/" ./recipes-examples/wolfcrypt/wolfcryptbenchmark/wolfcryptbenchmark.bb
+            sed -i "s/rev=.*/rev=$REV\"/" ./recipes-examples/wolfcrypt/wolfcryptbenchmark/wolfcryptbenchmark.bb
             git add ./recipes-examples/wolfcrypt/wolfcryptbenchmark/wolfcryptbenchmark.bb &> /dev/null
-        fi 
+        fi
     else
         printf "version $CURRENT is the latest\n"
     fi
@@ -68,6 +79,7 @@ printf "Checking version of wolfCLU to use..."
 get_current "wolfclu"
 get_new "wolfclu"
 update "wolfclu"
+
 
 
 exit 0

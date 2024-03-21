@@ -12,6 +12,19 @@ This layer currently provides recipes for the following wolfSSL products:
 - [wolfSSH lightweight SSH library](https://www.wolfssl.com/products/wolfssh/)
 - [wolfMQTT lightweight MQTT client library](https://www.wolfssl.com/products/wolfmqtt/)
 - [wolfTPM portable TPM 2.0 library](https://www.wolfssl.com/products/wolftpm/)
+- [wolfSSL-py A Python wrapper for the wolfSSL library](https://github.com/wolfSSL/wolfssl-py)
+- [wolfCrypt-py A Python Wrapper for the wolfCrypt API](https://github.com/wolfSSL/wolfcrypt-py)
+
+These recipes have been tested using these versions of yocto:
+
+- Nanbield      (v4.3)
+- Kirkstone     (v4.0)
+- Hardknott     (v3.3)
+- Gatesgarth    (v3.2)
+- Dunfell       (v3.1)
+- Zeus          (v3.0)
+- Thud          (v2.6)
+- Sumo          (v2.5)    
 
 The wolfSSL library recipe is also included in the openembedded meta-networking
 layer, located [here](https://github.com/openembedded/meta-openembedded/tree/master/meta-networking/recipes-connectivity/wolfssl).
@@ -37,79 +50,110 @@ git clone https://github.com/wolfSSL/meta-wolfssl.git
 
 After installing your build's Yocto/OpenEmbedded components:
 
-1. Insert the 'meta-wolfssl' layer location into your build's bblayers.conf
-   file, in the BBLAYERS section:
+1.  Insert the 'meta-wolfssl' layer location into your build's bblayers.conf
+    file, in the BBLAYERS section:
 
-   ```
-   BBLAYERS ?= " \
+    ```
+    BBLAYERS ?= " \
        ...
        /path/to/yocto/poky/meta-wolfssl \
        ...
-   "
-   ```
+    "
+    ```
 
-2. Once the 'meta-wolfssl' layer has been added to your BBLAYERS collection,
-   you then will need to go to the local.conf file located in 
-   meta-wolfssl/conf/. The products that you want to compile will need to be
-   uncommented.
+2.  Once the 'meta-wolfssl' layer has been added to your BBLAYERS collection,
+    you have two options
+   
+    1.  If you want to directly add wolfssl recipes to your image recipe 
+        proceed to step 3.
 
-   As an example if wolfssh is desired the following needs to occur:
-   From "meta-wolfssl" directory
-   ```
-   $ vim conf/layer.conf
-   ```
-   Then look for the text:
-   ```
-   # Uncomment if building wolfssh with wolfssl
-   #BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
-   #            ${LAYERDIR}/recipes-wolfssl/wolfssh/*.bbappend"
-   ```
-   Then uncomment by removing the #, it should look like this afterwards
-   ```
-   # Uncomment if building wolfssh with wolfssl
-   BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
+
+    2.  If you want to run `bitbake wolf*` on a particular recipe then it needs 
+        uncommented in `local.conf` located in `meta-wolfssl/conf/`. 
+
+        As an example if wolfssh is desired the following needs to occur:
+        From "meta-wolfssl" directory
+        ```
+        $ vim conf/layer.conf
+        ```
+        Then look for the text:
+        ```
+        # Uncomment if building wolfssh with wolfssl
+        #BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
+        #            ${LAYERDIR}/recipes-wolfssl/wolfssh/*.bbappend"
+        ```
+        Then uncomment by removing the #, it should look like this afterwards
+        ```
+        # Uncomment if building wolfssh with wolfssl
+        BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
                ${LAYERDIR}/recipes-wolfssl/wolfssh/*.bbappend"
-   ```
+        ```
 
-   This needs to be done in order to preform a bitbake operation on any of the 
-   products or tests. You should uncomment products you want to use and 
-   comment out products you don't want to use to avoid uneeded --enable-options
-   in your wolfssl version. wolfssl and wolfclu uncommented by default.
+        This needs to be done in order to preform a bitbake operation on any of the 
+        recipes. 
+        
+        You should make sure to comment out recipes you don't want to use to 
+        avoid uneeded --enable-options in your wolfssl version. wolfssl is 
+        uncommented by default.
 
-3. Once the products that need to be compiled are uncommented,
-   you can build the individual product recipes to make sure they compile
-   successfully:
+        Once the recipes that need to be compiled are uncommented,
+        you can build the individual product/test recipes to make sure they 
+        compile successfully:
 
-   ```
-   $ bitbake wolfssl
-   $ bitbake wolfssh
-   $ bitbake wolfmqtt
-   $ bitbake wolftpm
-   $ bitbake wolfclu
-   ```
-4. Edit your build's local.conf file to install the libraries you would like
-   included (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) by adding a
-   IMAGE_INSTALL:append line:
+        ```
+        $ bitbake wolfssl
+        $ bitbake wolfssh
+        $ bitbake wolfmqtt
+        $ bitbake wolftpm
+        $ bitbake wolfclu
+        ```
+
+3.  Edit your build's local.conf file to install the recipes you would like
+    to include (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) 
+    
+    - For Dunfell and newer versions of Yocto
+    IMAGE_INSTALL:append line:
 
     ```
     IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
     ```
+    
+    - For versions of Yocto older than Dunfell
+    IMAGE_INSTALL_append line:
+
+    ```
+    IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
+    ```
+
+    This will add the necassary --enable-* options necassary to use your
+    specific combination of recipes.
+
+    If you did step 2.2 make sure you comment out recipes that you don't desire
+    because leaving them uncommented may add unneed --enable-* options in your 
+    build, which could increase the size of the build and turn on uneeded 
+    features.
 
 Once your image has been built, the default location for the wolfSSL library
-on your machine will be in the "/usr/lib" directory and applications in 
-"/usr/bin".
+on your machine will be in the "/usr/lib" directory.
 
 Note: If you need to install the development headers for these libraries, you
 will want to use the "-dev" variant of the package. For example, to install
 both the wolfSSL library and headers into your image, use "wolfssl-dev" along
-with IMAGE_INSTALL_append, ie:
+with IMAGE_INSTALL:append, ie:
 
+- For Dunfell and newer versions of Yocto
+```
+IMAGE_INSTALL:append = "wolfssl-dev"
+```
+
+- For versions of Yocto older than Dunfell
 ```
 IMAGE_INSTALL_append = "wolfssl-dev"
 ```
 
+
 After building your image, you will find wolfSSL headers in the
-"/usr/include" directory.
+"/usr/include" directory and applications in "usr/bin".
 
 Customizing the wolfSSL Library Configuration
 ---------------------------------------------
@@ -195,12 +239,19 @@ $ bitbake wolfcryptbenchmark
 ```
 
 To install these applications into your image, you will need to edit your
-"build/conf/local.conf" file and add them to the "IMAGE_INSTALL_append"
+"build/conf/local.conf" file and add them to the "IMAGE_INSTALL"
 variable. For example, to install the wolfSSL, wolfSSH, and wolfMQTT libraries
 in addition to the wolfCrypt test and benchmark applications:
 
+
+- For Dunfell and newer versions of Yocto
 ```
-IMAGE_INSTALL_append = "wolfssl wolfssh wolfmqtt wolftpm wolfcrypttest wolfcryptbenchmark"
+IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu wolfcrypttest wolfcryptbenchmark "
+```
+
+- For versions of Yocto older than Dunfell
+```
+IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu wolfcrypttest wolfcryptbenchmark "
 ```
 
 When your image builds, these will be installed to the '/usr/bin' system
@@ -213,13 +264,111 @@ Excluding Recipe from Build
 Recipes can be excluded from your build by deleting their respective ".bb" file,
 or by deleting the recipe directory.
 
+Wolfssl-py and Wolfcrypt-py Installation Requirements
+-----------------------------------------------------
+
+To use the python wrapper for wolfssl and wolfcrypt in a yocto build it will
+require python3, python3-cffi and wolfssl are built on the target system.
+
+If you are using older version of yocto (2.x) or (3.x), you will need to download 
+and add the meta-oe and meta-python recipes from openembedded's [meta-openembedded](https://github.com/openembedded/meta-openembedded) to the image.
+
+It will be necassary then to make sure at minimum that the IMAGE_INSTALL:append 
+looks as follows:
+
+- For Dunfell and newer versions of Yocto
+    + if wolfSSL-py is desired on target system
+    ```
+    IMAGE_INSTALL:append = " wolfssl wolfssl-py python3 "
+    ```
+    + if wolfCrypt-py is desired on target system
+    ```
+    IMAGE_INSTALL:append = " wolfssl wolfcrypt-py python3 "
+    ```
+    + if wolfSSL-py and wolfCrypt-py are both desired on target system
+    ```
+    Image_INSTALL:append = " wolfssl wolfssl-py wolfcrypt-py python3 python3-cffi"
+    ```
+
+- For versions of Yocto older than Dunfell
+    + if wolfSSL-py is desired on target system
+    ```
+    IMAGE_INSTALL_append = " wolfssl wolfssl-py python3 "
+    ```
+    + if wolfCrypt-py is desired on target system
+    ```
+    IMAGE_INSTALL_append = " wolfssl wolfcrypt-py python3 "
+    ```
+    + if wolfSSL-py and wolfCrypt-py are both desired on target system
+    ```
+    Image_INSTALL_append = " wolfssl wolfssl-py wolfcrypt-py python3 python3-cffi"
+    ```
+
+Testing Wolfssl-py and Wolfcrypt-py
+-----------------------------------
+
+
+To test the python wrapper for wolfssl and wolfcrypt in a yocto build it will
+require python3, python3-pytest, python3-cffi and wolfssl are built on the target system.
+
+It will be necassary then to make sure at minimum that the IMAGE_INSTALL:append 
+looks as follows:
+
+
+- If wolfSSL-py and wolfCrypt-py are both desired on target system
+
+    + For Dunfell and newer versions of Yocto
+    ```
+    IMAGE_INSTALL:append = " wolfssl wolfssl-py wolfcrypt-py wolf-py-tests python3 python3-cffi python3-pytest"
+    ```
+
+    + For versions of Yocto older than Dunfell
+    ```
+    IMAGE_INSTALL_append = " wolfssl wolfssl-py wolfcrypt-py wolf-py-tests python3 python3-cffi python3-pytest"
+    ```
+
+This places the tests in the root home directory
+```
+$ cd /home/root/wolf-py-tests/
+$ ls wolfcrypt-py-test wolfssl-py-test
+```
+
+navigate into the desired test:
+
+    + for wolfssl-py
+    ```
+    $ cd /home/root/wolf-py-tests/wolfssl-py-test
+
+    ```
+    + for wolfcrypt-py
+    ```
+    $ cd /home/root/wolf-py-tests/wolfcrypt-py-test
+    ```
+
+once in the desired test directory, begin the test by calling pytest
+```
+$ pytest
+```
+
+This should then result in a pass or fail for the desired suit.
+
+If you are testing this with the core-image-minimal yocto build, make sure 
+to add a DNS server to /etc/resolv.conf like such with root perms
+
+```
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+```
+
 Maintenance
 -----------
 
 Layer maintainers:
+- wolfSSL Support (<support@wolfssl.com>)
 - Chris Conlon (<chris@wolfssl.com>)
 - Jacob Barthelmeh (<jacob@wolfssl.com>)
 
+Website
+-------
 https://www.wolfssl.com
 
 License
