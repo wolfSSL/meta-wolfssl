@@ -359,6 +359,16 @@ to add a DNS server to /etc/resolv.conf like such with root perms
 echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 ```
 
+FIPS-READY
+----------
+For building FIPS-Ready for wolfssl view the instruction in this [README](recipes-wolfssl/wolfssl/fips-ready/README.md)
+
+Commercial/FIPS Bundles
+-----------------------
+For building FIPS and/or commercial bundles of wolf product view the instructions in this [README](recipes-wolfssl/wolfssl/commercial/README.md).
+
+To gain access to these bundles contact support@wolfssl.com to get a qoute.
+
 Maintenance
 -----------
 
