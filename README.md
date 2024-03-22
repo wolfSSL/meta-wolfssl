@@ -64,7 +64,7 @@ After installing your build's Yocto/OpenEmbedded components:
 2.  Once the 'meta-wolfssl' layer has been added to your BBLAYERS collection,
     you have two options
    
-    1.  If you want to directly add wolfssl recipes to your image recipe 
+    1.  If you want to directly add wolfSSL recipes to your image recipe 
         proceed to step 3.
 
 
@@ -93,7 +93,7 @@ After installing your build's Yocto/OpenEmbedded components:
         recipes. 
         
         You should make sure to comment out recipes you don't want to use to 
-        avoid uneeded --enable-options in your wolfssl version. wolfssl is 
+        avoid uneeded --enable-options in your wolfSSL version. wolfSSL is 
         uncommented by default.
 
         Once the recipes that need to be compiled are uncommented,
@@ -267,8 +267,8 @@ or by deleting the recipe directory.
 Wolfssl-py and Wolfcrypt-py Installation Requirements
 -----------------------------------------------------
 
-To use the python wrapper for wolfssl and wolfcrypt in a yocto build it will
-require python3, python3-cffi and wolfssl are built on the target system.
+To use the python wrapper for wolfSSL and wolfcrypt in a yocto build it will
+require python3, python3-cffi and wolfSSL are built on the target system.
 
 If you are using older version of yocto (2.x) or (3.x), you will need to download 
 and add the meta-oe and meta-python recipes from openembedded's [meta-openembedded](https://github.com/openembedded/meta-openembedded) to the image.
@@ -308,8 +308,8 @@ Testing Wolfssl-py and Wolfcrypt-py
 -----------------------------------
 
 
-To test the python wrapper for wolfssl and wolfcrypt in a yocto build it will
-require python3, python3-pytest, python3-cffi and wolfssl are built on the target system.
+To test the python wrapper for wolfSSL and wolfcrypt in a yocto build it will
+require python3, python3-pytest, python3-cffi and wolfSSL are built on the target system.
 
 It will be necassary then to make sure at minimum that the IMAGE_INSTALL:append 
 looks as follows:
@@ -358,6 +358,16 @@ to add a DNS server to /etc/resolv.conf like such with root perms
 ```
 echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 ```
+
+FIPS-READY
+----------
+For building FIPS-Ready for wolfSSL view the instruction in this [README](recipes-wolfssl/wolfssl/fips-ready/README.md)
+
+Commercial/FIPS Bundles
+-----------------------
+For building FIPS and/or commercial bundles of wolfSSL products view the instructions in this [README](recipes-wolfssl/wolfssl/commercial/README.md).
+
+To gain access to these bundles contact support@wolfssl.com to get a qoute.
 
 Maintenance
 -----------
