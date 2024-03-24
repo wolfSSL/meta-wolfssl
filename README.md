@@ -359,6 +359,10 @@ to add a DNS server to /etc/resolv.conf like such with root perms
 echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 ```
 
+wolfProvider
+------------
+To build wolfProvider view the instructions in this [README](recipes-wolfssl/wolfprovider/README.md)
+
 FIPS-READY
 ----------
 For building FIPS-Ready for wolfSSL view the instruction in this [README](recipes-wolfssl/wolfssl/fips-ready/README.md)
