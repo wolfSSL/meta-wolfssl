@@ -1,0 +1,3910 @@
+diff --git a/.github/workflows/cmake-build.yml b/.github/workflows/cmake-build.yml
+index 158ac5c..0601e6f 100644
+--- a/.github/workflows/cmake-build.yml
++++ b/.github/workflows/cmake-build.yml
+@@ -22,7 +22,8 @@ jobs:
+         sudo apt-get install -y cmake
+ 
+ #pull and build wolfssl
+-    - uses: actions/checkout@master
++    - name: Checkout wolfssl
++      uses: actions/checkout@master
+       with:
+         repository: wolfssl/wolfssl
+         path: wolfssl
+@@ -31,14 +32,16 @@ jobs:
+       run: |
+         mkdir build
+         cd build
+-        cmake -DWOLFSSL_TPM=yes ..
+-        make
+-        sudo make install
++        # wolfSSL PR 7188 broke "make install" unless WOLFSSL_INSTALL is set
++        cmake -DWOLFSSL_TPM=yes -DWOLFSSL_INSTALL=yes -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install" ..
++        cmake --build .
++        cmake --install .
+ 
+ #build wolftpm
+     - name: Build wolfTPM
+       run: |
+         mkdir build
+         cd build
+-        cmake -DWOLFTPM_INTERFACE=SWTPM ..
+-        make
++        cmake -DWOLFTPM_INTERFACE=SWTPM -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/install" -DWITH_WOLFSSL="$GITHUB_WORKSPACE/install" ..
++        cmake --build .
++        cmake --install .
+diff --git a/.github/workflows/make-test-swtpm.yml b/.github/workflows/make-test-swtpm.yml
+index f8fe999..e61e852 100644
+--- a/.github/workflows/make-test-swtpm.yml
++++ b/.github/workflows/make-test-swtpm.yml
+@@ -132,6 +132,12 @@ jobs:
+     - name: make debug io
+       run: make
+ 
++# build pedantic
++    - name: configure pedantic
++      run: ./configure CFLAGS="-Wpedantic"
++    - name: make pedantic
++      run: make
++
+ # capture logs on failure
+     - name: Upload failure logs
+       if: failure()
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9746974..4424505 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,6 +1,6 @@
+ # CMakeList.txt
+ #
+-# Copyright (C) 2006-2022 wolfSSL Inc.
++# Copyright (C) 2006-2024 wolfSSL Inc.
+ #
+ # This file is part of wolfSSL. (formerly known as CyaSSL)
+ #
+@@ -47,6 +47,27 @@ target_compile_definitions(wolftpm PRIVATE
+     "BUILDING_WOLFTPM"
+     )
+ 
++include(CheckIncludeFile)
++check_include_file("fcntl.h" HAVE_FCNTL_H)
++check_include_file("netdb.h" HAVE_NETDB_H)
++check_include_file("time.h" HAVE_TIME_H)
++check_include_file("sys/ioctl.h" HAVE_SYS_IOCTL_H)
++check_include_file("sys/socket.h" HAVE_SYS_SOCKET_H)
++check_include_file("sys/time.h" HAVE_SYS_TIME_H)
++check_include_file("errno.h" HAVE_ERRNO_H)
++check_include_file("stdint.h" HAVE_STDINT_H)
++check_include_file("stdlib.h" HAVE_STDLIB_H)
++check_include_file("string.h" HAVE_STRING_H)
++check_include_file("sys/stat.h" HAVE_SYS_STAT_H)
++check_include_file("sys/types.h" HAVE_SYS_TYPES_H)
++check_include_file("unistd.h" HAVE_UNISTD_H)
++
++include(CheckFunctionExists)
++check_function_exists("gethostbyname" HAVE_GETHOSTBYNAME)
++check_function_exists("getaddrinfo" HAVE_GETADDRINFO)
++check_function_exists("gettimeofday" HAVE_GETTIMEOFDAY)
++
++
+ 
+ # TODO
+ # * wrapper
+@@ -132,7 +153,7 @@ if (WITH_WOLFSSL)
+     target_link_libraries(wolftpm PUBLIC wolfssl)
+     target_include_directories(wolftpm PUBLIC ${WITH_WOLFSSL}/include)
+     target_link_directories(wolftpm PUBLIC ${WITH_WOLFSSL}/lib)
+-    elseif (WITH_WOLFSSL_TREE)
++elseif (WITH_WOLFSSL_TREE)
+     set(WOLFSSL_TPM "yes" CACHE STRING "")
+     set(WOLFSSL_EXAMPLES "no" CACHE STRING "")
+     set(WOLFSSL_CRYPT_TESTS "no" CACHE STRING "")
+@@ -221,7 +242,7 @@ file(REMOVE ${OPTION_FILE})
+ file(APPEND ${OPTION_FILE} "/* wolftpm options.h\n")
+ file(APPEND ${OPTION_FILE} " * generated from cmake configure options\n")
+ file(APPEND ${OPTION_FILE} " *\n")
+-file(APPEND ${OPTION_FILE} " * Copyright (C) 2006-2022 wolfSSL Inc.\n")
++file(APPEND ${OPTION_FILE} " * Copyright (C) 2006-2024 wolfSSL Inc.\n")
+ file(APPEND ${OPTION_FILE} " *\n")
+ file(APPEND ${OPTION_FILE} " * This file is part of wolfSSL.\n")
+ file(APPEND ${OPTION_FILE} " *\n")
+@@ -245,6 +266,26 @@ file(APPEND ${OPTION_FILE} "#endif\n\n\n")
+ file(APPEND ${OPTION_FILE} "#endif /* WOLFTPM_OPTIONS_H */\n\n")
+ 
+ 
++
++# generate config.h
++message("Generating config header...")
++set(WOLFTPM_CONFIG_H "yes" CACHE STRING
++"Enable generation of config.h and define HAVE_CONFIG_H (default: enabled)")
++set_property(CACHE WOLFTPM_DEBUG
++    PROPERTY STRINGS "yes;no")
++if(WOLFTPM_CONFIG_H)
++    add_definitions("-DHAVE_CONFIG_H")
++    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.in"
++                   "${CMAKE_CURRENT_BINARY_DIR}/config.h" )
++    # If config.h exists, delete it to avoid a mixup with build/config.h
++    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config.h")
++        file(REMOVE "${CMAKE_CURRENT_SOURCE_DIR}/config.h")
++    endif()
++endif()
++
++
++
++
+ if (WOLFTPM_EXAMPLES)
+     add_tpm_example(activate_credential attestation/activate_credential.c)
+     add_tpm_example(make_credential attestation/make_credential.c)
+@@ -292,7 +333,8 @@ install(TARGETS wolftpm
+ # Install the export set
+ install(EXPORT wolftpm-targets
+         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/wolftpm
+-        FILE wolftpm-config.cmake)
++        FILE wolftpm-config.cmake
++        NAMESPACE wolfssl::)
+ 
+ # Install the headers
+ install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/wolftpm/
+diff --git a/ChangeLog.md b/ChangeLog.md
+index 7deb225..c83f76a 100644
+--- a/ChangeLog.md
++++ b/ChangeLog.md
+@@ -22,7 +22,7 @@ Support for using TLS PK callbacks with TPM for ECC and RSA. Improved the crypto
+ * Cleanup KDF function return code checking to avoid scan-build warning. (PR #311)
+ * Fixed ECC encrypt secret integrity check failed due to zero pad issue. (PR #311)
+ * Fixed `wolfTPM2_GetRng` possibly not returning an initialized WC_RNG. (PR #311)
+-* Fixed TLS bidirectional shutdown socket issue to to port collision with SWTPM. (PR #311)
++* Fixed TLS bidirectional shutdown socket issue due to port collision with SWTPM. (PR #311)
+ * Fixed `policy_sign` issue when `r` or `s` is less than key size (needs zero padding). (PR #311)
+ * Fixed building wolfCrypt without PEM to DER support. (PR #311)
+ * Added support for TLS PK callbacks with ECC and RSA Sign using PKCSv1.5 and PSS padding (PR #312)
+diff --git a/IDE/OPENSTM32/Inc/wolftpm_example.h b/IDE/OPENSTM32/Inc/wolftpm_example.h
+index da90daa..cf360eb 100644
+--- a/IDE/OPENSTM32/Inc/wolftpm_example.h
++++ b/IDE/OPENSTM32/Inc/wolftpm_example.h
+@@ -27,10 +27,6 @@
+ #include <stm32f4xx.h>
+ #include <cmsis_os.h>
+ 
+-#ifdef HAVE_CONFIG_H
+-    #include <config.h>
+-#endif
+-
+ #ifndef WOLFSSL_USER_SETTINGS
+ 	#include <wolfssl/options.h>
+ #endif
+diff --git a/IDE/OPENSTM32/Src/wolftpm_example.c b/IDE/OPENSTM32/Src/wolftpm_example.c
+index 0378510..89d8a9e 100644
+--- a/IDE/OPENSTM32/Src/wolftpm_example.c
++++ b/IDE/OPENSTM32/Src/wolftpm_example.c
+@@ -19,6 +19,9 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include "wolftpm_example.h"
+ 
+diff --git a/IDE/STM32CUBE/default_conf.ftl b/IDE/STM32CUBE/default_conf.ftl
+index 1f57309..b6e77e1 100644
+--- a/IDE/STM32CUBE/default_conf.ftl
++++ b/IDE/STM32CUBE/default_conf.ftl
+@@ -29,8 +29,8 @@
+ [/#list]
+ [/#if]
+ 
+-[#-- SWIPdatas is a list of SWIPconfigModel --]  
+-[#list SWIPdatas as SWIP]  
++[#-- SWIPdatas is a list of SWIPconfigModel --]
++[#list SWIPdatas as SWIP]
+ [#-- Global variables --]
+ [#if SWIP.variables??]
+ 	[#list SWIP.variables as variable]
+@@ -40,9 +40,9 @@ extern ${variable.value} ${variable.name};
+ 
+ [#-- Global variables --]
+ 
+-[#assign instName = SWIP.ipName]   
+-[#assign fileName = SWIP.fileName]   
+-[#assign version = SWIP.version]   
++[#assign instName = SWIP.ipName]
++[#assign fileName = SWIP.fileName]
++[#assign version = SWIP.version]
+ 
+ /**
+ 	MiddleWare name : ${instName}
+@@ -50,9 +50,9 @@ extern ${variable.value} ${variable.name};
+ 	MiddleWare version : ${version}
+ */
+ [#if SWIP.defines??]
+-	[#list SWIP.defines as definition]	
++	[#list SWIP.defines as definition]
+ /*---------- [#if definition.comments??]${definition.comments}[/#if] -----------*/
+-#define ${definition.name} #t#t ${definition.value} 
++#define ${definition.name} #t#t ${definition.value}
+ [#if definition.description??]${definition.description} [/#if]
+ 	[/#list]
+ [/#if]
+@@ -68,6 +68,14 @@ extern ${variable.value} ${variable.name};
+ #define NO_MAIN_DRIVER
+ #define WOLFTPM_EXAMPLE_HAL
+ 
++/* Set smaller default timeout for embedded devices */
++#define TPM_TIMEOUT_TRIES 10000
++
++/* Example for TPM wait delay */
++#if 0
++    #define XTPM_WAIT() HAL_Delay(1)
++#endif
++
+ /* ------------------------------------------------------------------------- */
+ /* Enable Features */
+ /* ------------------------------------------------------------------------- */
+@@ -81,11 +89,55 @@ extern ${variable.value} ${variable.name};
+     #define USE_HW_SPI_CS
+ #endif
+ 
++/* Small stack support */
++#if defined(WOLFTPM_CONF_SMALL_STACK) && WOLFTPM_CONF_SMALL_STACK == 1
++    #define WOLFTPM_SMALL_STACK
++    #define MAX_COMMAND_SIZE    1024
++    #define MAX_RESPONSE_SIZE   1350
++    #define WOLFTPM2_MAX_BUFFER 1500
++    #define MAX_DIGEST_BUFFER   973
++#endif
++
++/* ------------------------------------------------------------------------- */
++/* Hardware */
++/* ------------------------------------------------------------------------- */
++
++/* Interface Selection SPI or I2C */
++/* 0=SPI, 1=I2C */
++#if defined(WOLFTPM_CONF_TRANSPORT) && WOLFTPM_CONF_TRANSPORT == 0
++    /* SPI (default) */
++#elif defined(WOLFTPM_CONF_TRANSPORT) && WOLFTPM_CONF_TRANSPORT == 1
++    #define WOLFTPM_I2C
++    #define WOLFTPM_ADV_IO
++#endif
++
++/* TPM Hardware Type (default automatic detect) */
++#if 1
++    #define WOLFTPM_AUTODETECT
++#else
++    //#define WOLFTPM_SLB9670   /* Infineon */
++    //#define WOLFTPM_SLB9672   /* Infineon */
++    //#define WOLFTPM_MICROCHIP /* ATTPM20 */
++    //#define WOLFTPM_ST33      /* STM */
++    //#define WOLFTPM_NUVOTON   /* NPCT75x */
++#endif
++
++/* Example STM32 SPI Hal Configuration */
++#if 0
++    /* Use PD14 for SPI1 CS */
++    #define USE_SPI_CS_PORT GPIOD
++    #define USE_SPI_CS_PIN  14
++#endif
++
++
+ /* ------------------------------------------------------------------------- */
+ /* Debugging */
+ /* ------------------------------------------------------------------------- */
+ #if defined(WOLFTPM_CONF_DEBUG) && WOLFTPM_CONF_DEBUG == 1
+     #define DEBUG_WOLFTPM
++    //#define WOLFTPM_DEBUG_TIMEOUT
++    //#define WOLFTPM_DEBUG_VERBOSE
++    //#define WOLFTPM_DEBUG_IO
+ #endif
+ 
+ #ifdef __cplusplus
+diff --git a/Makefile.am b/Makefile.am
+index 6a316e3..90c1148 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -41,6 +41,7 @@ include tests/include.am
+ include docs/include.am
+ include wrapper/include.am
+ include hal/include.am
++include cmake/include.am
+ 
+ EXTRA_DIST+= README.md
+ EXTRA_DIST+= ChangeLog.md
+diff --git a/README.md b/README.md
+index 3fbaaed..09427b5 100644
+--- a/README.md
++++ b/README.md
+@@ -7,7 +7,7 @@ Portable TPM 2.0 project designed for embedded use.
+ 
+ * This implementation provides all TPM 2.0 API’s in compliance with the specification.
+ * Wrappers provided to simplify Key Generation/Loading, RSA encrypt/decrypt, ECC sign/verify, ECDH, NV, Hashing/HACM, AES, Sealing/Unsealing, Attestation, PCR Extend/Quote and Secure Root of Trust.
+-* Testing done using the following TPM 2.0 modules: STM ST33TP* SPI/I2C, Infineon OPTIGA SLB9670/SLB9672, Microchip ATTPM20, Nations Tech Z32H330TC and Nuvoton NPCT650/NPCT750.
++* Testing done using TPM 2.0 modules from STMicro ST33 (SPI/I2C), Infineon OPTIGA SLB9670/SLB9672, Microchip ATTPM20, Nations Tech Z32H330TC and Nuvoton NPCT650/NPCT750.
+ * wolfTPM uses the TPM Interface Specification (TIS) to communicate either over SPI, or using a memory mapped I/O range.
+ * wolfTPM can also use the Linux TPM kernel interface (/dev/tpmX) to talk with any physical TPM on SPI, I2C and even LPC bus.
+ * Platform support for Raspberry Pi (Linux), MMIO, STM32 with CubeMX, Atmel ASF, Xilinx, QNX Infineon TriCore and Barebox.
+@@ -84,11 +84,12 @@ We also support an advanced IO option (`--enable-advio`/`WOLFTPM_ADV_IO`), which
+ 
+ Tested with:
+ 
+-* Infineon OPTIGA (TM) Trusted Platform Module 2.0 SLB 9670 and SLB9672.
+-    - LetsTrust: [http://letstrust.de] (<https://buyzero.de/collections/andere-platinen/products/letstrust-hardware-tpm-trusted-platform-module).> Compact Raspberry Pi TPM 2.0 board based on Infineon SLB 9670.
+-* ST ST33TP* TPM 2.0 module (SPI and I2C)
++* Infineon OPTIGA (TM) Trusted Platform Module 2.0 SLB9670, SLB9672 and SLB9673 (I2C).
++    - LetsTrust: Vendor for TPM development boards [http://letstrust.de](http://letstrust.de).
++* STMicro STSAFE-TPM, ST33TPHF2XSPI/2XI2C and ST33KTPM2X
+ * Microchip ATTPM20 module
+ * Nuvoton NPCT65X or NPCT75x TPM2.0 module
++* Nations Technologies Z32H330 TPM 2.0 module
+ 
+ #### Device Identification
+ 
+@@ -100,11 +101,15 @@ Infineon SLB9672:
+ TPM2: Caps 0x30000697, Did 0x001d, Vid 0x15d1, Rid 0x36
+ Mfg IFX (1), Vendor SLB9672, Fw 16.10 (0x4068), FIPS 140-2 1, CC-EAL4 1
+ 
+-ST ST33TP SPI
++Infineon SLB9673:
++TPM2: Caps 0x1ae00082, Did 0x001c, Vid 0x15d1, Rid 0x16
++Mfg IFX (1), Vendor SLB9673, Fw 26.13 (0x456a), FIPS 140-2 1, CC-EAL4 1
++
++STMicro ST33TPHF2XSPI
+ TPM2: Caps 0x1a7e2882, Did 0x0000, Vid 0x104a, Rid 0x4e
+ Mfg STM  (2), Vendor , Fw 74.8 (1151341959), FIPS 140-2 1, CC-EAL4 0
+ 
+-ST ST33TP I2C
++STMicro ST33TPHF2XI2C
+ TPM2: Caps 0x1a7e2882, Did 0x0000, Vid 0x104a, Rid 0x4e
+ Mfg STM  (2), Vendor , Fw 74.9 (1151341959), FIPS 140-2 1, CC-EAL4 0
+ 
+@@ -152,8 +157,8 @@ autogen.sh requires: automake and libtool: `sudo apt-get install automake libtoo
+ --enable-tislock        Enable Linux Named Semaphore for locking access to SPI device for concurrent access between processes - WOLFTPM_TIS_LOCK
+ 
+ --enable-autodetect     Enable Runtime Module Detection (default: enable - when no module specified) - WOLFTPM_AUTODETECT
+---enable-infineon       Enable Infineon SLB9670/SLB9672 TPM Support (default: disabled)
+---enable-st             Enable ST ST33TPM Support (default: disabled) - WOLFTPM_ST33
++--enable-infineon       Enable Infineon SLB9670/SLB9672/SLB9673 TPM Support (default: disabled) - WOLFTPM_SLB9670 / WOLFTPM_SLB9672
++--enable-st             Enable ST ST33 Support (default: disabled) - WOLFTPM_ST33
+ --enable-microchip      Enable Microchip ATTPM20 Support (default: disabled) - WOLFTPM_MICROCHIP
+ --enable-nuvoton        Enable Nuvoton NPCT65x/NPCT75x Support (default: disabled) - WOLFTPM_NUVOTON
+ 
+@@ -167,7 +172,15 @@ TLS_BENCH_MODE          Enables TLS benchmarking mode.
+ NO_TPM_BENCH            Disables the TPM benchmarking example.
+ ```
+ 
+-### Building Infineon SLB9670/SLB9672
++Note: For the I2C support on Raspberry Pi you may need to enable I2C. Here are the steps:
++1. Edit `sudo vim /boot/config.txt`
++2. Uncomment `dtparam=i2c_arm=on`
++3. Reboot `sudo reboot`
++
++
++### Building Infineon
++
++Support for SLB9670 or SLB9672 (SPI) / SLB9673 (I2C)
+ 
+ Build wolfTPM:
+ 
+@@ -175,11 +188,11 @@ Build wolfTPM:
+ git clone https://github.com/wolfSSL/wolfTPM.git
+ cd wolfTPM
+ ./autogen.sh
+-./configure --enable-infineon
++./configure --enable-infineon [--enable-i2c]
+ make
+ ```
+ 
+-### Building ST ST33TP*
++### Building ST ST33
+ 
+ Build wolfTPM:
+ 
+@@ -189,11 +202,6 @@ Build wolfTPM:
+ make
+ ```
+ 
+-For the I2C support on Raspberry Pi you may need to enable I2C. Here are the steps:
+-1. Edit `sudo vim /boot/config.txt`
+-2. Uncomment `dtparam=i2c_arm=on`
+-3. Reboot `sudo reboot`
+-
+ ### Building Microchip ATTPM20
+ 
+ Build wolfTPM:
+@@ -437,7 +445,41 @@ ECDSA    256 verify        42 ops took 1.013 sec, avg 24.114 ms, 41.470 ops/sec
+ ECDHE    256 agree         16 ops took 1.055 sec, avg 65.948 ms, 15.164 ops/sec
+ ```
+ 
+-Run on ST ST33TP SPI at 33MHz:
++Run on Infineon SLB9673 on I2C at 400kHz:
++
++```
++./examples/bench/bench
++TPM2 Benchmark using Wrapper API's
++	Use Parameter Encryption: NULL
++Loading SRK: Storage 0x81000200 (282 bytes)
++RNG                  4 KB took 1.429 seconds,    2.799 KB/s
++Benchmark symmetric AES-128-CBC-enc not supported!
++Benchmark symmetric AES-128-CBC-dec not supported!
++Benchmark symmetric AES-256-CBC-enc not supported!
++Benchmark symmetric AES-256-CBC-dec not supported!
++Benchmark symmetric AES-128-CTR-enc not supported!
++Benchmark symmetric AES-128-CTR-dec not supported!
++Benchmark symmetric AES-256-CTR-enc not supported!
++Benchmark symmetric AES-256-CTR-dec not supported!
++AES-128-CFB-enc      4 KB took 1.022 seconds,    3.914 KB/s
++AES-128-CFB-dec      4 KB took 1.021 seconds,    3.916 KB/s
++AES-256-CFB-enc      4 KB took 1.023 seconds,    3.911 KB/s
++AES-256-CFB-dec      4 KB took 1.023 seconds,    3.912 KB/s
++SHA1                 8 KB took 1.203 seconds,    6.650 KB/s
++SHA256               8 KB took 1.208 seconds,    6.623 KB/s
++SHA384               8 KB took 1.209 seconds,    6.617 KB/s
++RSA     2048 key gen       10 ops took 19.106 sec, avg 1910.554 ms, 0.523 ops/sec
++RSA     2048 Public        14 ops took 1.046 sec, avg 74.740 ms, 13.380 ops/sec
++RSA     2048 Private        6 ops took 1.008 sec, avg 168.057 ms, 5.950 ops/sec
++RSA     2048 Pub  OAEP     15 ops took 1.008 sec, avg 67.231 ms, 14.874 ops/sec
++RSA     2048 Priv OAEP      7 ops took 1.126 sec, avg 160.789 ms, 6.219 ops/sec
++ECC      256 key gen        4 ops took 1.244 sec, avg 311.031 ms, 3.215 ops/sec
++ECDSA    256 sign          14 ops took 1.009 sec, avg 72.057 ms, 13.878 ops/sec
++ECDSA    256 verify        18 ops took 1.043 sec, avg 57.921 ms, 17.265 ops/sec
++ECDHE    256 agree          9 ops took 1.025 sec, avg 113.888 ms, 8.781 ops/sec
++```
++
++Run on STMicro ST33TPHF2XSPI at 33MHz:
+ 
+ ```
+ ./examples/bench/bench
+@@ -795,6 +837,7 @@ Connection: close
+ * Update to v1.59 of specification (adding CertifyX509).
+ * Inner wrap support for SensitiveToPrivate.
+ * Firmware upgrade support on TPM's.
++* Add support for IRQ (interrupt line)
+ 
+ ## Support
+ 
+diff --git a/cmake/README.md b/cmake/README.md
+new file mode 100644
+index 0000000..a138be5
+--- /dev/null
++++ b/cmake/README.md
+@@ -0,0 +1,5 @@
++# wolfTPM CMake
++
++This directory contains some supplementary files for the [CMakeLists.txt](../CMakeLists.txt) in the root.
++
++See also cmake notes in the [INSTALL](../INSTALL) documentation file.
+diff --git a/cmake/config.in b/cmake/config.in
+new file mode 100644
+index 0000000..8a0bc31
+--- /dev/null
++++ b/cmake/config.in
+@@ -0,0 +1,48 @@
++/* Define to 1 if you have the <fcntl.h> header file. */
++#cmakedefine HAVE_FCNTL_H @HAVE_FCNTL_H@
++
++/* Define to 1 if you have the <netdb.h> header file. */
++#cmakedefine HAVE_NETDB_H @HAVE_NETDB_H@
++
++/* Define to 1 if you have the <time.h> header file. */
++#cmakedefine HAVE_TIME_H @HAVE_TIME_H@
++
++/* Define to 1 if you have the <sys/ioctl.h> header file. */
++#cmakedefine HAVE_SYS_IOCTL_H @HAVE_SYS_IOCTL_H@
++
++/* Define to 1 if you have the <sys/socket.h> header file. */
++#cmakedefine HAVE_SYS_SOCKET_H @HAVE_SYS_SOCKET_H@
++
++/* Define to 1 if you have the <sys/time.h> header file. */
++#cmakedefine HAVE_SYS_TIME_H @HAVE_SYS_TIME_H@
++
++/* Define to 1 if you have the <errno.h> header file. */
++#cmakedefine HAVE_ERRNO_H @HAVE_ERRNO_H@
++
++/* Define to 1 if you have the <stdint.h> header file. */
++#cmakedefine HAVE_STDINT_H @HAVE_STDINT_H@
++
++/* Define to 1 if you have the <stdlib.h> header file. */
++#cmakedefine HAVE_STDLIB_H @HAVE_STDLIB_H@
++
++/* Define to 1 if you have the <string.h> header file. */
++#cmakedefine HAVE_STRING_H @HAVE_STRING_H@
++
++/* Define to 1 if you have the <sys/stat.h> header file. */
++#cmakedefine HAVE_SYS_STAT_H @HAVE_SYS_STAT_H@
++
++/* Define to 1 if you have the <sys/types.h> header file. */
++#cmakedefine HAVE_SYS_TYPES_H @HAVE_SYS_TYPES_H@
++
++/* Define to 1 if you have the <unistd.h> header file. */
++#cmakedefine HAVE_UNISTD_H @HAVE_UNISTD_H@
++
++
++/* Define to 1 if you have the `getaddrinfo' function. */
++#cmakedefine HAVE_GETADDRINFO @HAVE_GETADDRINFO@
++
++/* Define to 1 if you have the `gethostbyname' function. */
++#cmakedefine HAVE_GETHOSTBYNAME @HAVE_GETHOSTBYNAME@
++
++/* Define to 1 if you have the `gettimeofday' function. */
++#cmakedefine HAVE_GETTIMEOFDAY @HAVE_GETTIMEOFDAY@
+diff --git a/cmake/include.am b/cmake/include.am
+new file mode 100644
+index 0000000..ceec20a
+--- /dev/null
++++ b/cmake/include.am
+@@ -0,0 +1,2 @@
++EXTRA_DIST += cmake/README.md
++EXTRA_DIST += cmake/config.in
+diff --git a/configure.ac b/configure.ac
+index 134e6b7..7d2101e 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -60,6 +60,7 @@ AC_CHECK_SIZEOF([long long], 8)
+ AC_CHECK_SIZEOF([long], 4)
+ 
+ # Check headers/libs
++AC_CHECK_HEADERS([netdb.h])
+ AC_CHECK_FUNCS([gethostbyname getaddrinfo gettimeofday inet_ntoa memset socket])
+ AC_CHECK_LIB([network],[socket])
+ 
+diff --git a/docs/README.md b/docs/README.md
+index 7f8b8ca..b72472f 100644
+--- a/docs/README.md
++++ b/docs/README.md
+@@ -1,5 +1,8 @@
+ # wolfTPM User Manual
+ 
++The latest wolfTPM user manual is available at: https://www.wolfssl.com/documentation/manuals/wolftpm/index.html
++Source generated from: https://github.com/wolfSSL/documentation/blob/master/wolfTPM/src/
++
+ ## Introduction
+ 
+ wolfTPM is a portable TPM 2.0 project, designed for embedded use. It is highly portable, due to having been written in native C, having a single IO callback for SPI hardware interface, no external dependencies, and its compacted code with low resource usage.
+diff --git a/examples/README.md b/examples/README.md
+index 89556aa..cc55709 100644
+--- a/examples/README.md
++++ b/examples/README.md
+@@ -110,10 +110,14 @@ The script creates the following X.509 files (also in .pem format):
+ 
+ Example signs and verifies data with PKCS #7 using a TPM based key.
+ 
+-* Must first run:
+-1. `./examples/csr/csr`
+-2. `./certs/certreq.sh`
+-3. `./examples/pkcs7/pkcs7`
++```sh
++./examples/keygen/keygen rsa_test_blob.raw -rsa -t
++./examples/keygen/keygen ecc_test_blob.raw -ecc -t
++./examples/csr/csr
++./certs/certreq.sh
++./examples/pkcs7/pkcs7
++./examples/pkcs7/pkcs7 -ecc
++```
+ 
+ The result is displayed to stdout on the console.
+ 
+diff --git a/examples/attestation/activate_credential.c b/examples/attestation/activate_credential.c
+index 93b2bc4..673e985 100644
+--- a/examples/attestation/activate_credential.c
++++ b/examples/attestation/activate_credential.c
+@@ -23,6 +23,10 @@
+  * and extract the secret for challenge response to an attestation server
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+diff --git a/examples/attestation/make_credential.c b/examples/attestation/make_credential.c
+index b2b85f6..99a2242 100644
+--- a/examples/attestation/make_credential.c
++++ b/examples/attestation/make_credential.c
+@@ -21,6 +21,10 @@
+ 
+ /* This example shows how to create a challenge for Remote Attestation */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #ifndef WOLFTPM2_NO_WRAPPER
+diff --git a/examples/bench/bench.c b/examples/bench/bench.c
+index 7296713..e036c78 100644
+--- a/examples/bench/bench.c
++++ b/examples/bench/bench.c
+@@ -22,6 +22,10 @@
+ /* This example shows benchmarks using the TPM2 wrapper API's in
+     TPM2_Wrapper_Bench() below. */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+ 
+diff --git a/examples/boot/secret_seal.c b/examples/boot/secret_seal.c
+index c3be981..93ec084 100644
+--- a/examples/boot/secret_seal.c
++++ b/examples/boot/secret_seal.c
+@@ -22,6 +22,9 @@
+ /* Example for using TPM to seal a secret using an external key based on PCR(s)
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+@@ -279,6 +282,7 @@ int TPM2_Boot_SecretSeal_Example(void* userCtx, int argc, char *argv[])
+     printHexString((const byte*)&sealBlob.pub.publicArea, sealBlob.pub.size, 32);
+     printf("Sealed keyed hash priv %d\n", sealBlob.priv.size);
+     printHexString(sealBlob.priv.buffer, sealBlob.priv.size, 32);
++    (void)outFile;
+ #endif
+ 
+ exit:
+diff --git a/examples/boot/secret_unseal.c b/examples/boot/secret_unseal.c
+index 236f6a6..5b6c767 100644
+--- a/examples/boot/secret_unseal.c
++++ b/examples/boot/secret_unseal.c
+@@ -22,6 +22,9 @@
+ /* Example for using TPM to seal a secret using an external key based on PCR(s)
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+@@ -278,6 +281,8 @@ int TPM2_Boot_SecretUnseal_Example(void* userCtx, int argc, char *argv[])
+     }
+ #else
+     printf("File system support not compiled in!\n");
++    (void)publicKeyFile;
++    (void)pcrSigFile;
+     rc = NOT_COMPILED_IN;
+ #endif
+     if (rc != TPM_RC_SUCCESS) {
+@@ -311,6 +316,7 @@ int TPM2_Boot_SecretUnseal_Example(void* userCtx, int argc, char *argv[])
+ #ifndef NO_FILESYSTEM
+     rc = readKeyBlob(sealFile, &sealBlob);
+ #else
++    (void)sealFile;
+     rc = NOT_COMPILED_IN;
+ #endif
+     if (rc != TPM_RC_SUCCESS) {
+@@ -325,7 +331,14 @@ int TPM2_Boot_SecretUnseal_Example(void* userCtx, int argc, char *argv[])
+         goto exit;
+     }
+     printf("Loaded sealBlob to 0x%x\n", (word32)sealBlob.handle.hndl);
+-    wolfTPM2_SetAuthHandle(&dev, 0, &sealBlob.handle);
++
++    /* use the policy session for unseal */
++    rc = wolfTPM2_SetAuthSession(&dev, 0, &tpmSession,
++        (TPMA_SESSION_decrypt | TPMA_SESSION_encrypt |
++        TPMA_SESSION_continueSession));
++    if (rc != 0) goto exit;
++    /* set the sealed object name 0 (required) */
++    wolfTPM2_SetAuthHandleName(&dev, 0, &sealBlob.handle);
+ 
+     /* unseal */
+     unsealIn.itemHandle = sealBlob.handle.hndl;
+diff --git a/examples/boot/secure_rot.c b/examples/boot/secure_rot.c
+index 5f01325..814adfe 100644
+--- a/examples/boot/secure_rot.c
++++ b/examples/boot/secure_rot.c
+@@ -22,6 +22,9 @@
+ /* Example for using TPM for secure boot root of trust
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+diff --git a/examples/csr/csr.c b/examples/csr/csr.c
+index 6bd3bd0..e2a0333 100644
+--- a/examples/csr/csr.c
++++ b/examples/csr/csr.c
+@@ -19,6 +19,9 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+@@ -186,17 +189,18 @@ int TPM2_CSR_ExampleArgs(void* userCtx, int argc, char *argv[])
+ 
+     rc = wolfTPM2_SetCryptoDevCb(&dev, wolfTPM2_CryptoDevCb, &tpmCtx,
+         &tpmDevId);
+-    if (rc == 0) {
+-        /* See if primary storage key already exists */
+-        rc = getPrimaryStoragekey(&dev, &storageKey, TPM_ALG_RSA);
+-    }
+ 
+ #ifndef NO_RSA
+     if (rc == 0) {
+         tpmCtx.rsaKey = &key; /* Setup the wolf crypto device callback */
+-        rc = wolfTPM2_GetKeyTemplate_RSA(&publicTemplate,
++
++        /* open the RSA SRK */
++        rc = getPrimaryStoragekey(&dev, &storageKey, TPM_ALG_RSA);
++        if (rc == 0) {
++            rc = wolfTPM2_GetKeyTemplate_RSA(&publicTemplate,
+                     TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+                     TPMA_OBJECT_decrypt | TPMA_OBJECT_sign | TPMA_OBJECT_noDA);
++        }
+         if (rc == 0) {
+             rc = getRSAkey(&dev, &storageKey, &key, NULL, tpmDevId,
+                 (byte*)gKeyAuth, sizeof(gKeyAuth)-1, &publicTemplate);
+@@ -207,6 +211,7 @@ int TPM2_CSR_ExampleArgs(void* userCtx, int argc, char *argv[])
+                 makeSelfSignedCert, tpmDevId, CTC_SHA256wRSA);
+         }
+         wolfTPM2_UnloadHandle(&dev, &key.handle);
++        wolfTPM2_UnloadHandle(&dev, &storageKey.handle);
+     }
+ #endif /* !NO_RSA */
+ 
+@@ -214,18 +219,21 @@ int TPM2_CSR_ExampleArgs(void* userCtx, int argc, char *argv[])
+     if (rc == 0) {
+         int sigType = CTC_SHA256wECDSA;
+         TPM_ECC_CURVE curve = TPM_ECC_NIST_P256;
+-        tpmCtx.eccKey = &key;
+-
+     #if defined(NO_ECC256) && defined(HAVE_ECC384) && ECC_MIN_KEY_SZ <= 384
+         /* make sure we use a curve that is enabled */
+         sigType = CTC_SHA384wECDSA;
+         curve = TPM_ECC_NIST_P384;
+     #endif
++        tpmCtx.eccKey = &key;
+ 
+-        rc = wolfTPM2_GetKeyTemplate_ECC(&publicTemplate,
++        /* open the ECC SRK */
++        rc = getPrimaryStoragekey(&dev, &storageKey, TPM_ALG_ECC);
++        if (rc == 0) {
++            rc = wolfTPM2_GetKeyTemplate_ECC(&publicTemplate,
+                 TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+                 TPMA_OBJECT_sign | TPMA_OBJECT_noDA,
+                 curve, TPM_ALG_ECDSA);
++        }
+         if (rc == 0) {
+             rc = getECCkey(&dev, &storageKey, &key, NULL, tpmDevId,
+                   (byte*)gKeyAuth, sizeof(gKeyAuth)-1, &publicTemplate);
+@@ -236,6 +244,7 @@ int TPM2_CSR_ExampleArgs(void* userCtx, int argc, char *argv[])
+                 makeSelfSignedCert, tpmDevId, sigType);
+         }
+         wolfTPM2_UnloadHandle(&dev, &key.handle);
++        wolfTPM2_UnloadHandle(&dev, &storageKey.handle);
+     }
+ #endif /* HAVE_ECC */
+ 
+@@ -243,7 +252,6 @@ int TPM2_CSR_ExampleArgs(void* userCtx, int argc, char *argv[])
+         printf("Failure 0x%x: %s\n", rc, wolfTPM2_GetRCString(rc));
+     }
+ 
+-    wolfTPM2_UnloadHandle(&dev, &storageKey.handle);
+     wolfTPM2_Cleanup(&dev);
+ 
+     return rc;
+diff --git a/examples/gpio/gpio_config.c b/examples/gpio/gpio_config.c
+index ebd5cac..0d37c71 100644
+--- a/examples/gpio/gpio_config.c
++++ b/examples/gpio/gpio_config.c
+@@ -20,7 +20,12 @@
+  */
+ 
+ /* This examples demonstrates the use of GPIO available on some TPM modules.
+- * Support tested with STM ST33 and Nuvoton NPCT750 FW 7.2.3.0 or later */
++ * Support tested with STM ST33 and Nuvoton NPCT750 FW 7.2.3.0 or later
++ */
++
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2_wrap.h>
+ 
+diff --git a/examples/gpio/gpio_read.c b/examples/gpio/gpio_read.c
+index e5ce2ab..076f9b5 100644
+--- a/examples/gpio/gpio_read.c
++++ b/examples/gpio/gpio_read.c
+@@ -25,6 +25,10 @@
+  *
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <examples/gpio/gpio.h>
+diff --git a/examples/gpio/gpio_set.c b/examples/gpio/gpio_set.c
+index 8762ce9..77dc8cf 100644
+--- a/examples/gpio/gpio_set.c
++++ b/examples/gpio/gpio_set.c
+@@ -25,6 +25,10 @@
+  *
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+diff --git a/examples/keygen/create_primary.c b/examples/keygen/create_primary.c
+index c981bec..a5f4acc 100644
+--- a/examples/keygen/create_primary.c
++++ b/examples/keygen/create_primary.c
+@@ -21,6 +21,10 @@
+ 
+ /* Tool and example for creating and storing primary keys using TPM2.0 */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+diff --git a/examples/keygen/external_import.c b/examples/keygen/external_import.c
+index 48344c1..3b67dc4 100644
+--- a/examples/keygen/external_import.c
++++ b/examples/keygen/external_import.c
+@@ -20,7 +20,12 @@
+  */
+ 
+ /* Example for importing an external RSA key with seed and creating a
+- * child key under it. */
++ * child key under it.
++ */
++
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2_wrap.h>
+ 
+diff --git a/examples/keygen/keygen.c b/examples/keygen/keygen.c
+index 7a7b6f5..ab87d47 100644
+--- a/examples/keygen/keygen.c
++++ b/examples/keygen/keygen.c
+@@ -21,6 +21,10 @@
+ 
+ /* Tool and example for creating, storing and loading keys using TPM2.0 */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+@@ -232,14 +236,18 @@ int TPM2_Keygen_Example(void* userCtx, int argc, char *argv[])
+     }
+ 
+     if (endorseKey) {
++        /* endorsement is always RSA */
+         rc = wolfTPM2_CreateEK(&dev, &endorse, TPM_ALG_RSA);
+         endorse.handle.policyAuth = 1; /* EK requires Policy auth, not Password */
+         pubFilename = ekPubFile;
+         primary = &endorse;
+     }
+     else {
+-        /* get SRK */
+-        rc = getPrimaryStoragekey(&dev, &storage, TPM_ALG_RSA);
++        /* SRK: Use RSA or ECC SRK only. Prefer ECC */
++        TPMI_ALG_PUBLIC srkAlg = TPM_ALG_ECC;
++        if (alg == TPM_ALG_RSA)
++            srkAlg = TPM_ALG_RSA;
++        rc = getPrimaryStoragekey(&dev, &storage, srkAlg);
+         pubFilename = srkPubFile;
+         primary = &storage;
+     }
+@@ -403,7 +411,8 @@ int TPM2_Keygen_Example(void* userCtx, int argc, char *argv[])
+ 
+         pemFilename = (endorseKey) ? pemFileEk : pemFileSrk;
+         pemSz = (word32)sizeof(pem);
+-        rc = wolfTPM2_RsaKey_TpmToPemPub(&dev, primary, pem, &pemSz);
++        rc = wolfTPM2_ExportPublicKeyBuffer(&dev, primary,
++            ENCODING_TYPE_PEM, pem, &pemSz);
+         if (rc == 0) {
+             rc = writeBin(pemFilename, pem, pemSz);
+         }
+@@ -411,8 +420,8 @@ int TPM2_Keygen_Example(void* userCtx, int argc, char *argv[])
+ 
+         pemFilename = (bAIK) ? pemFileAk : pemFileKey;
+         pemSz = (word32)sizeof(pem);
+-        rc = wolfTPM2_RsaKey_TpmToPemPub(&dev, (WOLFTPM2_KEY*)&newKeyBlob,
+-            pem, &pemSz);
++        rc = wolfTPM2_ExportPublicKeyBuffer(&dev, (WOLFTPM2_KEY*)&newKeyBlob,
++            ENCODING_TYPE_PEM, pem, &pemSz);
+         if (rc == 0) {
+             rc = writeBin(pemFilename, pem, pemSz);
+         }
+diff --git a/examples/keygen/keyimport.c b/examples/keygen/keyimport.c
+index cf4c781..eb6c96d 100644
+--- a/examples/keygen/keyimport.c
++++ b/examples/keygen/keyimport.c
+@@ -21,6 +21,10 @@
+ 
+ /* Tool and example for creating, storing and loading keys using TPM2.0 */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+@@ -217,6 +221,11 @@ int TPM2_Keyimport_Example(void* userCtx, int argc, char *argv[])
+         }
+     }
+     else
++#else
++    (void)encType;
++    (void)attributes;
++    (void)bufSz;
++    (void)isPublicKey;
+ #endif
+     if (alg == TPM_ALG_RSA) {
+         printf("Loading example RSA key (see kRsaKeyPrivQ)\n");
+diff --git a/examples/keygen/keyload.c b/examples/keygen/keyload.c
+index 9225159..343d7bb 100644
+--- a/examples/keygen/keyload.c
++++ b/examples/keygen/keyload.c
+@@ -21,6 +21,9 @@
+ 
+ /* Tool and example for creating, storing and loading keys using TPM2.0 */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ /* use ANSI stdio for support of format strings, must be set before
+  * including stdio.h
+@@ -116,14 +119,29 @@ int TPM2_Keyload_Example(void* userCtx, int argc, char *argv[])
+         goto exit;
+     }
+ 
++    /* Load encrypted key from the disk */
++#if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
++    rc = readKeyBlob(inputFile, &newKey);
++    if (rc != 0) goto exit;
++#else
++    /* TODO: Option to load hex blob */
++    printf("Loading blob from disk not supported. Enable wolfcrypt support.\n");
++    goto exit;
++#endif
++
+     if (endorseKey) {
++        /* endorsement is always RSA */
+         rc = wolfTPM2_CreateEK(&dev, &endorse, TPM_ALG_RSA);
+         if (rc != 0) goto exit;
+         endorse.handle.policyAuth = 1;
+         primary = &endorse;
+     }
+-    else { /* SRK */
+-        rc = getPrimaryStoragekey(&dev, &storage, TPM_ALG_RSA);
++    else {
++        /* SRK: Use RSA or ECC SRK only. Prefer ECC */
++        TPMI_ALG_PUBLIC srkAlg = TPM_ALG_ECC;
++        if (newKey.pub.publicArea.type == TPM_ALG_RSA)
++            srkAlg = TPM_ALG_RSA;
++        rc = getPrimaryStoragekey(&dev, &storage, srkAlg);
+         if (rc != 0) goto exit;
+         primary = &storage;
+     }
+@@ -153,15 +171,6 @@ int TPM2_Keyload_Example(void* userCtx, int argc, char *argv[])
+         if (rc != 0) goto exit;
+     }
+ 
+-    /* Load encrypted key from the disk */
+-#if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
+-    rc = readKeyBlob(inputFile, &newKey);
+-    if (rc != 0) goto exit;
+-#else
+-    /* TODO: Option to load hex blob */
+-    printf("Loading blob from disk not supported. Enable wolfcrypt support.\n");
+-    goto exit;
+-#endif
+ 
+     if (newKey.priv.size == 0) {
+         rc = wolfTPM2_LoadPublicKey(&dev, (WOLFTPM2_KEY*)&newKey, &newKey.pub);
+diff --git a/examples/management/flush.c b/examples/management/flush.c
+index 82d0180..dc635f4 100644
+--- a/examples/management/flush.c
++++ b/examples/management/flush.c
+@@ -21,6 +21,10 @@
+ 
+ /* This is a helper tool for reseting the value of a TPM2.0 PCR */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <examples/management/flush.h>
+diff --git a/examples/native/native_test.c b/examples/native/native_test.c
+index e471bf0..ae864da 100644
+--- a/examples/native/native_test.c
++++ b/examples/native/native_test.c
+@@ -21,6 +21,10 @@
+ 
+ /* This example shows using the TPM2_ specification API's in TPM2_Native_Test() */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_param_enc.h>
+ 
+diff --git a/examples/nvram/counter.c b/examples/nvram/counter.c
+index 75e9e80..5d3dd82 100644
+--- a/examples/nvram/counter.c
++++ b/examples/nvram/counter.c
+@@ -24,7 +24,11 @@
+  * NB: This example uses Parameter Encryption to protect
+  *     the Password Authorization of the TPM NVRAM Index
+  *
+- **/
++ */
++
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2_wrap.h>
+ 
+diff --git a/examples/nvram/policy_nv.c b/examples/nvram/policy_nv.c
+index d8e575d..b858ca9 100644
+--- a/examples/nvram/policy_nv.c
++++ b/examples/nvram/policy_nv.c
+@@ -24,7 +24,11 @@
+  * NB: This example uses Parameter Encryption to protect the password of the
+  *     TPM NVRAM Index, where the private and public parts of a TPM key is stored
+  *
+- **/
++ */
++
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2_wrap.h>
+ 
+diff --git a/examples/nvram/read.c b/examples/nvram/read.c
+index 869cbb8..d90172f 100644
+--- a/examples/nvram/read.c
++++ b/examples/nvram/read.c
+@@ -24,7 +24,11 @@
+  * NB: This example uses Parameter Encryption to protect
+  *     the Password Authorization of the TPM NVRAM Index
+  *
+- **/
++ */
++
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2_wrap.h>
+ 
+diff --git a/examples/nvram/store.c b/examples/nvram/store.c
+index 4cb8e3b..007a6e7 100644
+--- a/examples/nvram/store.c
++++ b/examples/nvram/store.c
+@@ -24,7 +24,11 @@
+  * NB: This example uses Parameter Encryption to protect the password of the
+  *     TPM NVRAM Index, where the private and public parts of a TPM key is stored
+  *
+- **/
++ */
++
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2_wrap.h>
+ 
+diff --git a/examples/pcr/extend.c b/examples/pcr/extend.c
+index 0378b7e..5220948 100644
+--- a/examples/pcr/extend.c
++++ b/examples/pcr/extend.c
+@@ -21,6 +21,10 @@
+ 
+ /* This is a helper tool for extending hash into a TPM2.0 PCR */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #ifndef WOLFTPM2_NO_WRAPPER
+diff --git a/examples/pcr/policy.c b/examples/pcr/policy.c
+index dc79608..dfaafef 100644
+--- a/examples/pcr/policy.c
++++ b/examples/pcr/policy.c
+@@ -21,6 +21,10 @@
+ 
+ /* This is a helper tool for setting policies on a TPM 2.0 PCR */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+diff --git a/examples/pcr/policy_sign.c b/examples/pcr/policy_sign.c
+index 72a3673..4cf64e1 100644
+--- a/examples/pcr/policy_sign.c
++++ b/examples/pcr/policy_sign.c
+@@ -22,13 +22,17 @@
+ /* Example for signing PCR(s) to create a policy for unsealing a secret
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+ 
+-#if !defined(WOLFTPM2_NO_WRAPPER) && !defined(WOLFTPM2_NO_WOLFCRYPT)
++#if !defined(WOLFTPM2_NO_WRAPPER) && !defined(WOLFTPM2_NO_WOLFCRYPT) && \
++    !defined(NO_FILESYSTEM)
+ 
+ #include <hal/tpm_io.h>
+ #include <examples/tpm_test.h>
+@@ -63,7 +67,6 @@ static void usage(void)
+     printf("./examples/pcr/policy_sign -pcr=16 -pcr=15 -pcrdigest=ba8ac02be16d9d33080d98611d70bb869aa8ac3fc684ab732b91f75f164b36bc\n");
+ }
+ 
+-#ifndef NO_FILESYSTEM
+ #ifndef WC_MAX_ENCODED_DIG_ASN_SZ
+ #define WC_MAX_ENCODED_DIG_ASN_SZ 9 /* enum(bit or octet) + length(4) */
+ #endif
+@@ -214,7 +217,6 @@ static int PolicySign(TPM_ALG_ID alg, const char* keyFile, const char* password,
+     }
+     return rc;
+ }
+-#endif /* !NO_FILESYSTEM */
+ 
+ int TPM2_PCR_PolicySign_Example(void* userCtx, int argc, char *argv[])
+ {
+@@ -358,9 +360,7 @@ int TPM2_PCR_PolicySign_Example(void* userCtx, int argc, char *argv[])
+         if (rc == 0) {
+             printf("PCR Policy Signature (%d bytes):\n", sigSz);
+             printHexString(sig, sigSz, 32);
+-        #if !defined(NO_FILESYSTEM)
+             rc = writeBin(outFile, sig, sigSz);
+-        #endif
+         }
+         if (rc == 0) {
+             /* Create Signing Authority Policy */
+@@ -374,9 +374,7 @@ int TPM2_PCR_PolicySign_Example(void* userCtx, int argc, char *argv[])
+             if (rc == 0) {
+                 printf("Policy Authorize Digest (%d bytes):\n", digestSz);
+                 printHexString(digest, digestSz, digestSz);
+-            #if !defined(NO_FILESYSTEM)
+                 rc = writeBin(outPolicyFile, digest, digestSz);
+-            #endif
+             }
+         }
+     }
+@@ -395,7 +393,7 @@ exit:
+ 
+     return rc;
+ }
+-#endif /* !WOLFTPM2_NO_WRAPPER && !WOLFTPM2_NO_WOLFCRYPT */
++#endif /* !WOLFTPM2_NO_WRAPPER && !WOLFTPM2_NO_WOLFCRYPT && !NO_FILESYSTEM */
+ 
+ /******************************************************************************/
+ /* --- END TPM Secure Boot Sign Policy Example -- */
+@@ -406,7 +404,8 @@ int main(int argc, char *argv[])
+ {
+     int rc = NOT_COMPILED_IN;
+ 
+-#if !defined(WOLFTPM2_NO_WRAPPER) && !defined(WOLFTPM2_NO_WOLFCRYPT)
++#if !defined(WOLFTPM2_NO_WRAPPER) && !defined(WOLFTPM2_NO_WOLFCRYPT) && \
++    !defined(NO_FILESYSTEM)
+     rc = TPM2_PCR_PolicySign_Example(NULL, argc, argv);
+ #else
+     printf("Example not compiled in! Requires Wrapper and wolfCrypt\n");
+diff --git a/examples/pcr/quote.c b/examples/pcr/quote.c
+index 1519692..dc30ad7 100644
+--- a/examples/pcr/quote.c
++++ b/examples/pcr/quote.c
+@@ -23,6 +23,10 @@
+  * PCR measurement. PCR values are used as basis for system integrity.
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #ifndef WOLFTPM2_NO_WRAPPER
+diff --git a/examples/pcr/read_pcr.c b/examples/pcr/read_pcr.c
+index 098a39b..2e9de46 100644
+--- a/examples/pcr/read_pcr.c
++++ b/examples/pcr/read_pcr.c
+@@ -21,6 +21,10 @@
+ 
+ /* This is a helper tool for reading the value of a TPM2.0 PCR */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+diff --git a/examples/pcr/reset.c b/examples/pcr/reset.c
+index 7ed1d80..e2caf50 100644
+--- a/examples/pcr/reset.c
++++ b/examples/pcr/reset.c
+@@ -21,6 +21,10 @@
+ 
+ /* This is a helper tool for reseting the value of a TPM2.0 PCR */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #ifndef WOLFTPM2_NO_WRAPPER
+diff --git a/examples/pkcs7/pkcs7.c b/examples/pkcs7/pkcs7.c
+index 7ef8730..eac18f5 100644
+--- a/examples/pkcs7/pkcs7.c
++++ b/examples/pkcs7/pkcs7.c
+@@ -19,6 +19,9 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+@@ -89,14 +92,14 @@ static int GetMyData(byte* buffer, word32 bufSz, word32 offset)
+ 
+ /* The wc_PKCS7_EncodeSignedData_ex and wc_PKCS7_VerifySignedData_ex functions
+    were added in this PR https://github.com/wolfSSL/wolfssl/pull/1780. */
+-static int PKCS7_SignVerifyEx(WOLFTPM2_DEV* dev, int tpmDevId, WOLFTPM2_BUFFER* der)
++static int PKCS7_SignVerifyEx(WOLFTPM2_DEV* dev, int tpmDevId, WOLFTPM2_BUFFER* derCert,
++    WOLFTPM2_BUFFER* derPubKey, int alg, enum wc_HashType hashType, const char* outFile)
+ {
+     int rc;
+     PKCS7 pkcs7;
+     wc_HashAlg       hash;
+-    enum wc_HashType hashType = WC_HASH_TYPE_SHA256;
+-    byte             hashBuf[TPM_SHA256_DIGEST_SIZE];
+-    word32           hashSz = wc_HashGetDigestSize(hashType);
++    byte             hashBuf[TPM_MAX_DIGEST_SIZE];
++    word32           hashSz;
+     byte outputHead[MAX_PKCS7_SIZE], outputFoot[MAX_PKCS7_SIZE];
+     int outputHeadSz, outputFootSz;
+     byte dataChunk[MY_DATA_CHUNKS];
+@@ -107,6 +110,11 @@ static int PKCS7_SignVerifyEx(WOLFTPM2_DEV* dev, int tpmDevId, WOLFTPM2_BUFFER*
+ 
+     XMEMSET(&pkcs7, 0, sizeof(pkcs7));
+ 
++    hashSz = wc_HashGetDigestSize(hashType);
++    if (hashSz <= 0) {
++        return hashSz;
++    }
++
+     /* calculate hash for content */
+     rc = wc_HashInit(&hash, hashType);
+     if (rc == 0) {
+@@ -131,14 +139,18 @@ static int PKCS7_SignVerifyEx(WOLFTPM2_DEV* dev, int tpmDevId, WOLFTPM2_BUFFER*
+     /* Generate and verify PKCS#7 files containing data using TPM key */
+     rc = wc_PKCS7_Init(&pkcs7, NULL, tpmDevId);
+     if (rc != 0) goto exit;
+-    rc = wc_PKCS7_InitWithCert(&pkcs7, der->buffer, der->size);
++    rc = wc_PKCS7_InitWithCert(&pkcs7, derCert->buffer, derCert->size);
+     if (rc != 0) goto exit;
+ 
+     pkcs7.content = NULL; /* not used */
+     pkcs7.contentSz = dataChunkSz;
+-    pkcs7.encryptOID = RSAk;
+-    pkcs7.hashOID = SHA256h;
++    pkcs7.encryptOID = (alg == TPM_ALG_RSA) ? RSAk : ECDSAk;
++    pkcs7.hashOID = wc_HashGetOID(hashType);
+     pkcs7.rng = wolfTPM2_GetRng(dev);
++    /* pass public key instead of private here. The PKCS7 will try a public
++     * key decode if using crypto callbacks */
++    pkcs7.privateKey = derPubKey->buffer;
++    pkcs7.privateKeySz = derPubKey->size;
+ 
+     outputHeadSz = (int)sizeof(outputHead);
+     outputFootSz = (int)sizeof(outputFoot);
+@@ -157,7 +169,7 @@ static int PKCS7_SignVerifyEx(WOLFTPM2_DEV* dev, int tpmDevId, WOLFTPM2_BUFFER*
+     TPM2_PrintBin(outputFoot, outputFootSz);
+ 
+ #if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
+-    pemFile = XFOPEN("./examples/pkcs7/pkcs7tpmsignedex.p7s", "wb");
++    pemFile = XFOPEN(outFile, "wb");
+     if (pemFile != XBADFILE) {
+ 
+         /* Header */
+@@ -192,6 +204,8 @@ static int PKCS7_SignVerifyEx(WOLFTPM2_DEV* dev, int tpmDevId, WOLFTPM2_BUFFER*
+ 
+         XFCLOSE(pemFile);
+     }
++#else
++    (void)outFile;
+ #endif
+ 
+     /* Test verify with TPM */
+@@ -227,7 +241,8 @@ exit:
+ }
+ #endif /* ENABLE_PKCS7EX_EXAMPLE */
+ 
+-static int PKCS7_SignVerify(WOLFTPM2_DEV* dev, int tpmDevId, WOLFTPM2_BUFFER* der)
++static int PKCS7_SignVerify(WOLFTPM2_DEV* dev, int tpmDevId, WOLFTPM2_BUFFER* derCert,
++    WOLFTPM2_BUFFER* derPubKey, int alg, enum wc_HashType hashType, const char* outFile)
+ {
+     int rc;
+     PKCS7 pkcs7;
+@@ -243,14 +258,18 @@ static int PKCS7_SignVerify(WOLFTPM2_DEV* dev, int tpmDevId, WOLFTPM2_BUFFER* de
+     /* Generate and verify PKCS#7 files containing data using TPM key */
+     rc = wc_PKCS7_Init(&pkcs7, NULL, tpmDevId);
+     if (rc != 0) goto exit;
+-    rc = wc_PKCS7_InitWithCert(&pkcs7, der->buffer, der->size);
++    rc = wc_PKCS7_InitWithCert(&pkcs7, derCert->buffer, derCert->size);
+     if (rc != 0) goto exit;
+ 
+     pkcs7.content = data;
+     pkcs7.contentSz = (word32)sizeof(data);
+-    pkcs7.encryptOID = RSAk;
+-    pkcs7.hashOID = SHA256h;
++    pkcs7.encryptOID = (alg == TPM_ALG_RSA) ? RSAk : ECDSAk;
++    pkcs7.hashOID = wc_HashGetOID(hashType);
+     pkcs7.rng = wolfTPM2_GetRng(dev);
++    /* pass public key instead of private here. The PKCS7 will try a public
++     * key decode if using crypto callbacks */
++    pkcs7.privateKey = derPubKey->buffer;
++    pkcs7.privateKeySz = derPubKey->size;
+ 
+     rc = wc_PKCS7_EncodeSignedData(&pkcs7, output, sizeof(output));
+     if (rc <= 0) goto exit;
+@@ -261,7 +280,7 @@ static int PKCS7_SignVerify(WOLFTPM2_DEV* dev, int tpmDevId, WOLFTPM2_BUFFER* de
+     TPM2_PrintBin(output, outputSz);
+ 
+ #if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
+-    pemFile = XFOPEN("./examples/pkcs7/pkcs7tpmsigned.p7s", "wb");
++    pemFile = XFOPEN(outFile, "wb");
+     if (pemFile != XBADFILE) {
+         rc = (int)XFWRITE(output, 1, outputSz, pemFile);
+         XFCLOSE(pemFile);
+@@ -297,6 +316,16 @@ exit:
+     return rc;
+ }
+ 
++static void usage(void)
++{
++    printf("Expected usage:\n");
++    printf("./examples/pkcs7/pkcs7 [-ecc/-rsa] [-out=]\n");
++    printf("* -ecc/-rsa: Use RSA or ECC key (default is RSA)\n");
++    printf("* -incert=file: Certificate for key used\n");
++    printf("\tDefault: RSA=./certs/client-rsa-cert.der, ECC=./certs/client-ecc-cert.der\n");
++    printf("* -out=file: Generated PKCS7 file containing signed data and certificate\n");
++}
++
+ int TPM2_PKCS7_Example(void* userCtx)
+ {
+     return TPM2_PKCS7_ExampleArgs(userCtx, 0, NULL);
+@@ -306,22 +335,62 @@ int TPM2_PKCS7_ExampleArgs(void* userCtx, int argc, char *argv[])
+     int rc;
+     WOLFTPM2_DEV dev;
+     WOLFTPM2_KEY storageKey;
+-    WOLFTPM2_KEY rsaKey;
++    WOLFTPM2_KEY tpmKey;
+     TPMT_PUBLIC publicTemplate;
+     TpmCryptoDevCtx tpmCtx;
+     int tpmDevId;
+-    WOLFTPM2_BUFFER der;
++    WOLFTPM2_BUFFER derCert;
++    WOLFTPM2_BUFFER derPubKey;
+ #if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
+     XFILE derFile;
++    const char* inCert = NULL;
+ #endif
++    TPM_ALG_ID alg = TPM_ALG_RSA;
++    const char* outFile =   "./examples/pkcs7/pkcs7tpmsigned.p7s";
++    const char* outFileEx = "./examples/pkcs7/pkcs7tpmsignedex.p7s";
++    enum wc_HashType hashType = WC_HASH_TYPE_SHA256;
+ 
+-    (void)argc;
+-    (void)argv;
++    if (argc >= 2) {
++        if (XSTRCMP(argv[1], "-?") == 0 ||
++            XSTRCMP(argv[1], "-h") == 0 ||
++            XSTRCMP(argv[1], "--help") == 0) {
++            usage();
++            return 0;
++        }
++    }
++    while (argc > 1) {
++        if (XSTRCMP(argv[argc-1], "-ecc") == 0) {
++            alg = TPM_ALG_ECC;
++        }
++        else if (XSTRCMP(argv[argc-1], "-rsa") == 0) {
++            alg = TPM_ALG_RSA;
++        }
++    #if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
++        else if (XSTRNCMP(argv[argc-1], "-incert=",
++                XSTRLEN("-incert=")) == 0) {
++            inCert = argv[argc-1] + XSTRLEN("-incert=");
++        }
++    #endif
++        else if (XSTRNCMP(argv[argc-1], "-out=",
++                XSTRLEN("-out=")) == 0) {
++            outFile = argv[argc-1] + XSTRLEN("-out=");
++        }
++        else if (XSTRNCMP(argv[argc-1], "-outex=",
++                XSTRLEN("-outex=")) == 0) {
++            outFileEx = argv[argc-1] + XSTRLEN("-outex=");
++        }
++        else {
++            printf("Warning: Unrecognized option: %s\n", argv[argc-1]);
++        }
++        argc--;
++    }
+ 
+     printf("TPM2 PKCS7 Example\n");
+ 
+-    XMEMSET(&der, 0, sizeof(der));
+-    XMEMSET(&rsaKey, 0, sizeof(rsaKey));
++
++    XMEMSET(&derCert, 0, sizeof(derCert));
++    XMEMSET(&derPubKey, 0, sizeof(derPubKey));
++    XMEMSET(&tpmKey, 0, sizeof(tpmKey));
+     XMEMSET(&storageKey, 0, sizeof(storageKey));
+ 
+     /* Init the TPM2 device */
+@@ -331,60 +400,110 @@ int TPM2_PKCS7_ExampleArgs(void* userCtx, int argc, char *argv[])
+     /* Setup the wolf crypto device callback */
+     XMEMSET(&tpmCtx, 0, sizeof(tpmCtx));
+ #ifndef NO_RSA
+-    tpmCtx.rsaKey = &rsaKey;
++    if (alg == TPM_ALG_RSA)
++        tpmCtx.rsaKey = &tpmKey;
++#endif
++#ifdef HAVE_ECC
++    if (alg == TPM_ALG_ECC)
++        tpmCtx.eccKey = &tpmKey;
+ #endif
+     rc = wolfTPM2_SetCryptoDevCb(&dev, wolfTPM2_CryptoDevCb, &tpmCtx, &tpmDevId);
+     if (rc < 0) goto exit;
+ 
+     /* get SRK */
+-    rc = getPrimaryStoragekey(&dev, &storageKey, TPM_ALG_RSA);
++    rc = getPrimaryStoragekey(&dev, &storageKey, alg);
+     if (rc != 0) goto exit;
+ 
+-    /* Create/Load RSA key for PKCS7 signing */
+-    rc = wolfTPM2_GetKeyTemplate_RSA(&publicTemplate,
+-                    TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+-                    TPMA_OBJECT_decrypt | TPMA_OBJECT_sign | TPMA_OBJECT_noDA);
+-    if (rc != 0) goto exit;
++    /* Create/Load key for PKCS7 signing */
++    if (alg == TPM_ALG_RSA) {
++        rc = wolfTPM2_GetKeyTemplate_RSA(&publicTemplate,
++            TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
++            TPMA_OBJECT_decrypt | TPMA_OBJECT_sign | TPMA_OBJECT_noDA);
++        if (rc == 0) {
++            rc = getRSAkey(&dev,
++                        &storageKey,
++                        &tpmKey,
++                        NULL,
++                        tpmDevId,
++                        (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
++                        &publicTemplate);
++        }
++        if (rc == 0) {
++            /* export public key as DER for PKCS7, so it has the key information */
+ 
+-    rc = getRSAkey(&dev,
+-                   &storageKey,
+-                   &rsaKey,
+-                   NULL,
+-                   tpmDevId,
+-                   (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
+-                   &publicTemplate);
+-    if (rc != 0) goto exit;
+-    wolfTPM2_SetAuthHandle(&dev, 0, &rsaKey.handle);
++        }
++    }
++    else {
++        TPM_ECC_CURVE curve;
++    #if defined(NO_ECC256) && defined(HAVE_ECC384) && ECC_MIN_KEY_SZ <= 384
++        /* make sure we use a curve that is enabled */
++        curve = TPM_ECC_NIST_P384;
++    #else
++        curve = TPM_ECC_NIST_P256;
++    #endif
++
++        rc = wolfTPM2_GetKeyTemplate_ECC(&publicTemplate,
++            TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
++            TPMA_OBJECT_sign | TPMA_OBJECT_noDA,
++            curve, TPM_ALG_ECDSA);
++        if (rc == 0) {
++            rc = getECCkey(&dev,
++                            &storageKey,
++                            &tpmKey,
++                            NULL,
++                            tpmDevId,
++                            (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
++                            &publicTemplate);
++        }
++        if (rc == 0) {
++            /* export public key as DER for PKCS7, so it has the key information */
+ 
++        }
++    }
++    if (rc != 0) goto exit;
++    wolfTPM2_SetAuthHandle(&dev, 0, &tpmKey.handle);
+ 
+     /* load DER certificate for TPM key (obtained by running
+-        `./examples/csr/csr` and `./certs/certreq.sh`) */
++     * `./examples/csr/csr` and `./certs/certreq.sh`) */
+ #if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
+-    derFile = XFOPEN("./certs/client-rsa-cert.der", "rb");
++    if (inCert == NULL) {
++        if (alg == TPM_ALG_RSA)
++            inCert = "./certs/client-rsa-cert.der";
++        else
++            inCert = "./certs/client-ecc-cert.der";
++    }
++    derFile = XFOPEN(inCert, "rb");
+     if (derFile != XBADFILE) {
+         XFSEEK(derFile, 0, XSEEK_END);
+-        der.size = (int)XFTELL(derFile);
++        derCert.size = (int)XFTELL(derFile);
+         XREWIND(derFile);
+-        if (der.size > (int)sizeof(der.buffer)) {
++        if (derCert.size > (int)sizeof(derCert.buffer)) {
+             rc = BUFFER_E;
+         }
+         else {
+-            rc = (int)XFREAD(der.buffer, 1, der.size, derFile);
+-            rc = (rc == der.size) ? 0 : -1;
++            rc = (int)XFREAD(derCert.buffer, 1, derCert.size, derFile);
++            rc = (rc == derCert.size) ? 0 : -1;
+         }
+         XFCLOSE(derFile);
+         if (rc != 0) goto exit;
+     }
+ #endif
+ 
++    /* Export TPM public key as DER/ASN.1 (should match certificate) */
++    derPubKey.size = (int)sizeof(derPubKey.buffer);
++    rc = wolfTPM2_ExportPublicKeyBuffer(&dev, &tpmKey,
++        ENCODING_TYPE_ASN1, derPubKey.buffer, (word32*)&derPubKey.size);
++    if (rc != 0) goto exit;
+ 
+     /* PKCS 7 sign/verify example */
+-    rc = PKCS7_SignVerify(&dev, tpmDevId, &der);
++    rc = PKCS7_SignVerify(&dev, tpmDevId, &derCert, &derPubKey, alg, hashType,
++        outFile);
+     if (rc != 0) goto exit;
+ 
+ #ifdef ENABLE_PKCS7EX_EXAMPLE
+     /* PKCS 7 large data sign/verify example */
+-    rc = PKCS7_SignVerifyEx(&dev, tpmDevId, &der);
++    rc = PKCS7_SignVerifyEx(&dev, tpmDevId, &derCert, &derPubKey, alg, hashType,
++        outFileEx);
+     if (rc != 0) goto exit;
+ #endif
+ 
+@@ -394,7 +513,7 @@ exit:
+         printf("Failure 0x%x: %s\n", rc, wolfTPM2_GetRCString(rc));
+     }
+ 
+-    wolfTPM2_UnloadHandle(&dev, &rsaKey.handle);
++    wolfTPM2_UnloadHandle(&dev, &tpmKey.handle);
+ 
+     wolfTPM2_Cleanup(&dev);
+ 
+diff --git a/examples/run_examples.sh b/examples/run_examples.sh
+index 8f4ba75..01c1b64 100755
+--- a/examples/run_examples.sh
++++ b/examples/run_examples.sh
+@@ -16,23 +16,23 @@ touch run.out
+ 
+ # Native API test TPM2_x
+ echo -e "Native tests for TPM2_x API's"
+-./examples/native/native_test >> run.out
++./examples/native/native_test >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "native_test failed! $RESULT$RESULT" && exit 1
+ 
+ 
+ # Wrapper tests
+ echo -e "Wrapper tests"
+-./examples/wrap/wrap_test >> run.out
++./examples/wrap/wrap_test >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "wrap_test failed! $RESULT" && exit 1
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/wrap/wrap_test -xor >> run.out
++    ./examples/wrap/wrap_test -xor >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "wrap_test (XOR param enc) failed! $RESULT" && exit 1
+ fi
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/wrap/wrap_test -aes >> run.out
++    ./examples/wrap/wrap_test -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "wrap_test (AES param enc) failed! $RESULT" && exit 1
+ fi
+@@ -40,78 +40,78 @@ fi
+ 
+ # Key Generation Tests
+ echo -e "Key Generation Tests"
+-./examples/keygen/keygen keyblob.bin -rsa >> run.out
++./examples/keygen/keygen keyblob.bin -rsa >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "keygen rsa failed! $RESULT" && exit 1
+-./examples/keygen/keyload keyblob.bin >> run.out
++./examples/keygen/keyload keyblob.bin >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "keyload rsa failed! $RESULT" && exit 1
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/keygen/keygen keyblob.bin -rsa -aes >> run.out
++    ./examples/keygen/keygen keyblob.bin -rsa -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keygen rsa param enc failed! $RESULT" && exit 1
+-    ./examples/keygen/keyload keyblob.bin -aes >> run.out
++    ./examples/keygen/keyload keyblob.bin -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keyload rsa param enc failed! $RESULT" && exit 1
+ 
+-    ./examples/keygen/keyimport rsakeyblob.bin -rsa >> run.out
++    ./examples/keygen/keyimport rsakeyblob.bin -rsa >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keyload rsa import load failed! $RESULT" && exit 1
+-    ./examples/keygen/keyload rsakeyblob.bin >> run.out
++    ./examples/keygen/keyload rsakeyblob.bin >> run.out 2>&1
+     RESULT=$?
+     rm -f rsakeyblob.bin
+     [ $RESULT -ne 0 ] && echo -e "keyload rsa import load failed! $RESULT" && exit 1
+ fi
+ # keeping keyblob.bin for later tests
+ 
+-./examples/keygen/keygen ecckeyblob.bin -ecc >> run.out
++./examples/keygen/keygen ecckeyblob.bin -ecc >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "keygen ecc failed! $RESULT" && exit 1
+-./examples/keygen/keyload ecckeyblob.bin >> run.out
++./examples/keygen/keyload ecckeyblob.bin >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "keyload ecc failed! $RESULT" && exit 1
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/keygen/keygen ecckeyblob.bin -ecc -aes >> run.out
++    ./examples/keygen/keygen ecckeyblob.bin -ecc -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keygen ecc param enc failed! $RESULT" && exit 1
+-    ./examples/keygen/keyload ecckeyblob.bin -aes >> run.out
++    ./examples/keygen/keyload ecckeyblob.bin -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keyload ecc param enc failed! $RESULT" && exit 1
+-    ./examples/keygen/keyimport ecckeyblob.bin -ecc >> run.out
++    ./examples/keygen/keyimport ecckeyblob.bin -ecc >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keyload ecc import failed! $RESULT" && exit 1
+ fi
+ rm -f ecckeyblob.bin
+ 
+-./examples/keygen/keygen symkeyblob.bin -sym=aescfb128 >> run.out
++./examples/keygen/keygen symkeyblob.bin -sym=aescfb128 >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "keygen sym aes failed! $RESULT" && exit 1
+-./examples/keygen/keyload symkeyblob.bin >> run.out
++./examples/keygen/keyload symkeyblob.bin >> run.out 2>&1
+ RESULT=$?
+ rm -f symkeyblob.bin
+ [ $RESULT -ne 0 ] && echo -e "keygen sym aes load failed! $RESULT" && exit 1
+ 
+-./examples/keygen/keygen keyedhashblob.bin -keyedhash >> run.out
++./examples/keygen/keygen keyedhashblob.bin -keyedhash >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "keygen keyed hash failed! $RESULT" && exit 1
+-./examples/keygen/keyload keyedhashblob.bin >> run.out
++./examples/keygen/keyload keyedhashblob.bin >> run.out 2>&1
+ RESULT=$?
+ rm -f keyedhashblob.bin
+ [ $RESULT -ne 0 ] && echo -e "keygen keyed hash load failed! $RESULT" && exit 1
+ 
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+     # KeyGen under Endorsement
+-    ./examples/keygen/keygen rsakeyblobeh.bin -rsa -eh >> run.out
++    ./examples/keygen/keygen rsakeyblobeh.bin -rsa -eh >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keygen endorsement rsa failed! $RESULT" && exit 1
+-    ./examples/keygen/keyload rsakeyblobeh.bin -rsa -eh >> run.out
++    ./examples/keygen/keyload rsakeyblobeh.bin -rsa -eh >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keyload endorsement rsa failed! $RESULT" && exit 1
+ 
+-    ./examples/keygen/keygen ecckeyblobeh.bin -ecc -eh >> run.out
++    ./examples/keygen/keygen ecckeyblobeh.bin -ecc -eh >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keygen endorsement rsa failed! $RESULT" && exit 1
+-    ./examples/keygen/keyload ecckeyblobeh.bin -ecc -eh >> run.out
++    ./examples/keygen/keyload ecckeyblobeh.bin -ecc -eh >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keygen endorsement rsa failed! $RESULT" && exit 1
+ fi
+@@ -120,73 +120,77 @@ fi
+ # NV Tests
+ echo -e "NV Tests"
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/nvram/store -aes >> run.out
++    ./examples/nvram/store -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "nv store param enc failed! $RESULT" && exit 1
+-    ./examples/nvram/read -aes >> run.out
++    ./examples/nvram/read -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "nv read param enc failed! $RESULT" && exit 1
+ fi
+-./examples/nvram/store -priv >> run.out
++./examples/nvram/store -priv >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "nv store priv only failed! $RESULT" && exit 1
+-./examples/nvram/read -priv >> run.out
++./examples/nvram/read -priv >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "nv read priv only failed! $RESULT" && exit 1
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/nvram/store -priv -aes >> run.out
++    ./examples/nvram/store -priv -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "nv store priv only param enc failed! $RESULT" && exit 1
+-    ./examples/nvram/read -priv -aes >> run.out
++    ./examples/nvram/read -priv -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "nv read priv only param enc failed! $RESULT" && exit 1
+ fi
+-./examples/nvram/store -pub >> run.out
++./examples/nvram/store -pub >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "nv store pub only failed! $RESULT" && exit 1
+-./examples/nvram/read -pub >> run.out
++./examples/nvram/read -pub >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "nv read pub only failed! $RESULT" && exit 1
+ 
+-./examples/nvram/policy_nv >> run.out
++./examples/nvram/policy_nv >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "nv policy nv failed! $RESULT" && exit 1
+-./examples/nvram/policy_nv -aes >> run.out
++./examples/nvram/policy_nv -aes >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "nv policy nv aes failed! $RESULT" && exit 1
+ 
+ 
+ # CSR Tests
+-./examples/keygen/keygen rsa_test_blob.raw -rsa -t >> run.out
++./examples/keygen/keygen rsa_test_blob.raw -rsa -t >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "keygen rsa test for csr failed! $RESULT" && exit 1
+-./examples/keygen/keygen ecc_test_blob.raw -ecc -t >> run.out
++./examples/keygen/keygen ecc_test_blob.raw -ecc -t >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "keygen ecc test for csr failed! $RESULT" && exit 1
+ 
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/csr/csr -cert >> run.out
++    ./examples/csr/csr -cert >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "cert self-signed failed! $RESULT" && exit 1
+ 
+-    cp ./certs/tpm-rsa-cert.pem $WOLFSSL_PATH/certs/tpm-rsa-cert.pem >> run.out
+-    cp ./certs/tpm-ecc-cert.pem $WOLFSSL_PATH/certs/tpm-ecc-cert.pem >> run.out
++    cp ./certs/tpm-rsa-cert.pem $WOLFSSL_PATH/certs/tpm-rsa-cert.pem >> run.out 2>&1
++    cp ./certs/tpm-ecc-cert.pem $WOLFSSL_PATH/certs/tpm-ecc-cert.pem >> run.out 2>&1
+ 
+-    ./examples/csr/csr >> run.out
++    ./examples/csr/csr >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "csr gen failed! $RESULT" && exit 1
+ 
+-    ./certs/certreq.sh 2>&1 >> run.out
+-    cp ./certs/ca-ecc-cert.pem $WOLFSSL_PATH/certs/tpm-ca-ecc-cert.pem >> run.out
+-    cp ./certs/ca-rsa-cert.pem $WOLFSSL_PATH/certs/tpm-ca-rsa-cert.pem >> run.out
++    ./certs/certreq.sh 2>&1 >> run.out 2>&1
++    cp ./certs/ca-ecc-cert.pem $WOLFSSL_PATH/certs/tpm-ca-ecc-cert.pem >> run.out 2>&1
++    cp ./certs/ca-rsa-cert.pem $WOLFSSL_PATH/certs/tpm-ca-rsa-cert.pem >> run.out 2>&1
+ fi
+ 
+ # PKCS7 Tests
+ echo -e "PKCS7 tests"
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/pkcs7/pkcs7 >> run.out
++    ./examples/pkcs7/pkcs7 >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "pkcs7 failed! $RESULT" && exit 1
++
++    ./examples/pkcs7/pkcs7 -ecc >> run.out 2>&1
++    RESULT=$?
++    [ $RESULT -ne 0 ] && echo -e "pkcs7 ecc failed! $RESULT" && exit 1
+ fi
+ 
+ # TLS Tests
+@@ -196,22 +200,22 @@ generate_port() {
+     # Note: The SW TPM uses many local ports, which can cause bind() issue
+     port=11111
+     echo -e "Using port $port"
+-    echo -e "Using port $port" >> run.out
++    echo -e "Using port $port" >> run.out 2>&1
+ }
+ 
+ run_tpm_tls_client() { # Usage: run_tpm_tls_client [ecc/rsa] [tpmargs]]
+     echo -e "TLS test (TPM as client) $1 $2"
+     generate_port
+-    pushd $WOLFSSL_PATH >> run.out
++    pushd $WOLFSSL_PATH >> run.out 2>&1
+     echo -e "./examples/server/server -p $port -w -g -A ./certs/tpm-ca-$1-cert.pem"
+-    ./examples/server/server -p $port -w -g -A ./certs/tpm-ca-$1-cert.pem 2>&1 >> $PWD/run.out &
++    ./examples/server/server -p $port -w -g -A ./certs/tpm-ca-$1-cert.pem &> $PWD/run.out &
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "tls server $1 $2 failed! $RESULT" && exit 1
+-    popd >> run.out
++    popd >> run.out 2>&1
+     sleep 0.1
+ 
+     echo -e "./examples/tls/tls_client -p=$port -$1 $2"
+-    ./examples/tls/tls_client -p=$port -$1 $2 2>&1 >> run.out
++    ./examples/tls/tls_client -p=$port -$1 $2 >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "tpm tls client $1 $2 failed! $RESULT" && exit 1
+ }
+@@ -220,16 +224,18 @@ run_tpm_tls_server() { # Usage: run_tpm_tls_server [ecc/rsa] [tpmargs]]
+     echo -e "TLS test (TPM as server) $1 $2"
+     generate_port
+ 
+-    ./examples/tls/tls_server -p=$port -$1 $2 2>&1 >> run.out &
++    echo -e "./examples/tls/tls_server -p=$port -$1 $2"
++    ./examples/tls/tls_server -p=$port -$1 $2 >> run.out 2>&1 &
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "tpm tls server $1 $2 failed! $RESULT" && exit 1
+-    pushd $WOLFSSL_PATH >> run.out
++    pushd $WOLFSSL_PATH >> run.out 2>&1
+     sleep 0.1
+ 
+-    ./examples/client/client -p $port -w -g -A ./certs/tpm-ca-$1-cert.pem 2>&1 >> $PWD/run.out
++    echo -e "./examples/client/client -p $port -w -g -A ./certs/tpm-ca-$1-cert.pem"
++    ./examples/client/client -p $port -w -g -A ./certs/tpm-ca-$1-cert.pem &> $PWD/run.out
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "tls client $1 $2 failed! $RESULT" && exit 1
+-    popd >> run.out
++    popd >> run.out 2>&1
+ }
+ 
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+@@ -259,49 +265,49 @@ fi
+ 
+ # Clock Tests
+ echo -e "Clock tests"
+-./examples/timestamp/clock_set >> run.out
++./examples/timestamp/clock_set >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "clock set failed! $RESULT" && exit 1
+ 
+ 
+ # Attestation tests
+ echo -e "Attestation tests"
+-./examples/timestamp/signed_timestamp >> run.out
++./examples/timestamp/signed_timestamp >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "signed_timestamp failed! $RESULT" && exit 1
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/timestamp/signed_timestamp -aes >> run.out
++    ./examples/timestamp/signed_timestamp -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "signed_timestamp param enc failed! $RESULT" && exit 1
+ fi
+-./examples/timestamp/signed_timestamp -ecc >> run.out
++./examples/timestamp/signed_timestamp -ecc >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "signed_timestamp ecc failed! $RESULT" && exit 1
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/timestamp/signed_timestamp -ecc -aes >> run.out
++    ./examples/timestamp/signed_timestamp -ecc -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "signed_timestamp ecc param enc failed! $RESULT" && exit 1
+ fi
+ 
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/keygen/keygen keyblob.bin -rsa >> run.out
++    ./examples/keygen/keygen keyblob.bin -rsa >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keygen rsa failed! $RESULT" && exit 1
+-    ./examples/attestation/make_credential >> run.out
++    ./examples/attestation/make_credential >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "make_credential failed! $RESULT" && exit 1
+-    ./examples/attestation/activate_credential >> run.out
++    ./examples/attestation/activate_credential >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "activate_credential failed! $RESULT" && exit 1
+ 
+     # Endorsement hierarchy
+-    ./examples/keygen/keygen keyblob.bin -rsa -eh >> run.out
++    ./examples/keygen/keygen keyblob.bin -rsa -eh >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "keygen rsa endorsement failed! $RESULT" && exit 1
+-    ./examples/attestation/make_credential -eh >> run.out
++    ./examples/attestation/make_credential -eh >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "make_credential endorsement failed! $RESULT" && exit 1
+-    ./examples/attestation/activate_credential -eh >> run.out
++    ./examples/attestation/activate_credential -eh >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "activate_credential endorsement failed! $RESULT" && exit 1
+ 
+@@ -313,25 +319,25 @@ fi
+ 
+ # PCR Quote Tests
+ echo -e "PCR Quote tests"
+-./examples/pcr/reset 16 >> run.out
++./examples/pcr/reset 16 >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "pcr reset failed! $RESULT" && exit 1
+-./examples/pcr/extend 16 /usr/bin/zip >> run.out
++./examples/pcr/extend 16 /usr/bin/zip >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "pcr extend file failed! $RESULT" && exit 1
+-./examples/pcr/quote 16 zip.quote >> run.out
++./examples/pcr/quote 16 zip.quote >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "pcr quote failed! $RESULT" && exit 1
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/pcr/quote 16 zip.quote -aes >> run.out
++    ./examples/pcr/quote 16 zip.quote -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "pcr quote param enc failed! $RESULT" && exit 1
+ fi
+-./examples/pcr/quote 16 zip.quote -ecc >> run.out
++./examples/pcr/quote 16 zip.quote -ecc >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "pcr quote ecc failed! $RESULT" && exit 1
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/pcr/quote 16 zip.quote -ecc -aes >> run.out
++    ./examples/pcr/quote 16 zip.quote -ecc -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "pcr quote ecc param enc failed! $RESULT" && exit 1
+ fi
+@@ -340,11 +346,11 @@ rm -f zip.quote
+ 
+ # Benchmark tests
+ echo -e "Benchmark tests"
+-./examples/bench/bench -maxdur=25 >> run.out
++./examples/bench/bench -maxdur=25 >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "bench failed! $RESULT" && exit 1
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/bench/bench -maxdur=25 -aes >> run.out
++    ./examples/bench/bench -maxdur=25 -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "bench (AES param enc) failed! $RESULT" && exit 1
+ fi
+@@ -352,55 +358,55 @@ fi
+ # Secure Boot ROT
+ echo -e "Secure Boot ROT (Root of Trust) test"
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/boot/secure_rot -nvindex=0x1400200 -authstr=test -write=./certs/example-ecc256-key-pub.der >> run.out
++    ./examples/boot/secure_rot -nvindex=0x1400200 -authstr=test -write=./certs/example-ecc256-key-pub.der >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "secure rot write ecc256! $RESULT" && exit 1
+-    ./examples/boot/secure_rot -nvindex=0x1400201 -authstr=test -write=./certs/example-ecc384-key-pub.der -sha384 >> run.out
++    ./examples/boot/secure_rot -nvindex=0x1400201 -authstr=test -write=./certs/example-ecc384-key-pub.der -sha384 >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "secure rot write ecc384! $RESULT" && exit 1
+-    ./examples/boot/secure_rot -nvindex=0x1400202 -authstr=test -write=./certs/example-rsa2048-key-pub.der >> run.out
++    ./examples/boot/secure_rot -nvindex=0x1400202 -authstr=test -write=./certs/example-rsa2048-key-pub.der >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "secure rot write rsa2048! $RESULT" && exit 1
+-    ./examples/boot/secure_rot -nvindex=0x1400201 -authstr=test -sha384 -hash=e77dd3112a27948a3f2d87f32dc69ebeed0b3344c5d7726f5742f4f0c0f451aabe4213f8b3b986639e69ed0ea8b49d94 >> run.out
++    ./examples/boot/secure_rot -nvindex=0x1400201 -authstr=test -sha384 -hash=e77dd3112a27948a3f2d87f32dc69ebeed0b3344c5d7726f5742f4f0c0f451aabe4213f8b3b986639e69ed0ea8b49d94 >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "secure rot write ecc384 again! $RESULT" && exit 1
+ 
+     if test $ENABLE_DESTRUCTIVE_TESTS -eq 1
+     then
+-        ./examples/boot/secure_rot -nvindex=0x1400201 -authstr=test -lock >> run.out
++        ./examples/boot/secure_rot -nvindex=0x1400201 -authstr=test -lock >> run.out 2>&1
+         RESULT=$?
+         [ $RESULT -ne 0 ] && echo -e "secure rot write ecc384 lock! $RESULT" && exit 1
+         # Test expected failure case
+-        ./examples/boot/secure_rot -nvindex=0x1400201 -write=./certs/example-ecc384-key-pub.der -sha384 >> run.out
++        ./examples/boot/secure_rot -nvindex=0x1400201 -write=./certs/example-ecc384-key-pub.der -sha384 >> run.out 2>&1
+         RESULT=$?
+         [ $RESULT -eq 0 ] && echo -e "secure rot write ecc384 should be locked! $RESULT" && exit 1
+     fi
+ 
+-    ./examples/boot/secure_rot -nvindex=0x1400201 -authstr=test >> run.out
++    ./examples/boot/secure_rot -nvindex=0x1400201 -authstr=test >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "secure rot write ecc384 read! $RESULT" && exit 1
+ 
+     # Test expected failure case
+-    ./examples/boot/secure_rot -nvindex=0x1400201 >> run.out
++    ./examples/boot/secure_rot -nvindex=0x1400201 >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -eq 0 ] && echo -e "secure rot write ecc384 read no auth! $RESULT" && exit 1
+ fi
+ 
+ # Seal/Unseal (PCR Policy)
+ echo -e "Seal/Unseal (PCR policy)"
+-./examples/seal/seal sealedkeyblob.bin mySecretMessage >> run.out
++./examples/seal/seal sealedkeyblob.bin mySecretMessage >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "seal failed! $RESULT" && exit 1
+-./examples/seal/unseal message.raw sealedkeyblob.bin >> run.out
++./examples/seal/unseal message.raw sealedkeyblob.bin >> run.out 2>&1
+ RESULT=$?
+ [ $RESULT -ne 0 ] && echo -e "unseal failed! $RESULT" && exit 1
+ rm -f sealedkeyblob.bin
+ 
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+-    ./examples/seal/seal sealedkeyblob.bin mySecretMessage -aes >> run.out
++    ./examples/seal/seal sealedkeyblob.bin mySecretMessage -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "seal aes failed! $RESULT" && exit 1
+-    ./examples/seal/unseal message.raw sealedkeyblob.bin -aes >> run.out
++    ./examples/seal/unseal message.raw sealedkeyblob.bin -aes >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "unseal aes failed! $RESULT" && exit 1
+     rm -f sealedkeyblob.bin
+@@ -411,83 +417,134 @@ echo -e "Seal/Unseal (Policy auth)"
+ if [ $WOLFCRYPT_ENABLE -eq 1 ]; then
+     # Extend "aaa" to test PCR 16
+     echo aaa > aaa.bin
+-    ./examples/pcr/reset 16 >> run.out
++    ./examples/pcr/reset 16 >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "pcr 16 reset failed! $RESULT" && exit 1
+-    ./examples/pcr/extend 16 aaa.bin >> run.out
++    ./examples/pcr/extend 16 aaa.bin >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "pcr 16 extend failed! $RESULT" && exit 1
+ 
+     # RSA
+-    ./examples/pcr/policy_sign -pcr=16 -rsa -key=./certs/example-rsa2048-key.der -out=pcrsig.bin -outpolicy=policyauth.bin >> run.out
++    ./examples/pcr/policy_sign -pcr=16 -rsa -key=./certs/example-rsa2048-key.der -out=pcrsig.bin -outpolicy=policyauth.bin >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "policy sign rsa der failed! $RESULT" && exit 1
+-    ./examples/pcr/policy_sign -pcr=16 -rsa -key=./certs/example-rsa2048-key.pem -out=pcrsig.bin -outpolicy=policyauth.bin >> run.out
++    ./examples/pcr/policy_sign -pcr=16 -rsa -key=./certs/example-rsa2048-key.pem -out=pcrsig.bin -outpolicy=policyauth.bin >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "policy sign rsa pem failed! $RESULT" && exit 1
+ 
+     TMPFILE=$(mktemp)
+     SECRET_STRING=`head -c 32 /dev/random | base64`
+-    ./examples/boot/secret_seal -rsa -policy=policyauth.bin -out=sealblob.bin -secretstr=$SECRET_STRING >> run.out
++    ./examples/boot/secret_seal -rsa -policy=policyauth.bin -out=sealblob.bin -secretstr=$SECRET_STRING >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "secret seal rsa failed! $RESULT" && exit 1
+-    ./examples/boot/secret_unseal -pcr=16 -pcrsig=pcrsig.bin -rsa -publickey=./certs/example-rsa2048-key-pub.der -seal=sealblob.bin | tee $TMPFILE >> run.out
++    ./examples/boot/secret_unseal -pcr=16 -pcrsig=pcrsig.bin -rsa -publickey=./certs/example-rsa2048-key-pub.der -seal=sealblob.bin &> $TMPFILE
+     RESULT=$?
++    cat $TMPFILE >> run.out
+     [ $RESULT -ne 0 ] && echo -e "secret unseal rsa failed! $RESULT" && exit 1
+-    grep "$SECRET_STRING" $TMPFILE >> run.out
++    grep "$SECRET_STRING" $TMPFILE >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "secret unseal rsa match failed! $RESULT" && exit 1
+ 
+     # RSA (recreate policy auth using public key instead of using policyauth.bin)
+     TMPFILE=$(mktemp)
+     SECRET_STRING=`head -c 32 /dev/random | base64`
+-    ./examples/boot/secret_seal -rsa -publickey=./certs/example-rsa2048-key-pub.der -out=sealblob.bin -secretstr=$SECRET_STRING >> run.out
++    ./examples/boot/secret_seal -rsa -publickey=./certs/example-rsa2048-key-pub.der -out=sealblob.bin -secretstr=$SECRET_STRING >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "secret seal rsa alt failed! $RESULT" && exit 1
+-    ./examples/boot/secret_unseal -pcr=16 -pcrsig=pcrsig.bin -rsa -publickey=./certs/example-rsa2048-key-pub.der -seal=sealblob.bin | tee $TMPFILE >> run.out
++    ./examples/boot/secret_unseal -pcr=16 -pcrsig=pcrsig.bin -rsa -publickey=./certs/example-rsa2048-key-pub.der -seal=sealblob.bin &> $TMPFILE
+     RESULT=$?
++    cat $TMPFILE >> run.out
+     [ $RESULT -ne 0 ] && echo -e "secret unseal rsa alt failed! $RESULT" && exit 1
+-    grep "$SECRET_STRING" $TMPFILE >> run.out
++    grep "$SECRET_STRING" $TMPFILE >> run.out 2>&1
+     RESULT=$?
+     rm -f $TMPFILE
+     [ $RESULT -ne 0 ] && echo -e "secret unseal rsa alt match failed! $RESULT" && exit 1
+ 
++    # Test RSA Unseal Expected Failure Case
++    # Create different ECC policy key to test failure case
++    openssl genrsa -out tmp-rsa2048-key.pem 2048 >> run.out 2>&1
++    openssl rsa -in tmp-rsa2048-key.pem -outform der -out tmp-rsa2048-key-pub.der -pubout >> run.out 2>&1
++
++    # Sign policy using different private key
++    ./examples/pcr/policy_sign -pcr=16 -rsa -key=tmp-rsa2048-key.pem -out=pcrsig_fail.bin -outpolicy=policyauth.bin >> run.out 2>&1
++    RESULT=$?
++    [ $RESULT -ne 0 ] && echo -e "policy sign (expected failure case) rsa pem failed! $RESULT" && exit 1
++
++    # This RSA unseal should fail!
++    ./examples/boot/secret_unseal -pcr=16 -pcrsig=pcrsig_fail.bin -rsa -publickey=tmp-rsa2048-key-pub.der -seal=sealblob.bin >> run.out 2>&1
++    RESULT=$?
++    [ $RESULT -eq 0 ] && echo -e "secret unseal rsa should have failed! $RESULT" && exit 1
++
++
++    rm -f tmp-rsa2048-key.pem
++    rm -f tmp-rsa2048-key-pub.der
++    rm -f pcrsig_fail.bin
++
++
+     # ECC
+-    ./examples/pcr/policy_sign -pcr=16 -ecc -key=./certs/example-ecc256-key.der -out=pcrsig.bin -outpolicy=policyauth.bin >> run.out
++    ./examples/pcr/policy_sign -pcr=16 -ecc -key=./certs/example-ecc256-key.der -out=pcrsig.bin -outpolicy=policyauth.bin >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "policy sign ecc der failed! $RESULT" && exit 1
+-    ./examples/pcr/policy_sign -pcr=16 -ecc -key=./certs/example-ecc256-key.pem -out=pcrsig.bin -outpolicy=policyauth.bin >> run.out
++    ./examples/pcr/policy_sign -pcr=16 -ecc -key=./certs/example-ecc256-key.pem -out=pcrsig.bin -outpolicy=policyauth.bin >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "policy sign ecc pem failed! $RESULT" && exit 1
+ 
+     TMPFILE=$(mktemp)
+     SECRET_STRING=`head -c 32 /dev/random | base64`
+-    ./examples/boot/secret_seal -ecc -policy=policyauth.bin -out=sealblob.bin -secretstr=$SECRET_STRING >> run.out
++    ./examples/boot/secret_seal -ecc -policy=policyauth.bin -out=sealblob.bin -secretstr=$SECRET_STRING >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "secret seal ecc failed! $RESULT" && exit 1
+-    ./examples/boot/secret_unseal -pcr=16 -pcrsig=pcrsig.bin -ecc -publickey=./certs/example-ecc256-key-pub.der -seal=sealblob.bin | tee $TMPFILE >> run.out
++    ./examples/boot/secret_unseal -pcr=16 -pcrsig=pcrsig.bin -ecc -publickey=./certs/example-ecc256-key-pub.der -seal=sealblob.bin &> $TMPFILE
+     RESULT=$?
++    cat $TMPFILE >> run.out
+     [ $RESULT -ne 0 ] && echo -e "secret unseal ecc failed! $RESULT" && exit 1
+-    grep "$SECRET_STRING" $TMPFILE >> run.out
++
++    grep "$SECRET_STRING" $TMPFILE >> run.out 2>&1
+     RESULT=$?
+     rm -f $TMPFILE
+     [ $RESULT -ne 0 ] && echo -e "secret unseal ecc match failed! $RESULT" && exit 1
+ 
++
+     # ECC (recreate policy auth using public key instead of using policyauth.bin)
+     TMPFILE=$(mktemp)
+     SECRET_STRING=`head -c 32 /dev/random | base64`
+-    ./examples/boot/secret_seal -ecc -publickey=./certs/example-ecc256-key-pub.der -out=sealblob.bin -secretstr=$SECRET_STRING >> run.out
++    ./examples/boot/secret_seal -ecc -publickey=./certs/example-ecc256-key-pub.der -out=sealblob.bin -secretstr=$SECRET_STRING >> run.out 2>&1
+     RESULT=$?
+     [ $RESULT -ne 0 ] && echo -e "secret seal ecc alt failed! $RESULT" && exit 1
+-    ./examples/boot/secret_unseal -pcr=16 -pcrsig=pcrsig.bin -ecc -publickey=./certs/example-ecc256-key-pub.der -seal=sealblob.bin | tee $TMPFILE >> run.out
++    ./examples/boot/secret_unseal -pcr=16 -pcrsig=pcrsig.bin -ecc -publickey=./certs/example-ecc256-key-pub.der -seal=sealblob.bin &> $TMPFILE
+     RESULT=$?
++    cat $TMPFILE >> run.out
+     [ $RESULT -ne 0 ] && echo -e "secret unseal ecc alt failed! $RESULT" && exit 1
+-    grep "$SECRET_STRING" $TMPFILE >> run.out
++    grep "$SECRET_STRING" $TMPFILE >> run.out 2>&1
+     RESULT=$?
+     rm -f $TMPFILE
+     [ $RESULT -ne 0 ] && echo -e "secret unseal ecc alt match failed! $RESULT" && exit 1
+ 
++
++    # Test ECC Unseal Expected Failure Case
++    # Create different ECC policy key to test failure case
++    openssl ecparam -name prime256v1 -genkey -noout -out tmp-ecc256-key.pem >> run.out 2>&1
++    openssl ec -in tmp-ecc256-key.pem -outform der -out tmp-ecc256-key-pub.der -pubout >> run.out 2>&1
++
++    # Sign policy using different private key
++    ./examples/pcr/policy_sign -pcr=16 -ecc -key=tmp-ecc256-key.pem -out=pcrsig_fail.bin -outpolicy=policyauth.bin >> run.out 2>&1
++    RESULT=$?
++    [ $RESULT -ne 0 ] && echo -e "policy sign (expected failure case) ecc pem failed! $RESULT" && exit 1
++
++    # This ECC unseal should fail!
++    ./examples/boot/secret_unseal -pcr=16 -pcrsig=pcrsig_fail.bin -ecc -publickey=tmp-ecc256-key-pub.der -seal=sealblob.bin >> run.out 2>&1
++    RESULT=$?
++    [ $RESULT -eq 0 ] && echo -e "secret unseal ecc should have failed! $RESULT" && exit 1
++
++    rm -f tmp-ecc256-key.pem
++    rm -f tmp-ecc256-key-pub.der
++    rm -f pcrsig_fail.bin
++
++    rm -f pcrsig.bin
++    rm -f policyauth.bin
++    rm -f sealblob.bin
+     rm -f aaa.bin
++
+ fi
+ 
+ rm -f keyblob.bin
+diff --git a/examples/seal/seal.c b/examples/seal/seal.c
+index 5c31ff8..8d4066a 100644
+--- a/examples/seal/seal.c
++++ b/examples/seal/seal.c
+@@ -21,6 +21,10 @@
+ 
+ /* Example for TPM 2.0 sealing a user secret using TPM key */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+@@ -124,6 +128,8 @@ int TPM2_Seal_Example(void* userCtx, int argc, char *argv[])
+     }
+ 
+     wolfTPM2_GetKeyTemplate_KeySeal(&publicTemplate, TPM_ALG_SHA256);
++    /* Allow password based unsealing */
++    publicTemplate.objectAttributes |= TPMA_OBJECT_userWithAuth;
+ 
+     /* set session for authorization key */
+     auth.size = (int)sizeof(gKeyAuth)-1;
+diff --git a/examples/seal/unseal.c b/examples/seal/unseal.c
+index 402fff1..c61d99c 100644
+--- a/examples/seal/unseal.c
++++ b/examples/seal/unseal.c
+@@ -21,6 +21,10 @@
+ 
+ /* This example demonstrates how to extract the data from a TPM seal object */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+diff --git a/examples/timestamp/clock_set.c b/examples/timestamp/clock_set.c
+index 9db5cbc..1122254 100644
+--- a/examples/timestamp/clock_set.c
++++ b/examples/timestamp/clock_set.c
+@@ -21,6 +21,10 @@
+ 
+ /* This example shows how to increment the TPM2 clock */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+diff --git a/examples/timestamp/signed_timestamp.c b/examples/timestamp/signed_timestamp.c
+index 67deb1d..f3e192c 100644
+--- a/examples/timestamp/signed_timestamp.c
++++ b/examples/timestamp/signed_timestamp.c
+@@ -23,6 +23,10 @@
+  * generate a signed timestamp from the TPM using a Attestation Identity Key.
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #include <stdio.h>
+diff --git a/examples/tls/tls_client.c b/examples/tls/tls_client.c
+index bd9fffb..71d2437 100644
+--- a/examples/tls/tls_client.c
++++ b/examples/tls/tls_client.c
+@@ -19,6 +19,9 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+@@ -103,11 +106,9 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+     WOLFTPM2_KEY storageKey;
+ #ifndef NO_RSA
+     WOLFTPM2_KEY rsaKey;
+-    RsaKey wolfRsaKey;
+ #endif
+ #ifdef HAVE_ECC
+     WOLFTPM2_KEY eccKey;
+-    ecc_key wolfEccKey;
+     #ifndef WOLFTPM2_USE_SW_ECDHE
+     WOLFTPM2_KEY ecdhKey;
+     #endif
+@@ -141,11 +142,9 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+     XMEMSET(&tpmCtx, 0, sizeof(tpmCtx));
+ #ifndef NO_RSA
+     XMEMSET(&rsaKey, 0, sizeof(rsaKey));
+-    XMEMSET(&wolfRsaKey, 0, sizeof(wolfRsaKey));
+ #endif
+ #ifdef HAVE_ECC
+     XMEMSET(&eccKey, 0, sizeof(eccKey));
+-    XMEMSET(&wolfEccKey, 0, sizeof(wolfEccKey));
+     #ifndef WOLFTPM2_USE_SW_ECDHE
+     /* Ephemeral Key */
+     XMEMSET(&ecdhKey, 0, sizeof(ecdhKey));
+@@ -222,7 +221,8 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+     }
+ #endif
+     /* See if primary storage key already exists */
+-    rc = getPrimaryStoragekey(&dev, &storageKey, TPM_ALG_RSA);
++    rc = getPrimaryStoragekey(&dev, &storageKey,
++        useECC ? TPM_ALG_ECC : TPM_ALG_RSA);
+     if (rc != 0) goto exit;
+ 
+     /* Start an authenticated session (salted / unbound) with parameter encryption */
+@@ -250,7 +250,7 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+         rc = getRSAkey(&dev,
+                     &storageKey,
+                     &rsaKey,
+-                    &wolfRsaKey,
++                    NULL,
+                     tpmDevId,
+                     (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
+                     &publicTemplate);
+@@ -269,7 +269,7 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+         rc = getECCkey(&dev,
+                     &storageKey,
+                     &eccKey,
+-                    &wolfEccKey,
++                    NULL,
+                     tpmDevId,
+                     (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
+                     &publicTemplate);
+@@ -377,17 +377,16 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+      *   public key instead (if crypto callbacks are enabled).
+      */
+ #ifndef NO_TLS_MUTUAL_AUTH
+-    if (!useECC) {
+-    #ifndef NO_RSA
+-        byte der[1024];
+-        word32 derSz = sizeof(der);
+-        rc = wc_RsaKeyToPublicDer_ex(&wolfRsaKey, der, derSz, 1);
++    {
++        /* Export TPM public key as DER */
++        byte   der[1024];
++        word32 derSz = (word32)sizeof(der);
++        rc = wolfTPM2_ExportPublicKeyBuffer(&dev, !useECC ? &rsaKey : &eccKey,
++            ENCODING_TYPE_ASN1, der, &derSz);
+         if (rc < 0) {
+             printf("Failed to export RSA public key!\n");
+             goto exit;
+         }
+-        derSz = rc;
+-        rc = 0;
+ 
+         /* Private key only exists on the TPM and crypto callbacks are used for
+          * signing. Public key is required to enable TLS client (mutual auth).
+@@ -397,37 +396,6 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+             printf("Failed to set RSA key!\n");
+             goto exit;
+         }
+-    #else
+-        printf("Error: RSA not compiled in\n");
+-        rc = -1;
+-        goto exit;
+-    #endif /* !NO_RSA */
+-    }
+-    else {
+-    #ifdef HAVE_ECC
+-        byte der[256];
+-        word32 derSz = sizeof(der);
+-        rc = wc_EccPublicKeyToDer(&wolfEccKey, der, derSz, 1);
+-        if (rc < 0) {
+-            printf("Failed to export ECC public key!\n");
+-            goto exit;
+-        }
+-        derSz = rc;
+-        rc = 0;
+-
+-        /* Private key only exists on the TPM and crypto callbacks are used for
+-         * signing. Public key is required to enable TLS client (mutual auth).
+-         * This API accepts public keys when crypto callbacks are enabled */
+-        if (wolfSSL_CTX_use_PrivateKey_buffer(ctx, der, derSz,
+-                                    WOLFSSL_FILETYPE_ASN1) != WOLFSSL_SUCCESS) {
+-            printf("Failed to set ECC key!\n");
+-            goto exit;
+-        }
+-    #else
+-        printf("RSA not supported in this build\n");
+-        rc = -1;
+-        goto exit;
+-    #endif /* HAVE_ECC */
+     }
+ 
+     /* Client Certificate (Mutual Authentication) */
+@@ -436,8 +404,10 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+         printf("Loading RSA certificate\n");
+         #ifdef NO_FILESYSTEM
+         /* Load "cert" buffer with ASN.1/DER certificate */
++        #if 0
+         rc = wolfSSL_CTX_use_certificate_buffer(ctx, cert.buffer, (long)cert.size,
+                                                 WOLFSSL_FILETYPE_ASN1);
++        #endif
+         #else
+         rc = wolfSSL_CTX_use_certificate_file(ctx, "./certs/client-rsa-cert.pem",
+                                               WOLFSSL_FILETYPE_PEM);
+@@ -457,8 +427,10 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+         printf("Loading ECC certificate\n");
+         #ifdef NO_FILESYSTEM
+         /* Load "cert" buffer with ASN.1/DER certificate */
++        #if 0
+         rc = wolfSSL_CTX_use_certificate_buffer(ctx, cert.buffer, (long)cert.size,
+                                                 WOLFSSL_FILETYPE_ASN1);
++        #endif
+         #else
+         rc = wolfSSL_CTX_use_certificate_file(ctx, "./certs/client-ecc-cert.pem",
+                                               WOLFSSL_FILETYPE_PEM);
+@@ -611,11 +583,9 @@ exit:
+ 
+     wolfTPM2_UnloadHandle(&dev, &storageKey.handle);
+ #ifndef NO_RSA
+-    wc_FreeRsaKey(&wolfRsaKey);
+     wolfTPM2_UnloadHandle(&dev, &rsaKey.handle);
+ #endif
+ #ifdef HAVE_ECC
+-    wc_ecc_free(&wolfEccKey);
+     wolfTPM2_UnloadHandle(&dev, &eccKey.handle);
+     #ifndef WOLFTPM2_USE_SW_ECDHE
+         wolfTPM2_UnloadHandle(&dev, &ecdhKey.handle);
+diff --git a/examples/tls/tls_client_notpm.c b/examples/tls/tls_client_notpm.c
+index 090464f..93d583f 100644
+--- a/examples/tls/tls_client_notpm.c
++++ b/examples/tls/tls_client_notpm.c
+@@ -19,6 +19,9 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+diff --git a/examples/tls/tls_common.h b/examples/tls/tls_common.h
+index faa98fd..348ad2d 100644
+--- a/examples/tls/tls_common.h
++++ b/examples/tls/tls_common.h
+@@ -95,6 +95,9 @@ typedef struct SockIoCbCtx {
+ 
+ #ifndef WOLFSSL_USER_IO
+ /* socket includes */
++#ifdef HAVE_NETDB_H
++#include <netdb.h>
++#endif
+ 
+ static inline int SockIORecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
+ {
+diff --git a/examples/tls/tls_server.c b/examples/tls/tls_server.c
+index 5fe5bd9..0bcfe79 100644
+--- a/examples/tls/tls_server.c
++++ b/examples/tls/tls_server.c
+@@ -19,6 +19,9 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+@@ -101,11 +104,9 @@ int TPM2_TLS_ServerArgs(void* userCtx, int argc, char *argv[])
+     WOLFTPM2_KEY storageKey;
+ #ifndef NO_RSA
+     WOLFTPM2_KEY rsaKey;
+-    RsaKey wolfRsaKey;
+ #endif
+ #ifdef HAVE_ECC
+     WOLFTPM2_KEY eccKey;
+-    ecc_key wolfEccKey;
+     #ifndef WOLFTPM2_USE_SW_ECDHE
+     WOLFTPM2_KEY ecdhKey;
+     #endif
+@@ -152,11 +153,9 @@ int TPM2_TLS_ServerArgs(void* userCtx, int argc, char *argv[])
+     XMEMSET(&tpmCtx, 0, sizeof(tpmCtx));
+ #ifndef NO_RSA
+     XMEMSET(&rsaKey, 0, sizeof(rsaKey));
+-    XMEMSET(&wolfRsaKey, 0, sizeof(wolfRsaKey));
+ #endif
+ #ifdef HAVE_ECC
+     XMEMSET(&eccKey, 0, sizeof(eccKey));
+-    XMEMSET(&wolfEccKey, 0, sizeof(wolfEccKey));
+     #ifndef WOLFTPM2_USE_SW_ECDHE
+     /* Ephemeral Key */
+     XMEMSET(&ecdhKey, 0, sizeof(ecdhKey));
+@@ -239,7 +238,8 @@ int TPM2_TLS_ServerArgs(void* userCtx, int argc, char *argv[])
+     }
+ #endif
+     /* See if primary storage key already exists */
+-    rc = getPrimaryStoragekey(&dev, &storageKey, TPM_ALG_RSA);
++    rc = getPrimaryStoragekey(&dev, &storageKey,
++        useECC ? TPM_ALG_ECC : TPM_ALG_RSA);
+     if (rc != 0) goto exit;
+ 
+     /* Start an authenticated session (salted / unbound) with parameter encryption */
+@@ -267,7 +267,7 @@ int TPM2_TLS_ServerArgs(void* userCtx, int argc, char *argv[])
+         rc = getRSAkey(&dev,
+                     &storageKey,
+                     &rsaKey,
+-                    &wolfRsaKey,
++                    NULL,
+                     tpmDevId,
+                     (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
+                     &publicTemplate);
+@@ -286,7 +286,7 @@ int TPM2_TLS_ServerArgs(void* userCtx, int argc, char *argv[])
+         rc = getECCkey(&dev,
+                     &storageKey,
+                     &eccKey,
+-                    &wolfEccKey,
++                    NULL,
+                     tpmDevId,
+                     (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
+                     &publicTemplate);
+@@ -383,12 +383,32 @@ int TPM2_TLS_ServerArgs(void* userCtx, int argc, char *argv[])
+             goto exit;
+         }
+     #endif
++    (void)useSelfSign;
+ #else
++    {
++        /* Export TPM public key as DER */
++        byte   der[1024];
++        word32 derSz = (word32)sizeof(der);
++        rc = wolfTPM2_ExportPublicKeyBuffer(&dev, !useECC ? &rsaKey : &eccKey,
++            ENCODING_TYPE_ASN1, der, &derSz);
++        if (rc < 0) {
++            printf("Failed to export TPM public key!\n");
++            goto exit;
++        }
++
++        /* Private key only exists on the TPM and crypto callbacks are used for
++         * signing. Public key is required to enable TLS client (mutual auth).
++         * This API accepts public keys when crypto callbacks are enabled */
++        if (wolfSSL_CTX_use_PrivateKey_buffer(ctx, der, derSz,
++                                    WOLFSSL_FILETYPE_ASN1) != WOLFSSL_SUCCESS) {
++            printf("Failed to set RSA key!\n");
++            goto exit;
++        }
++    }
++
+     /* Server certificate */
+     if (!useECC) {
+     #ifndef NO_RSA
+-        byte der[1024];
+-        word32 derSz = sizeof(der);
+         const char* useCert = "./certs/server-rsa-cert.pem";
+         if (useSelfSign) {
+             useCert = "./certs/tpm-rsa-cert.pem";
+@@ -401,23 +421,6 @@ int TPM2_TLS_ServerArgs(void* userCtx, int argc, char *argv[])
+             printf("Error loading RSA client cert\n");
+             goto exit;
+         }
+-
+-        rc = wc_RsaKeyToPublicDer_ex(&wolfRsaKey, der, derSz, 1);
+-        if (rc < 0) {
+-            printf("Failed to export RSA public key!\n");
+-            goto exit;
+-        }
+-        derSz = rc;
+-        rc = 0;
+-
+-        /* Private key only exists on the TPM and crypto callbacks are used for
+-         * signing. Public key is required to enable TLS client (mutual auth).
+-         * This API accepts public keys when crypto callbacks are enabled */
+-        if (wolfSSL_CTX_use_PrivateKey_buffer(ctx, der, derSz,
+-                                    WOLFSSL_FILETYPE_ASN1) != WOLFSSL_SUCCESS) {
+-            printf("Failed to set RSA key!\r\n");
+-            goto exit;
+-        }
+     #else
+         printf("Error: RSA not compiled in\n");
+         rc = -1;
+@@ -426,8 +429,6 @@ int TPM2_TLS_ServerArgs(void* userCtx, int argc, char *argv[])
+     }
+     else {
+     #ifdef HAVE_ECC
+-        byte der[256];
+-        word32 derSz = sizeof(der);
+         const char* useCert = "./certs/server-ecc-cert.pem";
+         if (useSelfSign) {
+             useCert = "./certs/tpm-ecc-cert.pem";
+@@ -440,23 +441,6 @@ int TPM2_TLS_ServerArgs(void* userCtx, int argc, char *argv[])
+             printf("Error loading ECC client cert\n");
+             goto exit;
+         }
+-
+-        rc = wc_EccPublicKeyToDer(&wolfEccKey, der, derSz, 1);
+-        if (rc < 0) {
+-            printf("Failed to export ECC public key!\n");
+-            goto exit;
+-        }
+-        derSz = rc;
+-        rc = 0;
+-
+-        /* Private key only exists on the TPM and crypto callbacks are used for
+-         * signing. Public key is required to enable TLS server auth.
+-         * This API accepts public keys when crypto callbacks are enabled */
+-        if (wolfSSL_CTX_use_PrivateKey_buffer(ctx, der, derSz,
+-                                    WOLFSSL_FILETYPE_ASN1) != WOLFSSL_SUCCESS) {
+-            printf("Failed to set ECC key!\n");
+-            goto exit;
+-        }
+     #else
+         printf("Error: ECC not compiled in\n");
+         rc = -1;
+@@ -611,11 +595,9 @@ exit:
+ 
+     wolfTPM2_UnloadHandle(&dev, &storageKey.handle);
+ #ifndef NO_RSA
+-    wc_FreeRsaKey(&wolfRsaKey);
+     wolfTPM2_UnloadHandle(&dev, &rsaKey.handle);
+ #endif
+ #ifdef HAVE_ECC
+-    wc_ecc_free(&wolfEccKey);
+     wolfTPM2_UnloadHandle(&dev, &eccKey.handle);
+     #ifndef WOLFTPM2_USE_SW_ECDHE
+         wolfTPM2_UnloadHandle(&dev, &ecdhKey.handle);
+diff --git a/examples/tpm_test_keys.c b/examples/tpm_test_keys.c
+index 1e0e53e..c5df182 100644
+--- a/examples/tpm_test_keys.c
++++ b/examples/tpm_test_keys.c
+@@ -19,6 +19,10 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ /* use ANSI stdio for support of format strings, must be set before
+  * including stdio.h
+  */
+@@ -44,14 +48,15 @@
+ int writeBin(const char* filename, const byte *buf, word32 bufSz)
+ {
+     int rc = TPM_RC_FAILURE;
++#if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
++    XFILE fp = NULL;
++    size_t fileSz = 0;
++#endif
+ 
+     if (filename == NULL || buf == NULL)
+         return BAD_FUNC_ARG;
+ 
+ #if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
+-    XFILE fp = NULL;
+-    size_t fileSz = 0;
+-
+     fp = XFOPEN(filename, "wb");
+     if (fp != XBADFILE) {
+         fileSz = XFWRITE(buf, 1, bufSz, fp);
+@@ -73,15 +78,16 @@ int writeBin(const char* filename, const byte *buf, word32 bufSz)
+ int readBin(const char* filename, byte *buf, word32* bufSz)
+ {
+     int rc = TPM_RC_FAILURE;
+-
+-    if (filename == NULL || buf == NULL)
+-        return BAD_FUNC_ARG;
+-
+ #if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
+     XFILE  fp = NULL;
+     size_t fileSz = 0;
+     size_t bytes_read = 0;
++#endif
+ 
++    if (filename == NULL || buf == NULL)
++        return BAD_FUNC_ARG;
++
++#if !defined(NO_FILESYSTEM) && !defined(NO_WRITE_TEMP_FILES)
+     fp = XFOPEN(filename, "rb");
+     if (fp != XBADFILE) {
+         XFSEEK(fp, 0, XSEEK_END);
+diff --git a/examples/wrap/wrap_test.c b/examples/wrap/wrap_test.c
+index cc347c7..4504a61 100644
+--- a/examples/wrap/wrap_test.c
++++ b/examples/wrap/wrap_test.c
+@@ -19,7 +19,12 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
+-/* This example shows using the TPM2 wrapper API's in TPM2_Wrapper_Test() below. */
++/* This example shows using the TPM2 wrapper API's in TPM2_Wrapper_Test() below.
++ */
++
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+@@ -194,6 +199,12 @@ int TPM2_Wrapper_TestArgs(void* userCtx, int argc, char *argv[])
+         caps.mfgStr, caps.mfg, caps.vendorStr, caps.fwVerMajor,
+         caps.fwVerMinor, caps.fwVerVendor, caps.fips140_2, caps.cc_eal4);
+ 
++    /* List the active persistent handles */
++    rc = wolfTPM2_GetHandles(PERSISTENT_FIRST, NULL);
++    if (rc >= 0) {
++        printf("Found %d persistent handles\n", rc);
++    }
++
+     if (resetTPM) {
+         /* reset all content on TPM and reseed */
+         rc = wolfTPM2_Clear(&dev);
+diff --git a/hal/tpm_io.c b/hal/tpm_io.c
+index c0d8751..d6faba1 100644
+--- a/hal/tpm_io.c
++++ b/hal/tpm_io.c
+@@ -31,6 +31,10 @@
+  *
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_tis.h>
+ #include "tpm_io.h"
+diff --git a/hal/tpm_io_atmel.c b/hal/tpm_io_atmel.c
+index bbb3f8f..31c3778 100644
+--- a/hal/tpm_io_atmel.c
++++ b/hal/tpm_io_atmel.c
+@@ -21,6 +21,9 @@
+ 
+ /* This example shows IO interfaces for ATMEL microcontrollers using ASF */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_tis.h>
+diff --git a/hal/tpm_io_barebox.c b/hal/tpm_io_barebox.c
+index 3513d50..478b140 100644
+--- a/hal/tpm_io_barebox.c
++++ b/hal/tpm_io_barebox.c
+@@ -21,6 +21,9 @@
+ 
+ /* This example shows IO interfaces for Barebox */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_tis.h>
+diff --git a/hal/tpm_io_infineon.c b/hal/tpm_io_infineon.c
+index 252b986..04bca15 100644
+--- a/hal/tpm_io_infineon.c
++++ b/hal/tpm_io_infineon.c
+@@ -23,6 +23,9 @@
+  * - TC2XX/TC3XX using macro: `WOLFTPM_INFINEON_TRICORE`.
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_tis.h>
+diff --git a/hal/tpm_io_linux.c b/hal/tpm_io_linux.c
+index 5ca01e8..193498d 100644
+--- a/hal/tpm_io_linux.c
++++ b/hal/tpm_io_linux.c
+@@ -23,8 +23,11 @@
+  *
+  * NB: To use /dev/tpm0, wolfTPM does not require an IO callback, just pass NULL
+  *
+- * */
++ */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_tis.h>
+diff --git a/hal/tpm_io_microchip.c b/hal/tpm_io_microchip.c
+index 46403c5..178963f 100644
+--- a/hal/tpm_io_microchip.c
++++ b/hal/tpm_io_microchip.c
+@@ -20,8 +20,12 @@
+  */
+ 
+ /* This example shows IO interfaces for Microchip micro-controllers using
+- * MPLAB X and Harmony */
++ * MPLAB X and Harmony
++ */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_tis.h>
+diff --git a/hal/tpm_io_mmio.c b/hal/tpm_io_mmio.c
+index 0ea70ee..1156c93 100644
+--- a/hal/tpm_io_mmio.c
++++ b/hal/tpm_io_mmio.c
+@@ -21,6 +21,9 @@
+ 
+ /* Support for Memory Mapped I/O for accessing TPM */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_tis.h>
+diff --git a/hal/tpm_io_qnx.c b/hal/tpm_io_qnx.c
+index 495e559..eb42afa 100644
+--- a/hal/tpm_io_qnx.c
++++ b/hal/tpm_io_qnx.c
+@@ -21,6 +21,9 @@
+ 
+ /* This example shows IO interfaces for QNX */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_tis.h>
+diff --git a/hal/tpm_io_st.c b/hal/tpm_io_st.c
+index 6eedfc3..d6744b2 100644
+--- a/hal/tpm_io_st.c
++++ b/hal/tpm_io_st.c
+@@ -21,6 +21,9 @@
+ 
+ /* This example shows IO interfaces for STM32 CubeMX HAL */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_tis.h>
+diff --git a/hal/tpm_io_xilinx.c b/hal/tpm_io_xilinx.c
+index 43f20ff..6516b73 100644
+--- a/hal/tpm_io_xilinx.c
++++ b/hal/tpm_io_xilinx.c
+@@ -21,6 +21,9 @@
+ 
+ /* This example shows IO interfaces for Xilinx */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_tis.h>
+diff --git a/src/tpm2.c b/src/tpm2.c
+index 75f7ec7..cffd488 100644
+--- a/src/tpm2.c
++++ b/src/tpm2.c
+@@ -19,6 +19,9 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_packet.h>
+@@ -844,7 +847,8 @@ TPM_RC TPM2_GetCapability(GetCapability_In* in, GetCapability_Out* out)
+             TPM2_Packet_ParseU32(&packet, &out->capabilityData.capability);
+ 
+             switch (out->capabilityData.capability) {
+-                case TPM_CAP_TPM_PROPERTIES: {
++                case TPM_CAP_TPM_PROPERTIES:
++                {
+                     TPML_TAGGED_TPM_PROPERTY* prop =
+                         &out->capabilityData.data.tpmProperties;
+                     TPM2_Packet_ParseU32(&packet, &prop->count);
+@@ -856,6 +860,16 @@ TPM_RC TPM2_GetCapability(GetCapability_In* in, GetCapability_Out* out)
+                     }
+                     break;
+                 }
++                case TPM_CAP_HANDLES:
++                {
++                    TPML_HANDLE* handles =
++                        &out->capabilityData.data.handles;
++                    TPM2_Packet_ParseU32(&packet, &handles->count);
++                    for (i=0; i<(int)handles->count; i++) {
++                        TPM2_Packet_ParseU32(&packet, &handles->handle[i]);
++                    }
++                    break;
++                }
+                 default:
+             #ifdef DEBUG_WOLFTPM
+                     printf("Unknown capability type 0x%x\n",
+diff --git a/src/tpm2_cryptocb.c b/src/tpm2_cryptocb.c
+index dd30009..4746374 100644
+--- a/src/tpm2_cryptocb.c
++++ b/src/tpm2_cryptocb.c
+@@ -19,6 +19,10 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ 
+ #if !defined(WOLFTPM2_NO_WRAPPER)
+@@ -248,8 +252,14 @@ int wolfTPM2_CryptoDevCb(int devId, wc_CryptoInfo* info, void* ctx)
+             word32 rsLen = sizeof(sigRS), keySz;
+             word32 inlen = info->pk.eccsign.inlen;
+ 
+-            /* truncate input to match key size */
++            /* get key size from wolf signing key */
+             keySz = wc_ecc_size(info->pk.eccsign.key);
++            if (keySz == 0) {
++                /* if not populated fallback to key size for TPM key */
++                keySz = TPM2_GetCurveSize(
++                   tlsCtx->eccKey->pub.publicArea.parameters.eccDetail.curveID);
++            }
++            /* truncate input to match key size */
+             if (inlen > keySz)
+                 inlen = keySz;
+ 
+@@ -426,8 +436,8 @@ int wolfTPM2_CryptoDevCb(int devId, wc_CryptoInfo* info, void* ctx)
+         if (hashCtx)
+             hash.handle.hndl = hashCtx->handle;
+ 
++        rc = 0; /* initialize return code */
+         if (info->hash.in != NULL) { /* Update */
+-            rc = 0;
+             /* If not single shot (update and final) then allocate context */
+             if (hashCtx == NULL && info->hash.digest == NULL) {
+                 hashCtx = (WOLFTPM2_HASHCTX*)XMALLOC(sizeof(*hashCtx), NULL,
+diff --git a/src/tpm2_linux.c b/src/tpm2_linux.c
+index c1b2032..9c3f354 100644
+--- a/src/tpm2_linux.c
++++ b/src/tpm2_linux.c
+@@ -19,6 +19,10 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_types.h>
+ 
+ #ifdef WOLFTPM_LINUX_DEV
+diff --git a/src/tpm2_packet.c b/src/tpm2_packet.c
+index ac2a8cc..0cb830e 100644
+--- a/src/tpm2_packet.c
++++ b/src/tpm2_packet.c
+@@ -19,10 +19,12 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2_packet.h>
+ 
+-
+ /* Endianess Helpers */
+ #ifdef LITTLE_ENDIAN_ORDER
+     #define cpu_to_be16(d) ByteReverseWord16(d)
+@@ -332,8 +334,7 @@ int TPM2_GetCmdAuthCount(TPM2_CTX* ctx, const CmdInfo_t* info)
+         }
+ 
+         /* Allow policy auth */
+-        else if (authReq && TPM2_IS_POLICY_SESSION(sessionHandle) &&
+-                sessionAttributes == 0) {
++        else if (authReq && TPM2_IS_POLICY_SESSION(sessionHandle)) {
+             authSessCount++;
+         }
+         else if (!authReq) {
+diff --git a/src/tpm2_param_enc.c b/src/tpm2_param_enc.c
+index f040fdf..2df0d28 100644
+--- a/src/tpm2_param_enc.c
++++ b/src/tpm2_param_enc.c
+@@ -19,6 +19,10 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_param_enc.h>
+ #include <wolftpm/tpm2_packet.h>
+ 
+diff --git a/src/tpm2_swtpm.c b/src/tpm2_swtpm.c
+index f67cee1..dcdda6f 100644
+--- a/src/tpm2_swtpm.c
++++ b/src/tpm2_swtpm.c
+@@ -32,6 +32,10 @@
+  * See docs/SWTPM.md
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_types.h>
+ 
+ #ifdef WOLFTPM_SWTPM
+@@ -43,6 +47,9 @@
+ #include <errno.h>
+ #include <string.h>
+ #include <stdio.h>
++#ifdef HAVE_NETDB_H
++#include <netdb.h>
++#endif
+ 
+ #include <wolftpm/tpm2_socket.h>
+ 
+diff --git a/src/tpm2_tis.c b/src/tpm2_tis.c
+index 4004f74..da6d04c 100644
+--- a/src/tpm2_tis.c
++++ b/src/tpm2_tis.c
+@@ -19,6 +19,9 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2_tis.h>
+ 
+@@ -44,18 +47,18 @@ enum tpm_tis_status {
+     TPM_STS_RESP_RETRY          = 0x02,
+ };
+ 
+-enum tpm_tis_int_flags {
+-    TPM_GLOBAL_INT_ENABLE       = 0x80000000,
+-    TPM_INTF_BURST_COUNT_STATIC = 0x100,
+-    TPM_INTF_CMD_READY_INT      = 0x080,
+-    TPM_INTF_INT_EDGE_FALLING   = 0x040,
+-    TPM_INTF_INT_EDGE_RISING    = 0x020,
+-    TPM_INTF_INT_LEVEL_LOW      = 0x010,
+-    TPM_INTF_INT_LEVEL_HIGH     = 0x008,
+-    TPM_INTF_LOC_CHANGE_INT     = 0x004,
+-    TPM_INTF_STS_VALID_INT      = 0x002,
+-    TPM_INTF_DATA_AVAIL_INT     = 0x001,
+-};
++/* enum tpm_tis_int_flags */
++#define TPM_GLOBAL_INT_ENABLE       0x80000000UL
++#define TPM_INTF_BURST_COUNT_STATIC 0x100
++#define TPM_INTF_CMD_READY_INT      0x080
++#define TPM_INTF_INT_EDGE_FALLING   0x040
++#define TPM_INTF_INT_EDGE_RISING    0x020
++#define TPM_INTF_INT_LEVEL_LOW      0x010
++#define TPM_INTF_INT_LEVEL_HIGH     0x008
++#define TPM_INTF_LOC_CHANGE_INT     0x004
++#define TPM_INTF_STS_VALID_INT      0x002
++#define TPM_INTF_DATA_AVAIL_INT     0x001
++
+ 
+ #ifndef TPM_BASE_ADDRESS
+ #define TPM_BASE_ADDRESS (0xD40000u)
+diff --git a/src/tpm2_winapi.c b/src/tpm2_winapi.c
+index fcd8a46..840a5c2 100644
+--- a/src/tpm2_winapi.c
++++ b/src/tpm2_winapi.c
+@@ -19,6 +19,9 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2_types.h>
+ 
+diff --git a/src/tpm2_wrap.c b/src/tpm2_wrap.c
+index d2257dd..51fdeec 100644
+--- a/src/tpm2_wrap.c
++++ b/src/tpm2_wrap.c
+@@ -19,6 +19,10 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+  */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
+ #include <wolftpm/tpm2_wrap.h>
+ #include <wolftpm/tpm2_param_enc.h>
+ 
+@@ -749,6 +753,42 @@ int wolfTPM2_GetCapabilities(WOLFTPM2_DEV* dev, WOLFTPM2_CAPS* cap)
+     return wolfTPM2_GetCapabilities_NoDev(cap);
+ }
+ 
++int wolfTPM2_GetHandles(TPM_HANDLE handle, TPML_HANDLE* handles)
++{
++    int rc;
++    GetCapability_In  in;
++    GetCapability_Out out;
++#ifdef DEBUG_WOLFTPM
++    UINT32 i;
++#endif
++
++    /* Get Capability TPM_CAP_HANDLES - PCR */
++    XMEMSET(&in, 0, sizeof(in));
++    in.capability = TPM_CAP_HANDLES;
++    in.property = handle;
++    in.propertyCount = MAX_CAP_HANDLES;
++    rc = TPM2_GetCapability(&in, &out);
++    if (rc != TPM_RC_SUCCESS) {
++    #ifdef DEBUG_WOLFTPM
++        printf("TPM2_GetCapability handles failed 0x%x: %s\n", rc,
++            TPM2_GetRCString(rc));
++    #endif
++        return rc;
++    }
++    if (handles != NULL) {
++        /* optionally return handles count/list */
++        XMEMCPY(handles, &out.capabilityData.data.handles, sizeof(TPML_HANDLE));
++    }
++    handles = &out.capabilityData.data.handles;
++#ifdef DEBUG_WOLFTPM
++    printf("Handles Cap: Start 0x%x, Count %d\n", handle, handles->count);
++    for (i=0; i<handles->count; i++) {
++        printf("\tHandle 0x%x\n", handles->handle[i]);
++    }
++#endif
++    return handles->count;
++}
++
+ int wolfTPM2_UnsetAuth(WOLFTPM2_DEV* dev, int index)
+ {
+     TPM2_AUTH_SESSION* session;
+@@ -2729,6 +2769,112 @@ int wolfTPM2_DecodeEccDer(const byte* der, word32 derSz, TPM2B_PUBLIC* pub,
+ }
+ #endif /* HAVE_ECC */
+ 
++int wolfTPM2_ExportPublicKeyBuffer(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKey,
++    int encodingType, byte* out, word32* outSz)
++{
++    int rc;
++    word32 derSz = 0;
++    union keyUnion {
++    #ifndef NO_RSA
++        RsaKey rsa;
++    #endif
++    #ifdef HAVE_ECC
++        ecc_key ecc;
++    #endif
++    } key;
++
++    if (dev == NULL || tpmKey == NULL) {
++        return BAD_FUNC_ARG;
++    }
++
++    XMEMSET(&key, 0, sizeof(key));
++
++    /* determine the type of key in WOLFTPM2_KEY */
++    if (tpmKey->pub.publicArea.type == TPM_ALG_ECC) {
++    #if defined(HAVE_ECC) && \
++        defined(HAVE_ECC_KEY_IMPORT) && defined(HAVE_ECC_KEY_EXPORT)
++        rc = wc_ecc_init(&key.ecc);
++        if (rc == 0) {
++            /* load public portion of key into wolf ECC Key */
++            rc = wolfTPM2_EccKey_TpmToWolf(dev, tpmKey, &key.ecc);
++            if (rc == 0) {
++                rc = wc_EccPublicKeyToDer(&key.ecc, out, *outSz, 1);
++                if (rc > 0) {
++                    derSz = rc;
++                    rc = 0;
++                }
++                else {
++                    rc = BUFFER_E;
++                }
++            }
++        }
++    #else
++        rc = NOT_COMPILED_IN;
++    #endif
++    }
++    else if (tpmKey->pub.publicArea.type == TPM_ALG_RSA) {
++        /* RSA public key export only enabled with:
++         * cert gen, key gen or openssl extra */
++    #if !defined(NO_RSA) && \
++        (defined(WOLFSSL_CERT_GEN) || defined(OPENSSL_EXTRA) || \
++         defined(WOLFSSL_KEY_GEN))
++        rc = wc_InitRsaKey(&key.rsa, NULL);
++        if (rc == 0) {
++            /* load public portion of key into wolf RSA Key */
++            rc = wolfTPM2_RsaKey_TpmToWolf(dev, tpmKey, &key.rsa);
++            if (rc == 0) {
++                rc = wc_RsaKeyToPublicDer_ex(&key.rsa, out, *outSz, 1);
++                if (rc > 0) {
++                    derSz = rc;
++                    rc = 0;
++                }
++                else {
++                    rc = BUFFER_E;
++                }
++            }
++        }
++    #else
++        rc = NOT_COMPILED_IN;
++    #endif
++    }
++    else {
++    #ifdef DEBUG_WOLFTPM
++        printf("Invalid tpmKey type!\n");
++    #endif
++        rc = BAD_FUNC_ARG;
++    }
++
++    /* Optionally convert to PEM */
++    if (rc == 0 && encodingType == ENCODING_TYPE_PEM) {
++    #ifdef WOLFSSL_DER_TO_PEM
++        WOLFTPM2_BUFFER tmp;
++        if (derSz > (word32)sizeof(tmp.buffer)) {
++            rc = BUFFER_E;
++        }
++        else {
++            /* move DER to temp variable */
++            tmp.size = derSz;
++            XMEMCPY(tmp.buffer, out, derSz);
++            XMEMSET(out, 0, *outSz);
++            rc = wc_DerToPem(tmp.buffer, tmp.size, out, *outSz, PUBLICKEY_TYPE);
++            if (rc > 0) {
++                *outSz = rc;
++                rc = 0;
++            }
++            else {
++                rc = BUFFER_E;
++            }
++        }
++    #else
++        rc = NOT_COMPILED_IN;
++    #endif
++    }
++    else if (rc == 0) {
++        *outSz = derSz;
++    }
++    return rc;
++}
++
+ int wolfTPM2_ImportPublicKeyBuffer(WOLFTPM2_DEV* dev, int keyType,
+     WOLFTPM2_KEY* key, int encodingType, const char* input, word32 inSz,
+     TPMA_OBJECT objectAttributes)
+@@ -2991,61 +3137,8 @@ int wolfTPM2_RsaKey_TpmToWolf(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKey,
+ int wolfTPM2_RsaKey_TpmToPemPub(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKey,
+     byte* pem, word32* pemSz)
+ {
+-    int rc = TPM_RC_FAILURE;
+-#if !defined(WOLFTPM2_NO_WOLFCRYPT) && defined(WOLFSSL_DER_TO_PEM) && \
+-    (defined(WOLFSSL_KEY_GEN) || defined(OPENSSL_EXTRA)) && !defined(NO_RSA)
+-    RsaKey rsaKey;
+-    byte* derBuf = NULL;
+-    int derSz = 0;
+-#endif
+-
+-    if (dev == NULL || tpmKey == NULL || pem == NULL || pemSz == NULL)
+-        return BAD_FUNC_ARG;
+-
+-#if !defined(WOLFTPM2_NO_WOLFCRYPT) && defined(WOLFSSL_DER_TO_PEM) && \
+-    (defined(WOLFSSL_KEY_GEN) || defined(OPENSSL_EXTRA)) && !defined(NO_RSA)
+-
+-    /* Prepare wolfCrypt key structure */
+-    rc = wc_InitRsaKey(&rsaKey, NULL);
+-    if (rc == 0) {
+-        /* Convert the wolfTPM key to wolfCrypt format */
+-        rc = wolfTPM2_RsaKey_TpmToWolf(dev, tpmKey, &rsaKey);
+-        if (rc == 0) {
+-            /* Get DER size - newer API can be called with NULL to get size */
+-            rc = wc_RsaKeyToPublicDer(&rsaKey, NULL, 0);
+-            if (rc > 0) {
+-                derSz = rc;
+-                rc = 0;
+-            }
+-            else if (rc == BAD_FUNC_ARG) {
+-                /* for older wolfSSL estimate based on key size */
+-                derSz = wc_RsaEncryptSize(&rsaKey) * 2;
+-                rc = 0;
+-            }
+-        }
+-        if (derSz > 0) {
+-            derBuf = (byte*)XMALLOC(derSz, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+-            if (derBuf == NULL)
+-                rc = MEMORY_E;
+-        }
+-        if (rc == 0) {
+-            /* Convert the wolfCrypt key to DER format */
+-            rc = wc_RsaKeyToPublicDer(&rsaKey, derBuf, derSz);
+-        }
+-        if (rc >= 0) {
+-            /* Convert the DER key to PEM format */
+-            derSz = rc;
+-            rc = wc_DerToPem(derBuf, derSz, pem, *pemSz, PUBLICKEY_TYPE);
+-        }
+-        if (rc >= 0) {
+-            *pemSz = rc;
+-            rc = TPM_RC_SUCCESS;
+-        }
+-        XFREE(derBuf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+-        wc_FreeRsaKey(&rsaKey);
+-    }
+-#endif
+-    return rc;
++    return wolfTPM2_ExportPublicKeyBuffer(dev, tpmKey,
++        ENCODING_TYPE_PEM, pem, pemSz);
+ }
+ 
+ static word32 wolfTPM2_RsaKey_Exponent(byte* e, word32 eSz)
+@@ -5419,6 +5512,14 @@ int GetKeyTemplateECC(TPMT_PUBLIC* publicTemplate,
+     return TPM_RC_SUCCESS;
+ }
+ 
++int wolfTPM2_GetKeyTemplate_RSA_ex(TPMT_PUBLIC* publicTemplate,
++    TPM_ALG_ID nameAlg, TPMA_OBJECT objectAttributes, int keyBits, long exponent,
++    TPM_ALG_ID sigScheme, TPM_ALG_ID sigHash)
++{
++    return GetKeyTemplateRSA(publicTemplate, nameAlg,
++        objectAttributes, keyBits, exponent, sigScheme, sigHash);
++}
++
+ int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
+     TPMA_OBJECT objectAttributes)
+ {
+@@ -5427,6 +5528,14 @@ int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
+         TPM_ALG_NULL, WOLFTPM2_WRAP_DIGEST);
+ }
+ 
++int wolfTPM2_GetKeyTemplate_ECC_ex(TPMT_PUBLIC* publicTemplate,
++    TPM_ALG_ID nameAlg, TPMA_OBJECT objectAttributes, TPM_ECC_CURVE curve,
++    TPM_ALG_ID sigScheme, TPM_ALG_ID sigHash)
++{
++    return GetKeyTemplateECC(publicTemplate, nameAlg,
++        objectAttributes, curve, sigScheme, sigHash);
++}
++
+ int wolfTPM2_GetKeyTemplate_ECC(TPMT_PUBLIC* publicTemplate,
+     TPMA_OBJECT objectAttributes, TPM_ECC_CURVE curve, TPM_ALG_ID sigScheme)
+ {
+@@ -5490,7 +5599,7 @@ int wolfTPM2_GetKeyTemplate_KeySeal(TPMT_PUBLIC* publicTemplate, TPM_ALG_ID name
+     publicTemplate->nameAlg = nameAlg;
+     publicTemplate->objectAttributes = (
+         TPMA_OBJECT_fixedTPM | TPMA_OBJECT_fixedParent |
+-        TPMA_OBJECT_userWithAuth | TPMA_OBJECT_noDA);
++        TPMA_OBJECT_noDA);
+     publicTemplate->parameters.keyedHashDetail.scheme.scheme = TPM_ALG_NULL;
+     return TPM_RC_SUCCESS;
+ }
+diff --git a/tests/unit_tests.c b/tests/unit_tests.c
+index ab2fffe..301db1b 100644
+--- a/tests/unit_tests.c
++++ b/tests/unit_tests.c
+@@ -21,6 +21,9 @@
+ 
+ /* wolfTPM 2.0 unit tests */
+ 
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
+ 
+ #include <wolftpm/tpm2.h>
+ #include <wolftpm/tpm2_wrap.h>
+diff --git a/wolftpm/tpm2.h b/wolftpm/tpm2.h
+index 63288ae..2586461 100644
+--- a/wolftpm/tpm2.h
++++ b/wolftpm/tpm2.h
+@@ -66,15 +66,13 @@ typedef UINT32 TPM_GENERATED;
+ /* ENUMERATIONS */
+ /* ---------------------------------------------------------------------------*/
+ 
+-enum {
+-    TPM_SPEC_FAMILY = 0x322E3000,
+-    TPM_SPEC_LEVEL = 0,
+-    TPM_SPEC_VERSION = 138,
+-    TPM_SPEC_YEAR = 2016,
+-    TPM_SPEC_DAY_OF_YEAR = 273,
+-
+-    TPM_GENERATED_VALUE = 0xff544347,
+-};
++#define TPM_SPEC_FAMILY       0x322E3000
++#define TPM_SPEC_LEVEL        0
++#define TPM_SPEC_VERSION      138
++#define TPM_SPEC_YEAR         2016
++#define TPM_SPEC_DAY_OF_YEAR  273
++
++#define TPM_GENERATED_VALUE   0xff544347
+ 
+ 
+ typedef enum {
+@@ -649,37 +647,38 @@ typedef enum {
+ typedef UINT32 TPM_RH;
+ 
+ /* Handle Value Constants */
+-typedef enum {
+-    HR_HANDLE_MASK          = 0x00FFFFFF,
+-    HR_RANGE_MASK           = 0xFF000000,
+-    HR_SHIFT                = 24,
+-    HR_PCR                  = ((UINT32)TPM_HT_PCR << HR_SHIFT),
+-    HR_HMAC_SESSION         = ((UINT32)TPM_HT_HMAC_SESSION << HR_SHIFT),
+-    HR_POLICY_SESSION       = ((UINT32)TPM_HT_POLICY_SESSION << HR_SHIFT),
+-    HR_TRANSIENT            = ((UINT32)TPM_HT_TRANSIENT << HR_SHIFT),
+-    HR_PERSISTENT           = ((UINT32)TPM_HT_PERSISTENT << HR_SHIFT),
+-    HR_NV_INDEX             = ((UINT32)TPM_HT_NV_INDEX << HR_SHIFT),
+-    HR_PERMANENT            = ((UINT32)TPM_HT_PERMANENT << HR_SHIFT),
+-    PCR_FIRST               = (HR_PCR + 0),
+-    PCR_LAST                = (PCR_FIRST + IMPLEMENTATION_PCR-1),
+-    HMAC_SESSION_FIRST      = (HR_HMAC_SESSION + 0),
+-    HMAC_SESSION_LAST       = (HMAC_SESSION_FIRST+MAX_ACTIVE_SESSIONS-1),
+-    LOADED_SESSION_FIRST    = HMAC_SESSION_FIRST,
+-    LOADED_SESSION_LAST     = HMAC_SESSION_LAST,
+-    POLICY_SESSION_FIRST    = (HR_POLICY_SESSION + 0),
+-    POLICY_SESSION_LAST     = (POLICY_SESSION_FIRST+MAX_ACTIVE_SESSIONS-1),
+-    TRANSIENT_FIRST         = (HR_TRANSIENT + 0),
+-    ACTIVE_SESSION_FIRST    = POLICY_SESSION_FIRST,
+-    ACTIVE_SESSION_LAST     = POLICY_SESSION_LAST,
+-    TRANSIENT_LAST          = (TRANSIENT_FIRST+MAX_LOADED_OBJECTS-1),
+-    PERSISTENT_FIRST        = (HR_PERSISTENT + 0),
+-    PERSISTENT_LAST         = (PERSISTENT_FIRST + 0x00FFFFFF),
+-    PLATFORM_PERSISTENT     = (PERSISTENT_FIRST + 0x00800000),
+-    NV_INDEX_FIRST          = (HR_NV_INDEX + 0),
+-    NV_INDEX_LAST           = (NV_INDEX_FIRST + 0x00FFFFFF),
+-    PERMANENT_FIRST         = TPM_RH_FIRST,
+-    PERMANENT_LAST          = TPM_RH_LAST,
+-} TPM_HC_T;
++/* Using defines, not "enum TPM_HC_T" to avoid pedantic error:
++ * "ISO C restricts enumerator values to range of 'int'"
++ */
++#define HR_HANDLE_MASK       0x00FFFFFFUL
++#define HR_RANGE_MASK        0xFF000000UL
++#define HR_SHIFT             24
++#define HR_PCR               ((UINT32)TPM_HT_PCR << HR_SHIFT)
++#define HR_HMAC_SESSION      ((UINT32)TPM_HT_HMAC_SESSION << HR_SHIFT)
++#define HR_POLICY_SESSION    ((UINT32)TPM_HT_POLICY_SESSION << HR_SHIFT)
++#define HR_TRANSIENT         ((UINT32)TPM_HT_TRANSIENT << HR_SHIFT)
++#define HR_PERSISTENT        ((UINT32)TPM_HT_PERSISTENT << HR_SHIFT)
++#define HR_NV_INDEX          ((UINT32)TPM_HT_NV_INDEX << HR_SHIFT)
++#define HR_PERMANENT         ((UINT32)TPM_HT_PERMANENT << HR_SHIFT)
++#define PCR_FIRST            (HR_PCR + 0)
++#define PCR_LAST             (PCR_FIRST + IMPLEMENTATION_PCR-1)
++#define HMAC_SESSION_FIRST   (HR_HMAC_SESSION + 0)
++#define HMAC_SESSION_LAST    (HMAC_SESSION_FIRST+MAX_ACTIVE_SESSIONS-1)
++#define LOADED_SESSION_FIRST HMAC_SESSION_FIRST
++#define LOADED_SESSION_LAST  HMAC_SESSION_LAST
++#define POLICY_SESSION_FIRST (HR_POLICY_SESSION + 0)
++#define POLICY_SESSION_LAST  (POLICY_SESSION_FIRST+MAX_ACTIVE_SESSIONS-1)
++#define TRANSIENT_FIRST      (HR_TRANSIENT + 0)
++#define ACTIVE_SESSION_FIRST POLICY_SESSION_FIRST
++#define ACTIVE_SESSION_LAST  POLICY_SESSION_LAST
++#define TRANSIENT_LAST       (TRANSIENT_FIRST+MAX_LOADED_OBJECTS-1)
++#define PERSISTENT_FIRST     (HR_PERSISTENT + 0)
++#define PERSISTENT_LAST      (PERSISTENT_FIRST + 0x00FFFFFFUL)
++#define PLATFORM_PERSISTENT  (PERSISTENT_FIRST + 0x00800000UL)
++#define NV_INDEX_FIRST       (HR_NV_INDEX + 0)
++#define NV_INDEX_LAST        (NV_INDEX_FIRST + 0x00FFFFFFUL)
++#define PERMANENT_FIRST      TPM_RH_FIRST
++#define PERMANENT_LAST       TPM_RH_LAST
+ typedef UINT32 TPM_HC;
+ 
+ 
+@@ -741,13 +740,14 @@ enum TPMA_PERMANENT_mask {
+ };
+ 
+ typedef UINT32 TPMA_STARTUP_CLEAR;
+-enum TPMA_STARTUP_CLEAR_mask {
+-    TPMA_STARTUP_CLEAR_phEnable     = 0x00000001,
+-    TPMA_STARTUP_CLEAR_shEnable     = 0x00000002,
+-    TPMA_STARTUP_CLEAR_ehEnable     = 0x00000004,
+-    TPMA_STARTUP_CLEAR_phEnableNV   = 0x00000008,
+-    TPMA_STARTUP_CLEAR_orderly      = 0x80000000,
+-};
++/* Using defines, not "enum TPMA_STARTUP_CLEAR_mask" to avoid pedantic error:
++ * "ISO C restricts enumerator values to range of 'int'"
++ */
++#define TPMA_STARTUP_CLEAR_phEnable   0x00000001UL
++#define TPMA_STARTUP_CLEAR_shEnable   0x00000002UL
++#define TPMA_STARTUP_CLEAR_ehEnable   0x00000004UL
++#define TPMA_STARTUP_CLEAR_phEnableNV 0x00000008UL
++#define TPMA_STARTUP_CLEAR_orderly    0x80000000UL
+ 
+ typedef UINT32 TPMA_MEMORY;
+ enum TPMA_MEMORY_mask {
+@@ -1122,7 +1122,7 @@ typedef struct TPMT_SYM_DEF {
+     TPMI_ALG_SYM algorithm;
+     TPMU_SYM_KEY_BITS keyBits;
+     TPMU_SYM_MODE mode;
+-    //TPMU_SYM_DETAILS details;
++    /*TPMU_SYM_DETAILS details;*/ /* not used */
+ } TPMT_SYM_DEF;
+ 
+ typedef TPMT_SYM_DEF TPMT_SYM_DEF_OBJECT;
+@@ -1493,10 +1493,12 @@ typedef struct TPM2B_ID_OBJECT {
+ /* NV Storage Structures */
+ 
+ typedef UINT32 TPM_NV_INDEX;
+-enum TPM_NV_INDEX_mask {
+-    TPM_NV_INDEX_index = 0x00FFFFFF,
+-    TPM_NV_INDEX_RH_NV = 0xFF000000,
+-};
++/* Using defines, not "enum TPM_NV_INDEX_mask" to avoid pedantic error:
++ * "ISO C restricts enumerator values to range of 'int'"
++ */
++#define TPM_NV_INDEX_index 0x00FFFFFFUL
++#define TPM_NV_INDEX_RH_NV 0xFF000000UL
++
+ 
+ typedef enum TPM_NT {
+     TPM_NT_ORDINARY = 0x0,
+@@ -1514,30 +1516,31 @@ typedef struct TPMS_NV_PIN_COUNTER_PARAMETERS {
+ } TPMS_NV_PIN_COUNTER_PARAMETERS;
+ 
+ typedef UINT32 TPMA_NV;
+-enum TPMA_NV_mask {
+-    TPMA_NV_PPWRITE         = 0x00000001,
+-    TPMA_NV_OWNERWRITE      = 0x00000002,
+-    TPMA_NV_AUTHWRITE       = 0x00000004,
+-    TPMA_NV_POLICYWRITE     = 0x00000008,
+-    TPMA_NV_TPM_NT          = 0x000000F0,
+-    TPMA_NV_POLICY_DELETE   = 0x00000400,
+-    TPMA_NV_WRITELOCKED     = 0x00000800,
+-    TPMA_NV_WRITEALL        = 0x00001000,
+-    TPMA_NV_WRITEDEFINE     = 0x00002000,
+-    TPMA_NV_WRITE_STCLEAR   = 0x00004000,
+-    TPMA_NV_GLOBALLOCK      = 0x00008000,
+-    TPMA_NV_PPREAD          = 0x00010000,
+-    TPMA_NV_OWNERREAD       = 0x00020000,
+-    TPMA_NV_AUTHREAD        = 0x00040000,
+-    TPMA_NV_POLICYREAD      = 0x00080000,
+-    TPMA_NV_NO_DA           = 0x02000000,
+-    TPMA_NV_ORDERLY         = 0x04000000,
+-    TPMA_NV_CLEAR_STCLEAR   = 0x08000000,
+-    TPMA_NV_READLOCKED      = 0x10000000,
+-    TPMA_NV_WRITTEN         = 0x20000000,
+-    TPMA_NV_PLATFORMCREATE  = 0x40000000,
+-    TPMA_NV_READ_STCLEAR    = 0x80000000,
+-};
++/* Using defines, not "enum TPMA_NV_mask" to avoid pedantic error:
++ * "ISO C restricts enumerator values to range of 'int'"
++ */
++#define TPMA_NV_PPWRITE        0x00000001UL
++#define TPMA_NV_OWNERWRITE     0x00000002UL
++#define TPMA_NV_AUTHWRITE      0x00000004UL
++#define TPMA_NV_POLICYWRITE    0x00000008UL
++#define TPMA_NV_TPM_NT         0x000000F0UL
++#define TPMA_NV_POLICY_DELETE  0x00000400UL
++#define TPMA_NV_WRITELOCKED    0x00000800UL
++#define TPMA_NV_WRITEALL       0x00001000UL
++#define TPMA_NV_WRITEDEFINE    0x00002000UL
++#define TPMA_NV_WRITE_STCLEAR  0x00004000UL
++#define TPMA_NV_GLOBALLOCK     0x00008000UL
++#define TPMA_NV_PPREAD         0x00010000UL
++#define TPMA_NV_OWNERREAD      0x00020000UL
++#define TPMA_NV_AUTHREAD       0x00040000UL
++#define TPMA_NV_POLICYREAD     0x00080000UL
++#define TPMA_NV_NO_DA          0x02000000UL
++#define TPMA_NV_ORDERLY        0x04000000UL
++#define TPMA_NV_CLEAR_STCLEAR  0x08000000UL
++#define TPMA_NV_READLOCKED     0x10000000UL
++#define TPMA_NV_WRITTEN        0x20000000UL
++#define TPMA_NV_PLATFORMCREATE 0x40000000UL
++#define TPMA_NV_READ_STCLEAR   0x80000000UL
+ 
+ typedef struct TPMS_NV_PUBLIC {
+     TPMI_RH_NV_INDEX nvIndex;
+diff --git a/wolftpm/tpm2_socket.h b/wolftpm/tpm2_socket.h
+index d011426..0515eab 100644
+--- a/wolftpm/tpm2_socket.h
++++ b/wolftpm/tpm2_socket.h
+@@ -39,7 +39,6 @@
+ #else
+     #include <sys/types.h>
+     #include <sys/socket.h>
+-    #include <netdb.h>
+ 
+     #define SOCKET_T int
+ #endif
+diff --git a/wolftpm/tpm2_types.h b/wolftpm/tpm2_types.h
+index 7f4b93d..aa81435 100644
+--- a/wolftpm/tpm2_types.h
++++ b/wolftpm/tpm2_types.h
+@@ -22,10 +22,6 @@
+ #ifndef __TPM2_TYPES_H__
+ #define __TPM2_TYPES_H__
+ 
+-#ifdef HAVE_CONFIG_H
+-    #include <config.h>
+-#endif
+-
+ #include <wolftpm/visibility.h>
+ #include <stdint.h>
+ 
+@@ -134,7 +130,6 @@ typedef int64_t  INT64;
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <string.h>
+-    #include <arpa/inet.h>
+ 
+     #ifdef WOLFTPM_USER_SETTINGS
+         #include "user_settings.h"
+@@ -231,20 +226,6 @@ typedef int64_t  INT64;
+ #ifndef WOLFTPM_CUSTOM_TYPES
+     #include <stdlib.h>
+ 
+-    #ifndef XHTONS
+-        /* WOLFCRYPT_ONLY means no wolfio and no arpa/inet.h */
+-        #ifdef WOLFCRYPT_ONLY
+-            #ifdef BIG_ENDIAN_ORDER
+-                #define XHTONS(s) (s)
+-            #else
+-                #define XHTONS(s) ((((s) & 0xff) << 8) | (((s) & 0xff00) >> 8))
+-            #endif
+-        #else
+-            #include <arpa/inet.h>
+-            #define XHTONS(s)         htons((s))
+-        #endif
+-    #endif
+-
+     #define XSTRTOL(s,e,b)    strtol((s),(e),(b))
+     #define XATOI(s)          atoi((s))
+ 
+@@ -718,7 +699,7 @@ static inline word16 ByteReverseWord16(word16 value)
+ 
+ static inline word32 ByteReverseWord32(word32 value)
+ {
+-#if !defined(WOLF_NO_BUILTIN) && defined(__GNUC_PREREQ) && __GNUC_PREREQ(4, 3)
++#if defined(WOLF_ALLOW_BUILTIN) && defined(__GNUC_PREREQ) && __GNUC_PREREQ(4, 3)
+     return (word32)__builtin_bswap32(value);
+ #elif defined(PPC_INTRINSICS)
+     /* PPC: load reverse indexed instruction */
+@@ -758,7 +739,7 @@ static inline word32 ByteReverseWord32(word32 value)
+ 
+ static inline word64 ByteReverseWord64(word64 value)
+ {
+-#if !defined(WOLF_NO_BUILTIN) && defined(__GNUC_PREREQ) && __GNUC_PREREQ(4, 3)
++#if defined(WOLF_ALLOW_BUILTIN) && defined(__GNUC_PREREQ) && __GNUC_PREREQ(4, 3)
+     return (word64)__builtin_bswap64(value);
+ #else
+     return (word64)((word64)ByteReverseWord32((word32)value)) << 32 |
+diff --git a/wolftpm/tpm2_wrap.h b/wolftpm/tpm2_wrap.h
+index e2d43d4..1fb3cc9 100644
+--- a/wolftpm/tpm2_wrap.h
++++ b/wolftpm/tpm2_wrap.h
+@@ -323,7 +323,7 @@ WOLFTPM_API int wolfTPM2_SelfTest(WOLFTPM2_DEV* dev);
+ 
+ /*!
+     \ingroup wolfTPM2_Wrappers
+-    \brief Reported the available TPM capabilities
++    \brief Reports the available TPM capabilities
+ 
+     \return TPM_RC_SUCCESS: successful
+     \return TPM_RC_FAILURE: generic failure (check TPM IO communication and TPM return code)
+@@ -351,6 +351,31 @@ WOLFTPM_API int wolfTPM2_SelfTest(WOLFTPM2_DEV* dev);
+ */
+ WOLFTPM_API int wolfTPM2_GetCapabilities(WOLFTPM2_DEV* dev, WOLFTPM2_CAPS* caps);
+ 
++
++/*!
++    \ingroup wolfTPM2_Wrappers
++    \brief Gets a list of handles
++
++    \return 0 or greater: successful, count of handles
++    \return TPM_RC_FAILURE: generic failure (check TPM IO communication and TPM return code)
++    \return BAD_FUNC_ARG: check the provided arguments
++
++    \param handle handle to start from (example: PCR_FIRST, NV_INDEX_FIRST, HMAC_SESSION_FIRST, POLICY_SESSION_FIRST, PERMANENT_FIRST, TRANSIENT_FIRST or PERSISTENT_FIRST)
++    \param handles pointer to TPML_HANDLE to return handle results (optional)
++
++    _Example_
++    \code
++    int persistent_handle_count;
++
++    // get count of persistent handles
++    persistent_handle_count = wolfTPM2_GetHandles(PERSISTENT_FIRST, NULL);
++    \endcode
++
++    \sa wolfTPM2_GetCapabilities
++*/
++WOLFTPM_API int wolfTPM2_GetHandles(TPM_HANDLE handle, TPML_HANDLE* handles);
++
++
+ /*!
+     \ingroup wolfTPM2_Wrappers
+     \brief Clears one of the TPM Authorization slots, pointed by its index number
+@@ -520,7 +545,7 @@ WOLFTPM_API int wolfTPM2_StartSession(WOLFTPM2_DEV* dev,
+     \return TPM_RC_FAILURE: check TPM return code, check available handles, check TPM IO
+ 
+     \param dev pointer to a TPM2_DEV struct
+-    \param session pointer to an empty WOLFTPM2_SESSION struct
++    \param tpmSession pointer to an empty WOLFTPM2_SESSION struct
+ 
+     \sa wolfTPM2_SetAuthSession
+     \sa wolfTPM2_StartSession
+@@ -837,6 +862,7 @@ WOLFTPM_API int wolfTPM2_ImportRsaPrivateKey(WOLFTPM2_DEV* dev,
+     \param rsaPrivSz integer value of word32 type, specifying the private material buffer size
+     \param scheme value of TPMI_ALG_RSA_SCHEME type, specifying the RSA scheme
+     \param hashAlg integer value of TPMI_ALG_HASH type, specifying a supported TPM 2.0 hash algorithm
++    \param attributes integer value of TPMA_OBJECT type, can contain one or more attributes, e.g. TPMA_OBJECT_fixedTPM (or 0 to automatically populate)
+     \param seedSz Optional (use NULL) or supply a custom seed for KDF
+     \param seed Size of the seed (use 32 bytes for SHA2-256)
+ 
+@@ -983,6 +1009,7 @@ WOLFTPM_API int wolfTPM2_ImportEccPrivateKey(WOLFTPM2_DEV* dev,
+     \param eccPubYSz integer value of word32 type, specifying the point Y buffer size
+     \param eccPriv pointer to a byte buffer containing the private material
+     \param eccPrivSz integer value of word32 type, specifying the private material size
++    \param attributes integer value of TPMA_OBJECT type, can contain one or more attributes, e.g. TPMA_OBJECT_fixedTPM (or 0 to automatically populate)
+     \param seedSz Optional (use NULL) or supply a custom seed for KDF
+     \param seed Size of the seed (use 32 bytes for SHA2-256)
+ 
+@@ -1189,6 +1216,24 @@ WOLFTPM_API int wolfTPM2_ImportPublicKeyBuffer(WOLFTPM2_DEV* dev, int keyType,
+     WOLFTPM2_KEY* key, int encodingType, const char* input, word32 inSz,
+     TPMA_OBJECT objectAttributes);
+ 
++/*!
++    \ingroup wolfTPM2_Wrappers
++    \brief Helper function to export a TPM RSA/ECC public key with PEM/DER formatting
++
++    \return TPM_RC_SUCCESS: successful - populates key->pub
++    \return TPM_RC_FAILURE: generic failure (check TPM IO and TPM return code)
++    \return BUFFER_E: insufficient space in provided buffer
++    \return BAD_FUNC_ARG: check the provided arguments
++
++    \param dev pointer to a TPM2_DEV struct
++    \param tpmKey pointer to a WOLFTPM2_KEY with populated key
++    \param encodingType ENCODING_TYPE_PEM or ENCODING_TYPE_ASN1 (DER)
++    \param out buffer to export public key
++    \param outSz pointer to length of the out buffer
++*/
++WOLFTPM_API int wolfTPM2_ExportPublicKeyBuffer(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKey,
++    int encodingType, byte* out, word32* outSz);
++
+ #ifndef NO_RSA
+ /*!
+     \ingroup wolfTPM2_Wrappers
+@@ -1252,8 +1297,8 @@ WOLFTPM_API int wolfTPM2_RsaKey_TpmToWolf(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKe
+ 
+ /*!
+     \ingroup wolfTPM2_Wrappers
+-    \brief Convert a public RSA TPM key to PEM format public key
+-    Note: pem and tempBuf must be different buffers, of equal size
++    \brief Convert a public RSA TPM key to PEM format public key.
++    Note: This API is a wrapper around wolfTPM2_ExportPublicKeyBuffer
+ 
+     \return TPM_RC_SUCCESS: successful
+     \return TPM_RC_FAILURE: generic failure (check TPM IO and TPM return code)
+@@ -1264,6 +1309,7 @@ WOLFTPM_API int wolfTPM2_RsaKey_TpmToWolf(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKe
+     \param pem pointer to an array of byte type, used as temporary storage for PEM conversation
+     \param pemSz pointer to integer variable, to store the used buffer size
+ 
++    \sa wolfTPM2_ExportPublicKeyBuffer
+     \sa wolfTPM2_RsaKey_TpmToWolf
+     \sa wolfTPM2_RsaKey_WolfToTpm
+ */
+@@ -1335,7 +1381,6 @@ WOLFTPM_API int wolfTPM2_RsaKey_PubPemToTpm(WOLFTPM2_DEV* dev,
+     \return TPM_RC_SUCCESS: successful
+     \return TPM_RC_FAILURE: generic failure (check TPM IO and TPM return code)
+ 
+-    \param dev pointer to a TPM2_DEV struct
+     \param der The der encoding of the content of the extension.
+     \param derSz The size in bytes of the der encoding.
+     \param pub pointer to a populated structure of TPM2B_PUBLIC type
+@@ -1432,7 +1477,6 @@ WOLFTPM_API int wolfTPM2_EccKey_WolfToPubPoint(WOLFTPM2_DEV* dev, ecc_key* wolfK
+     \return TPM_RC_SUCCESS: successful
+     \return TPM_RC_FAILURE: generic failure (check TPM IO and TPM return code)
+ 
+-    \param dev pointer to a TPM2_DEV struct
+     \param der The der encoding of the content of the extension.
+     \param derSz The size in bytes of the der encoding.
+     \param pub pointer to a populated structure of TPM2B_PUBLIC type
+@@ -2354,6 +2398,7 @@ WOLFTPM_API int wolfTPM2_UnloadHandles_AllTransient(WOLFTPM2_DEV* dev);
+     \param publicTemplate pointer to an empty structure of TPMT_PUBLIC type, to store the new RSA template
+     \param objectAttributes integer value of TPMA_OBJECT type, can contain one or more attributes, e.g. TPMA_OBJECT_fixedTPM
+ 
++    \sa wolfTPM2_GetKeyTemplate_RSA_ex
+     \sa wolfTPM2_GetKeyTemplate_ECC
+     \sa wolfTPM2_GetKeyTemplate_Symmetric
+     \sa wolfTPM2_GetKeyTemplate_KeyedHash
+@@ -2362,6 +2407,32 @@ WOLFTPM_API int wolfTPM2_UnloadHandles_AllTransient(WOLFTPM2_DEV* dev);
+ WOLFTPM_API int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
+     TPMA_OBJECT objectAttributes);
+ 
++/*!
++    \ingroup wolfTPM2_Wrappers
++    \brief Prepares a TPM public template for new RSA key based on user selected object attributes
++
++    \return TPM_RC_SUCCESS: successful
++    \return BAD_FUNC_ARG: check the provided arguments
++
++    \param publicTemplate pointer to an empty structure of TPMT_PUBLIC type, to store the new RSA template
++    \param nameAlg integer value of TPM_ALG_ID type, specifying a TPM supported hashing algorithm, typically TPM_ALG_SHA256 for SHA 256
++    \param objectAttributes integer value of TPMA_OBJECT type, can contain one or more attributes, e.g. TPMA_OBJECT_fixedTPM
++    \param keyBits integer value, specifying the size of the symmetric key, typically 128 or 256 bits
++    \param exponent integer value of word32 type, specifying the RSA exponent
++    \param sigScheme integer value of TPM_ALG_ID type, specifying a TPM supported signature scheme
++    \param sigHash integer value of TPM_ALG_ID type, specifying a TPM supported signature hash scheme
++
++    \sa wolfTPM2_GetKeyTemplate_RSA
++    \sa wolfTPM2_GetKeyTemplate_ECC
++    \sa wolfTPM2_GetKeyTemplate_ECC_ex
++    \sa wolfTPM2_GetKeyTemplate_Symmetric
++    \sa wolfTPM2_GetKeyTemplate_KeyedHash
++    \sa wolfTPM2_GetKeyTemplate_KeySeal
++*/
++WOLFTPM_API int wolfTPM2_GetKeyTemplate_RSA_ex(TPMT_PUBLIC* publicTemplate,
++    TPM_ALG_ID nameAlg, TPMA_OBJECT objectAttributes, int keyBits, long exponent,
++    TPM_ALG_ID sigScheme, TPM_ALG_ID sigHash);
++
+ /*!
+     \ingroup wolfTPM2_Wrappers
+     \brief Prepares a TPM public template for new ECC key based on user selected object attributes
+@@ -2374,6 +2445,7 @@ WOLFTPM_API int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
+     \param curve integer value of TPM_ECC_CURVE type, specifying a TPM supported ECC curve ID
+     \param sigScheme integer value of TPM_ALG_ID type, specifying a TPM supported signature scheme
+ 
++    \sa wolfTPM2_GetKeyTemplate_ECC_ex
+     \sa wolfTPM2_GetKeyTemplate_RSA
+     \sa wolfTPM2_GetKeyTemplate_Symmetric
+     \sa wolfTPM2_GetKeyTemplate_KeyedHash
+@@ -2382,6 +2454,30 @@ WOLFTPM_API int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
+ WOLFTPM_API int wolfTPM2_GetKeyTemplate_ECC(TPMT_PUBLIC* publicTemplate,
+     TPMA_OBJECT objectAttributes, TPM_ECC_CURVE curve, TPM_ALG_ID sigScheme);
+ 
++/*!
++    \ingroup wolfTPM2_Wrappers
++    \brief Prepares a TPM public template for new ECC key based on user selected object attributes
++
++    \return TPM_RC_SUCCESS: successful
++    \return BAD_FUNC_ARG: check the provided arguments
++
++    \param publicTemplate pointer to an empty structure of TPMT_PUBLIC type, to store the new ECC key template
++    \param nameAlg integer value of TPM_ALG_ID type, specifying a TPM supported hashing algorithm, typically TPM_ALG_SHA256 for SHA 256
++    \param objectAttributes integer value of TPMA_OBJECT type, can contain one or more attributes, e.g. TPMA_OBJECT_fixedTPM
++    \param curve integer value of TPM_ECC_CURVE type, specifying a TPM supported ECC curve ID
++    \param sigScheme integer value of TPM_ALG_ID type, specifying a TPM supported signature scheme
++    \param sigHash integer value of TPM_ALG_ID type, specifying a TPM supported signature hash scheme
++
++    \sa wolfTPM2_GetKeyTemplate_ECC
++    \sa wolfTPM2_GetKeyTemplate_RSA
++    \sa wolfTPM2_GetKeyTemplate_Symmetric
++    \sa wolfTPM2_GetKeyTemplate_KeyedHash
++    \sa wolfTPM2_GetKeyTemplate_KeySeal
++*/
++WOLFTPM_API int wolfTPM2_GetKeyTemplate_ECC_ex(TPMT_PUBLIC* publicTemplate,
++    TPM_ALG_ID nameAlg, TPMA_OBJECT objectAttributes, TPM_ECC_CURVE curve,
++    TPM_ALG_ID sigScheme, TPM_ALG_ID sigHash);
++
+ /*!
+     \ingroup wolfTPM2_Wrappers
+     \brief Prepares a TPM public template for new Symmetric key
+@@ -3359,6 +3455,7 @@ WOLFTPM_API int wolfTPM2_PolicyAuthorize(WOLFTPM2_DEV* dev, TPM_HANDLE sessionHa
+     \return INPUT_SIZE_E: policyDigestSz is too small to hold the returned digest
+     \return BAD_FUNC_ARG: check the provided arguments
+ 
++    \param dev pointer to a TPM2_DEV struct
+     \param pcrAlg the hash algorithm to use with pcr policy
+     \param pcrArray array of pcr Index to use when creating the policy
+     \param pcrArraySz the number of Index in the pcrArray
