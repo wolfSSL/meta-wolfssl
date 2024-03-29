@@ -24,35 +24,82 @@ get_current() {
 }
 
 get_new() {
-    NEW=`curl -s https://api.github.com/repos/wolfssl/$1/releases/latest | grep -i $1- | grep name | grep -Eo -m 1 '[0-9]+.[0-9]+.[0-9]+'`
+    NEW=$(curl -s "https://api.github.com/repos/wolfssl/$1/releases/latest" | jq -r '.tag_name' | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
 }
 
+
 update() {
+    if [ -z "$CURRENT" ] || [ -z "$NEW" ]; then
+        printf "Error: Current or new version is empty for %s. Skipping update.\n" "$1"
+        return
+    fi
+
     if [ "$CURRENT" != "$NEW" ]; then
-        printf "updating from $CURRENT to $NEW\n"
+        printf "Updating from %s to %s for %s...\n" "$CURRENT" "$NEW" "$1"
         TAG="v$NEW-stable"
         if [ "$1" = "wolfmqtt" ] || [ "$1" == "wolftpm" ]; then
             TAG="v$NEW"
         fi
-        git clone -b $TAG git@github.com:wolfssl/$1 &> /dev/null
-        cd $1 &> /dev/null
-        REV=`git rev-list -n 1 $TAG`
-        cd ..
-        rm -rf $1
-        git mv ./recipes-wolfssl/$1/$1_$CURRENT.bb ./recipes-wolfssl/$1/$1_$NEW.bb &> /dev/null
-        sed -i "s/rev=.*/rev=$REV\"/" ./recipes-wolfssl/$1/$1_$NEW.bb
-        git add ./recipes-wolfssl/$1/$1_$NEW.bb &> /dev/null
+
+        # Clone the new version repository
+        if ! git clone -b "$TAG" "git@github.com:wolfssl/$1" &> /dev/null; then
+            printf "Error cloning %s. Skipping.\n" "$1"
+            return
+        fi
+
+        # Get the new revision
+        cd "$1" &> /dev/null
+        REV=$(git rev-list -n 1 "$TAG")
+        cd .. && rm -rf "$1"
+
+        # Check if the old .bb file exists before attempting to move
+        if [ ! -f "./recipes-wolfssl/$1/$1_$CURRENT.bb" ]; then
+            printf "Error: .bb file for %s with version %s not found. Skipping.\n" "$1" "$CURRENT"
+            return
+        fi
+
+        # Check if the new .bb file already exists
+        if [ -f "./recipes-wolfssl/$1/$1_$NEW.bb" ]; then
+            echo "New .bb file for version $NEW already exists. Deleting it to proceed with update."
+            # Delete the existing new .bb file
+            rm -f "./recipes-wolfssl/$1/$1_$NEW.bb"
+        fi
+
+        # Move the .bb file to the new version
+        git mv "./recipes-wolfssl/$1/$1_$CURRENT.bb" "./recipes-wolfssl/$1/$1_$NEW.bb" &> /dev/null
+
+        # Update the revision in the new .bb file
+        if [ -f "./recipes-wolfssl/$1/$1_$NEW.bb" ]; then
+            sed -i "s/rev=.*/rev=$REV\"/" "./recipes-wolfssl/$1/$1_$NEW.bb"
+            git add "./recipes-wolfssl/$1/$1_$NEW.bb" &> /dev/null
+        else
+            printf "Error updating .bb file for %s to version %s. File not found after move.\n" "$1" "$NEW"
+            return
+        fi
+
+        # Additional steps for wolfSSL
         if [ "$1" = "wolfssl" ]; then
             printf "\tUpdating wolfcrypt test and benchmark...\n"
-            sed -i "s/rev=.*/rev=$REV\"/" ./recipes-examples/wolfcrypt/wolfcrypttest/wolfcrypttest.bb
-            git add ./recipes-examples/wolfcrypt/wolfcrypttest/wolfcrypttest.bb &> /dev/null
-            sed -i "s/rev=.*/rev=$REV\"/" ./recipes-examples/wolfcrypt/wolfcryptbenchmark/wolfcryptbenchmark.bb
-            git add ./recipes-examples/wolfcrypt/wolfcryptbenchmark/wolfcryptbenchmark.bb &> /dev/null
+            # Update wolfcrypt test
+            if [ -f "./recipes-examples/wolfcrypt/wolfcrypttest/wolfcrypttest.bb" ]; then
+                sed -i "s/rev=.*/rev=$REV\"/" "./recipes-examples/wolfcrypt/wolfcrypttest/wolfcrypttest.bb"
+                git add "./recipes-examples/wolfcrypt/wolfcrypttest/wolfcrypttest.bb" &> /dev/null
+            else
+                printf "Error: wolfcrypttest.bb file not found.\n"
+            fi
+            # Update wolfcrypt benchmark
+            if [ -f "./recipes-examples/wolfcrypt/wolfcryptbenchmark/wolfcryptbenchmark.bb" ]; then
+                sed -i "s/rev=.*/rev=$REV\"/" "./recipes-examples/wolfcrypt/wolfcryptbenchmark/wolfcryptbenchmark.bb"
+                git add "./recipes-examples/wolfcrypt/wolfcryptbenchmark/wolfcryptbenchmark.bb" &> /dev/null
+            else
+                printf "Error: wolfcryptbenchmark.bb file not found.\n"
+            fi
         fi
     else
-        printf "version $CURRENT is the latest\n"
+        printf "Version %s is the latest for %s. No update needed.\n" "$CURRENT" "$1"
     fi
 }
+
 
 
 printf "Checking version of wolfSSL to use..."
@@ -79,6 +126,18 @@ printf "Checking version of wolfCLU to use..."
 get_current "wolfclu"
 get_new "wolfclu"
 update "wolfclu"
+
+printf "Checking version of wolfssl-py to use..."
+get_current "wolfssl-py"
+get_new "wolfssl-py"
+update "wolfssl-py"
+
+
+printf "Checking version of wolfcrypt-py to use..."
+get_current "wolfcrypt-py"
+get_new "wolfcrypt-py"
+update "wolfcrypt-py"
+
 
 
 
