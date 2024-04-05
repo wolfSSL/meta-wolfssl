@@ -363,6 +363,10 @@ wolfProvider
 ------------
 To build wolfProvider view the instructions in this [README](recipes-wolfssl/wolfprovider/README.md)
 
+wolfEngine
+------------
+To build wolfEngine view the instructions in this [README](recipes-wolfssl/wolfengine/README.md)
+
 FIPS-READY
 ----------
 For building FIPS-Ready for wolfSSL view the instruction in this [README](recipes-wolfssl/wolfssl/fips-ready/README.md)
