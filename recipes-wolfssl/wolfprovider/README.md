@@ -2,6 +2,8 @@
 
 The `wolfprovider` recipe enables the integration of wolfSSL's cryptographic functionalities into OpenSSL through a custom provider mechanism. This integration allows applications using OpenSSL to leverage wolfSSL's advanced cryptographic algorithms, combining wolfSSL's lightweight and performance-optimized cryptography with OpenSSL's extensive API and capabilities. `wolfprovider` is designed for easy integration into Yocto-based systems, ensuring a seamless blend of security and performance ideal for embedded and constrained environments.
 
+The `wolfprovidertest` yocto package will provide two apps, `wolfproviderenv` and `wolfprovidertest`. Running `wolfproviderenv` will start up a child shell and run `wolfprovidertest`. Use `wolfproviderenv` to test that the `wolfprovider` package is succesfully installed. If you want to run `wolfprovidertest` directly you will need to directly source `wolfproviderenv` via `source /usr/bin/wolfproviderenv` or setup the env on your own, because `wolfprovidertest` will fail otherwise. Use `wolfprovidertest` to check that your shell env is correctly setup.
+
 ## Getting Started
 
 ### Prerequisites
@@ -36,8 +38,15 @@ The `wolfprovider` recipe enables the integration of wolfSSL's cryptographic fun
 
     Modify your image recipe or `local.conf` file to include `wolfprovider`, `wolfssl`, `openssl`, `openssl-bin`, and `wolfprovidertest`. You will only need `openssl-bin` and `wolfprovidertest` if you want to use and test with our included example and conf file.
 
-    ```bitbake
-    IMAGE_INSTALL += "wolfprovider wolfssl openssl openssl-bin wolfprovidertest"
+
+    For yocto kirkstone or newer:
+    ```
+    IMAGE_INSTALL:append = "wolfprovider wolfssl openssl openssl-bin wolfprovidertest"
+    ```
+
+    For yocto dunfell or earlier:
+    ```
+    IMAGE_INSTALL_append = "wolfprovider wolfssl openssl openssl-bin wolfprovidertest"
     ```
 
 4. **Build Your Image**:

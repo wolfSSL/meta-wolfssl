@@ -2,6 +2,8 @@
 
 The `wolfengine` recipe enables the integration of wolfSSL's cryptographic functionalities into OpenSSL through a custom engine mechanism. This integration allows applications using OpenSSL to leverage wolfSSL's advanced cryptographic algorithms, combining wolfSSL's lightweight and performance-optimized cryptography with OpenSSL's extensive API and capabilities. `wolfengine` is designed for easy integration into Yocto-based systems, ensuring a seamless blend of security and performance ideal for embedded and constrained environments.
 
+The `wolfenginetest` yocto package will provide two apps, `wolfengineenv` and `wolfenginetest`. Running `wolfengineenv` will start up a child shell and run `wolfenginetest`. Use `wolfengineenv` to test that the `wolfengine` package is succesfully installed. If you want to run `wolfenginetest` directly you will need to directly source `wolfengineenv` via `source /usr/bin/wolfengineenv` or setup the env on your own, because `wolfenginetest` will fail otherwise. Use `wolfenginetest` to check that your shell env is correctly setup.
+
 ## Getting Started
 
 ### Prerequisites
@@ -36,9 +38,16 @@ The `wolfengine` recipe enables the integration of wolfSSL's cryptographic funct
 
     Modify your image recipe or `local.conf` file to include `wolfengine`, `wolfssl`, `openssl`, `openssl-bin`, and `wolfenginetest`. You will only need `openssl-bin` and `wolfenginetest` if you want to use and test with our included example and conf file.
 
-    ```bitbake
-    IMAGE_INSTALL += "wolfengine wolfssl openssl openssl-bin wolfenginetest"
+    For yocto kirkstone or newer:
     ```
+    IMAGE_INSTALL:append = "wolfengine wolfssl openssl openssl-bin wolfenginetest"
+    ```
+
+    For yocto dunfell or earlier:
+    ```
+    IMAGE_INSTALL_append = "wolfengine wolfssl openssl openssl-bin wolfenginetest"
+    ```
+
 
 4. **Build Your Image**:
 
