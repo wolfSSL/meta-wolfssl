@@ -1,3 +1,14 @@
+diff --git a/.cyignore b/.cyignore
+new file mode 100644
+index 0000000..0a3ff1d
+--- /dev/null
++++ b/.cyignore
+@@ -0,0 +1,4 @@
++# wolfTPM folders
++$(SEARCH_wolftpm)/IDE
++$(SEARCH_wolftpm)/examples
++$(SEARCH_wolftpm)/tests
+\ No newline at end of file
 diff --git a/.github/workflows/cmake-build.yml b/.github/workflows/cmake-build.yml
 index 158ac5c..0601e6f 100644
 --- a/.github/workflows/cmake-build.yml
@@ -51,6 +62,19 @@ index f8fe999..e61e852 100644
  # capture logs on failure
      - name: Upload failure logs
        if: failure()
+diff --git a/.gitignore b/.gitignore
+index b8b7b2a..ea9d1b8 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -77,6 +77,8 @@ examples/attestation/activate_credential
+ examples/boot/secure_rot
+ examples/boot/secret_seal
+ examples/boot/secret_unseal
++examples/firmware/ifx_fw_extract
++examples/firmware/ifx_fw_update
+ 
+ # Generated Cert Files
+ certs/ca-*.pem
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 index 9746974..4424505 100644
 --- a/CMakeLists.txt
@@ -300,19 +324,21 @@ index 1f57309..b6e77e1 100644
  
  #ifdef __cplusplus
 diff --git a/Makefile.am b/Makefile.am
-index 6a316e3..90c1148 100644
+index 6a316e3..dc750f0 100644
 --- a/Makefile.am
 +++ b/Makefile.am
-@@ -41,6 +41,7 @@ include tests/include.am
+@@ -41,7 +41,9 @@ include tests/include.am
  include docs/include.am
  include wrapper/include.am
  include hal/include.am
 +include cmake/include.am
  
++EXTRA_DIST+= .cyignore
  EXTRA_DIST+= README.md
  EXTRA_DIST+= ChangeLog.md
+ EXTRA_DIST+= LICENSE
 diff --git a/README.md b/README.md
-index 3fbaaed..09427b5 100644
+index 3fbaaed..95bb9c2 100644
 --- a/README.md
 +++ b/README.md
 @@ -7,7 +7,7 @@ Portable TPM 2.0 project designed for embedded use.
@@ -333,14 +359,14 @@ index 3fbaaed..09427b5 100644
 -* ST ST33TP* TPM 2.0 module (SPI and I2C)
 +* Infineon OPTIGA (TM) Trusted Platform Module 2.0 SLB9670, SLB9672 and SLB9673 (I2C).
 +    - LetsTrust: Vendor for TPM development boards [http://letstrust.de](http://letstrust.de).
-+* STMicro STSAFE-TPM, ST33TPHF2XSPI/2XI2C and ST33KTPM2X
++* STMicro STSAFE-TPM, ST33TPHF2XSPI/2XI2C and ST33KTPM2X (SPI and I2C)
  * Microchip ATTPM20 module
  * Nuvoton NPCT65X or NPCT75x TPM2.0 module
 +* Nations Technologies Z32H330 TPM 2.0 module
  
  #### Device Identification
  
-@@ -100,11 +101,15 @@ Infineon SLB9672:
+@@ -100,11 +101,19 @@ Infineon SLB9672:
  TPM2: Caps 0x30000697, Did 0x001d, Vid 0x15d1, Rid 0x36
  Mfg IFX (1), Vendor SLB9672, Fw 16.10 (0x4068), FIPS 140-2 1, CC-EAL4 1
  
@@ -348,6 +374,10 @@ index 3fbaaed..09427b5 100644
 +Infineon SLB9673:
 +TPM2: Caps 0x1ae00082, Did 0x001c, Vid 0x15d1, Rid 0x16
 +Mfg IFX (1), Vendor SLB9673, Fw 26.13 (0x456a), FIPS 140-2 1, CC-EAL4 1
++
++STMicro ST33KTPM2XSPI
++TPM2: Caps 0x30000415, Did 0x0003, Vid 0x104a, Rid 0x 0
++Mfg STM  (2), Vendor ST33KTPM2XSPI, Fw 9.256 (0x0), FIPS 140-2 1, CC-EAL4 0
 +
 +STMicro ST33TPHF2XSPI
  TPM2: Caps 0x1a7e2882, Did 0x0000, Vid 0x104a, Rid 0x4e
@@ -358,7 +388,7 @@ index 3fbaaed..09427b5 100644
  TPM2: Caps 0x1a7e2882, Did 0x0000, Vid 0x104a, Rid 0x4e
  Mfg STM  (2), Vendor , Fw 74.9 (1151341959), FIPS 140-2 1, CC-EAL4 0
  
-@@ -152,8 +157,8 @@ autogen.sh requires: automake and libtool: `sudo apt-get install automake libtoo
+@@ -152,8 +161,8 @@ autogen.sh requires: automake and libtool: `sudo apt-get install automake libtoo
  --enable-tislock        Enable Linux Named Semaphore for locking access to SPI device for concurrent access between processes - WOLFTPM_TIS_LOCK
  
  --enable-autodetect     Enable Runtime Module Detection (default: enable - when no module specified) - WOLFTPM_AUTODETECT
@@ -369,7 +399,7 @@ index 3fbaaed..09427b5 100644
  --enable-microchip      Enable Microchip ATTPM20 Support (default: disabled) - WOLFTPM_MICROCHIP
  --enable-nuvoton        Enable Nuvoton NPCT65x/NPCT75x Support (default: disabled) - WOLFTPM_NUVOTON
  
-@@ -167,7 +172,15 @@ TLS_BENCH_MODE          Enables TLS benchmarking mode.
+@@ -167,7 +176,15 @@ TLS_BENCH_MODE          Enables TLS benchmarking mode.
  NO_TPM_BENCH            Disables the TPM benchmarking example.
  ```
  
@@ -386,7 +416,7 @@ index 3fbaaed..09427b5 100644
  
  Build wolfTPM:
  
-@@ -175,11 +188,11 @@ Build wolfTPM:
+@@ -175,11 +192,11 @@ Build wolfTPM:
  git clone https://github.com/wolfSSL/wolfTPM.git
  cd wolfTPM
  ./autogen.sh
@@ -400,7 +430,7 @@ index 3fbaaed..09427b5 100644
  
  Build wolfTPM:
  
-@@ -189,11 +202,6 @@ Build wolfTPM:
+@@ -189,11 +206,6 @@ Build wolfTPM:
  make
  ```
  
@@ -412,7 +442,7 @@ index 3fbaaed..09427b5 100644
  ### Building Microchip ATTPM20
  
  Build wolfTPM:
-@@ -437,7 +445,41 @@ ECDSA    256 verify        42 ops took 1.013 sec, avg 24.114 ms, 41.470 ops/sec
+@@ -437,7 +449,75 @@ ECDSA    256 verify        42 ops took 1.013 sec, avg 24.114 ms, 41.470 ops/sec
  ECDHE    256 agree         16 ops took 1.055 sec, avg 65.948 ms, 15.164 ops/sec
  ```
  
@@ -451,11 +481,45 @@ index 3fbaaed..09427b5 100644
 +ECDHE    256 agree          9 ops took 1.025 sec, avg 113.888 ms, 8.781 ops/sec
 +```
 +
++Run on STMicro ST33KTPM2XSPI at 33MHz:
++
++```
++./examples/bench/bench
++TPM2 Benchmark using Wrapper API's
++	Use Parameter Encryption: NULL
++Loading SRK: Storage 0x81000200 (282 bytes)
++RNG                 24 KB took 1.042 seconds,   23.028 KB/s
++AES-128-CBC-enc     52 KB took 1.018 seconds,   51.077 KB/s
++AES-128-CBC-dec     52 KB took 1.027 seconds,   50.644 KB/s
++AES-256-CBC-enc     46 KB took 1.012 seconds,   45.446 KB/s
++AES-256-CBC-dec     46 KB took 1.021 seconds,   45.072 KB/s
++AES-128-CTR-enc     44 KB took 1.025 seconds,   42.927 KB/s
++AES-128-CTR-dec     44 KB took 1.024 seconds,   42.955 KB/s
++AES-256-CTR-enc     40 KB took 1.025 seconds,   39.016 KB/s
++AES-256-CTR-dec     40 KB took 1.026 seconds,   38.992 KB/s
++AES-128-CFB-enc     52 KB took 1.026 seconds,   50.674 KB/s
++AES-128-CFB-dec     46 KB took 1.023 seconds,   44.986 KB/s
++AES-256-CFB-enc     46 KB took 1.021 seconds,   45.047 KB/s
++AES-256-CFB-dec     42 KB took 1.033 seconds,   40.665 KB/s
++SHA1               138 KB took 1.009 seconds,  136.727 KB/s
++SHA256             128 KB took 1.010 seconds,  126.723 KB/s
++SHA384             116 KB took 1.001 seconds,  115.833 KB/s
++RSA     2048 key gen        9 ops took 17.497 sec, avg 1944.057 ms, 0.514 ops/sec
++RSA     2048 Public       155 ops took 1.003 sec, avg 6.468 ms, 154.601 ops/sec
++RSA     2048 Private       12 ops took 1.090 sec, avg 90.806 ms, 11.013 ops/sec
++RSA     2048 Pub  OAEP    122 ops took 1.004 sec, avg 8.230 ms, 121.501 ops/sec
++RSA     2048 Priv OAEP     11 ops took 1.023 sec, avg 92.964 ms, 10.757 ops/sec
++ECC      256 key gen       12 ops took 1.070 sec, avg 89.172 ms, 11.214 ops/sec
++ECDSA    256 sign          40 ops took 1.010 sec, avg 25.251 ms, 39.602 ops/sec
++ECDSA    256 verify        28 ops took 1.023 sec, avg 36.543 ms, 27.365 ops/sec
++ECDHE    256 agree         16 ops took 1.062 sec, avg 66.391 ms, 15.062 ops/sec
++```
++
 +Run on STMicro ST33TPHF2XSPI at 33MHz:
  
  ```
  ./examples/bench/bench
-@@ -795,6 +837,7 @@ Connection: close
+@@ -795,6 +875,7 @@ Connection: close
  * Update to v1.59 of specification (adding CertifyX509).
  * Inner wrap support for SensitiveToPrivate.
  * Firmware upgrade support on TPM's.
@@ -463,6 +527,152 @@ index 3fbaaed..09427b5 100644
  
  ## Support
  
+diff --git a/certs/wolf-ca-ecc-cert.pem b/certs/wolf-ca-ecc-cert.pem
+index e4e4c7c..d088d30 100644
+--- a/certs/wolf-ca-ecc-cert.pem
++++ b/certs/wolf-ca-ecc-cert.pem
+@@ -2,12 +2,12 @@ Certificate:
+     Data:
+         Version: 3 (0x2)
+         Serial Number:
+-            65:67:42:4c:06:e7:e4:c3:68:01:a9:94:a9:07:e6:fe:bd:2c:d6:3d
++            0f:17:46:70:fd:c2:70:d1:f9:42:49:9c:1a:c3:5d:dd:30:c8:5f:85
+         Signature Algorithm: ecdsa-with-SHA256
+         Issuer: C = US, ST = Washington, L = Seattle, O = wolfSSL, OU = Development, CN = www.wolfssl.com, emailAddress = info@wolfssl.com
+         Validity
+-            Not Before: Dec 16 21:17:49 2022 GMT
+-            Not After : Sep 11 21:17:49 2025 GMT
++            Not Before: Dec 13 22:19:28 2023 GMT
++            Not After : Sep  8 22:19:28 2026 GMT
+         Subject: C = US, ST = Washington, L = Seattle, O = wolfSSL, OU = Development, CN = www.wolfssl.com, emailAddress = info@wolfssl.com
+         Subject Public Key Info:
+             Public Key Algorithm: id-ecPublicKey
+@@ -31,16 +31,16 @@ Certificate:
+             X509v3 Key Usage: critical
+                 Digital Signature, Certificate Sign, CRL Sign
+     Signature Algorithm: ecdsa-with-SHA256
+-         30:46:02:21:00:b0:12:16:03:26:79:d4:6b:94:d9:7e:ca:e1:
+-         2d:24:64:ef:11:6e:f2:12:81:e4:ce:1d:77:7d:ca:5c:47:50:
+-         62:02:21:00:80:bf:46:3c:5d:d8:e5:ab:47:ce:a2:19:bd:21:
+-         de:85:6f:ab:c9:8f:01:f3:ab:1b:b9:e1:53:d6:24:77:a6:4d
++         30:45:02:21:00:c8:64:7f:ee:4b:be:83:48:13:ea:92:f8:1a:
++         82:1e:85:b1:5a:a4:1c:e3:e8:ea:25:44:6f:e7:70:fd:eb:f3:
++         76:02:20:44:02:a2:ec:c5:a1:ae:e2:a4:8a:d9:13:95:2b:a6:
++         5b:09:57:86:61:42:96:97:f0:95:62:0c:03:e6:53:04:25
+ -----BEGIN CERTIFICATE-----
+-MIICljCCAjugAwIBAgIUZWdCTAbn5MNoAamUqQfm/r0s1j0wCgYIKoZIzj0EAwIw
++MIIClTCCAjugAwIBAgIUDxdGcP3CcNH5QkmcGsNd3TDIX4UwCgYIKoZIzj0EAwIw
+ gZcxCzAJBgNVBAYTAlVTMRMwEQYDVQQIDApXYXNoaW5ndG9uMRAwDgYDVQQHDAdT
+ ZWF0dGxlMRAwDgYDVQQKDAd3b2xmU1NMMRQwEgYDVQQLDAtEZXZlbG9wbWVudDEY
+ MBYGA1UEAwwPd3d3LndvbGZzc2wuY29tMR8wHQYJKoZIhvcNAQkBFhBpbmZvQHdv
+-bGZzc2wuY29tMB4XDTIyMTIxNjIxMTc0OVoXDTI1MDkxMTIxMTc0OVowgZcxCzAJ
++bGZzc2wuY29tMB4XDTIzMTIxMzIyMTkyOFoXDTI2MDkwODIyMTkyOFowgZcxCzAJ
+ BgNVBAYTAlVTMRMwEQYDVQQIDApXYXNoaW5ndG9uMRAwDgYDVQQHDAdTZWF0dGxl
+ MRAwDgYDVQQKDAd3b2xmU1NMMRQwEgYDVQQLDAtEZXZlbG9wbWVudDEYMBYGA1UE
+ AwwPd3d3LndvbGZzc2wuY29tMR8wHQYJKoZIhvcNAQkBFhBpbmZvQHdvbGZzc2wu
+@@ -48,6 +48,6 @@ Y29tMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAtPZbtYBjkXIuZAx5cBM456t
+ KTiYuhDW6QkqgKkuFyq5ir8zg0bjlQvkd0C1O0NFMw9hU3w3RMHL/IDK6EPqp6Nj
+ MGEwHQYDVR0OBBYEFFaOmsPwQt4YuUVVbvmTz+rD86UhMB8GA1UdIwQYMBaAFFaO
+ msPwQt4YuUVVbvmTz+rD86UhMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQD
+-AgGGMAoGCCqGSM49BAMCA0kAMEYCIQCwEhYDJnnUa5TZfsrhLSRk7xFu8hKB5M4d
+-d33KXEdQYgIhAIC/Rjxd2OWrR86iGb0h3oVvq8mPAfOrG7nhU9Ykd6ZN
++AgGGMAoGCCqGSM49BAMCA0gAMEUCIQDIZH/uS76DSBPqkvgagh6FsVqkHOPo6iVE
++b+dw/evzdgIgRAKi7MWhruKkitkTlSumWwlXhmFClpfwlWIMA+ZTBCU=
+ -----END CERTIFICATE-----
+diff --git a/certs/wolf-ca-rsa-cert.pem b/certs/wolf-ca-rsa-cert.pem
+index 58688a0..33d9079 100644
+--- a/certs/wolf-ca-rsa-cert.pem
++++ b/certs/wolf-ca-rsa-cert.pem
+@@ -2,12 +2,12 @@ Certificate:
+     Data:
+         Version: 3 (0x2)
+         Serial Number:
+-            2c:80:ce:db:47:9d:07:66:92:3d:68:d7:ca:ac:90:4f:ca:69:41:4b
++            33:44:1a:a8:6c:01:ec:f6:60:f2:70:51:0a:4c:d1:14:fa:bc:e9:44
+         Signature Algorithm: sha256WithRSAEncryption
+         Issuer: C = US, ST = Montana, L = Bozeman, O = Sawtooth, OU = Consulting, CN = www.wolfssl.com, emailAddress = info@wolfssl.com
+         Validity
+-            Not Before: Dec 16 21:17:49 2022 GMT
+-            Not After : Sep 11 21:17:49 2025 GMT
++            Not Before: Dec 13 22:19:28 2023 GMT
++            Not After : Sep  8 22:19:28 2026 GMT
+         Subject: C = US, ST = Montana, L = Bozeman, O = Sawtooth, OU = Consulting, CN = www.wolfssl.com, emailAddress = info@wolfssl.com
+         Subject Public Key Info:
+             Public Key Algorithm: rsaEncryption
+@@ -38,7 +38,7 @@ Certificate:
+             X509v3 Authority Key Identifier: 
+                 keyid:27:8E:67:11:74:C3:26:1D:3F:ED:33:63:B3:A4:D8:1D:30:E5:E8:D5
+                 DirName:/C=US/ST=Montana/L=Bozeman/O=Sawtooth/OU=Consulting/CN=www.wolfssl.com/emailAddress=info@wolfssl.com
+-                serial:2C:80:CE:DB:47:9D:07:66:92:3D:68:D7:CA:AC:90:4F:CA:69:41:4B
++                serial:33:44:1A:A8:6C:01:EC:F6:60:F2:70:51:0A:4C:D1:14:FA:BC:E9:44
+ 
+             X509v3 Basic Constraints: 
+                 CA:TRUE
+@@ -47,27 +47,27 @@ Certificate:
+             X509v3 Extended Key Usage: 
+                 TLS Web Server Authentication, TLS Web Client Authentication
+     Signature Algorithm: sha256WithRSAEncryption
+-         ae:b0:a4:35:8e:8a:1b:a6:eb:b3:a2:57:cf:3a:1f:dc:6e:bc:
+-         d2:d0:a6:4a:8f:88:0a:6e:74:d5:d1:7c:d1:44:b1:d4:3b:17:
+-         03:09:5a:46:ed:08:08:cf:f1:fd:20:07:67:c0:97:ec:35:f3:
+-         75:ca:20:61:98:3e:f5:4d:be:e6:9d:75:1e:e4:03:ad:8c:a6:
+-         1e:3d:ec:e4:1a:92:5b:f9:a3:ad:83:ca:4f:cd:aa:38:bb:6e:
+-         ae:ad:fa:a7:46:f1:8b:73:ec:09:23:bc:f2:18:e5:b7:92:86:
+-         3e:a4:75:60:c7:3d:0f:3f:83:00:c3:06:08:9c:d1:54:d6:ba:
+-         6d:95:3d:34:a1:be:24:91:cc:20:03:11:5b:72:1c:d4:65:d0:
+-         11:88:75:26:04:26:ef:66:70:e6:3b:38:87:9c:53:71:1b:09:
+-         51:70:50:99:4c:31:0c:62:44:57:30:60:04:fc:12:2c:a3:24:
+-         b4:f7:11:d5:0e:b5:21:0b:ed:86:11:67:4d:36:fa:57:a0:59:
+-         55:21:b3:6d:e4:77:5e:ec:7e:f0:09:13:8e:99:98:b2:e1:82:
+-         b6:4b:3e:0f:41:a6:0c:cd:49:99:7e:e4:8a:cb:37:ed:53:cf:
+-         86:5d:a9:26:a8:e5:01:25:5a:b4:bc:25:35:f1:fa:5a:5c:ce:
+-         d4:b8:9a:2c
++         2d:fc:f9:32:5a:be:d6:9d:42:8b:86:4e:67:22:c3:50:2d:cb:
++         14:27:1d:94:f3:cd:88:42:da:41:1c:39:24:67:a7:92:4d:27:
++         ea:56:82:19:bf:11:b2:43:a4:8d:5d:87:b2:27:64:66:82:81:
++         df:c4:fd:5b:62:b0:c2:4d:9d:29:f2:41:32:cc:2e:b5:da:38:
++         06:1b:e8:7f:8c:6e:3d:80:1e:00:56:49:bf:39:e0:da:68:2f:
++         c4:fd:00:e6:d1:81:1a:d1:4a:bb:76:52:ce:4d:24:9d:c4:a3:
++         a7:f1:65:14:2f:1f:a8:2d:c6:cb:ce:b1:a7:89:74:26:27:c3:
++         f3:a3:84:4c:34:01:14:03:7d:16:3a:c8:8b:25:2e:7b:90:cc:
++         46:b1:52:34:ba:93:6e:ef:fe:43:a3:ad:c6:6f:51:fb:ba:ea:
++         38:e3:6f:d6:ee:63:62:36:ea:5e:08:b4:e2:2a:46:89:e3:ae:
++         b3:b4:06:ef:63:7a:6e:5d:dd:c9:ec:02:4f:f7:64:c0:27:07:
++         b4:6f:4a:18:72:5b:34:74:7c:d0:a9:04:8f:40:8b:6a:39:d2:
++         6b:1a:01:f2:01:a8:81:34:3a:e5:b0:55:d1:3c:95:ca:b0:82:
++         d6:ed:98:28:15:59:7e:95:a7:69:c7:b5:7b:ec:01:a7:4d:e6:
++         b9:a2:fe:35
+ -----BEGIN CERTIFICATE-----
+-MIIE/zCCA+egAwIBAgIULIDO20edB2aSPWjXyqyQT8ppQUswDQYJKoZIhvcNAQEL
++MIIE/zCCA+egAwIBAgIUM0QaqGwB7PZg8nBRCkzRFPq86UQwDQYJKoZIhvcNAQEL
+ BQAwgZQxCzAJBgNVBAYTAlVTMRAwDgYDVQQIDAdNb250YW5hMRAwDgYDVQQHDAdC
+ b3plbWFuMREwDwYDVQQKDAhTYXd0b290aDETMBEGA1UECwwKQ29uc3VsdGluZzEY
+ MBYGA1UEAwwPd3d3LndvbGZzc2wuY29tMR8wHQYJKoZIhvcNAQkBFhBpbmZvQHdv
+-bGZzc2wuY29tMB4XDTIyMTIxNjIxMTc0OVoXDTI1MDkxMTIxMTc0OVowgZQxCzAJ
++bGZzc2wuY29tMB4XDTIzMTIxMzIyMTkyOFoXDTI2MDkwODIyMTkyOFowgZQxCzAJ
+ BgNVBAYTAlVTMRAwDgYDVQQIDAdNb250YW5hMRAwDgYDVQQHDAdCb3plbWFuMREw
+ DwYDVQQKDAhTYXd0b290aDETMBEGA1UECwwKQ29uc3VsdGluZzEYMBYGA1UEAwwP
+ d3d3LndvbGZzc2wuY29tMR8wHQYJKoZIhvcNAQkBFhBpbmZvQHdvbGZzc2wuY29t
+@@ -82,12 +82,12 @@ BgNVHSMEgcwwgcmAFCeOZxF0wyYdP+0zY7Ok2B0w5ejVoYGapIGXMIGUMQswCQYD
+ VQQGEwJVUzEQMA4GA1UECAwHTW9udGFuYTEQMA4GA1UEBwwHQm96ZW1hbjERMA8G
+ A1UECgwIU2F3dG9vdGgxEzARBgNVBAsMCkNvbnN1bHRpbmcxGDAWBgNVBAMMD3d3
+ dy53b2xmc3NsLmNvbTEfMB0GCSqGSIb3DQEJARYQaW5mb0B3b2xmc3NsLmNvbYIU
+-LIDO20edB2aSPWjXyqyQT8ppQUswDAYDVR0TBAUwAwEB/zAcBgNVHREEFTATggtl
++M0QaqGwB7PZg8nBRCkzRFPq86UQwDAYDVR0TBAUwAwEB/zAcBgNVHREEFTATggtl
+ eGFtcGxlLmNvbYcEfwAAATAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIw
+-DQYJKoZIhvcNAQELBQADggEBAK6wpDWOihum67OiV886H9xuvNLQpkqPiApudNXR
+-fNFEsdQ7FwMJWkbtCAjP8f0gB2fAl+w183XKIGGYPvVNvuaddR7kA62Mph497OQa
+-klv5o62Dyk/Nqji7bq6t+qdG8Ytz7AkjvPIY5beShj6kdWDHPQ8/gwDDBgic0VTW
+-um2VPTShviSRzCADEVtyHNRl0BGIdSYEJu9mcOY7OIecU3EbCVFwUJlMMQxiRFcw
+-YAT8EiyjJLT3EdUOtSEL7YYRZ002+legWVUhs23kd17sfvAJE46ZmLLhgrZLPg9B
+-pgzNSZl+5IrLN+1Tz4ZdqSao5QElWrS8JTXx+lpcztS4miw=
++DQYJKoZIhvcNAQELBQADggEBAC38+TJavtadQouGTmciw1AtyxQnHZTzzYhC2kEc
++OSRnp5JNJ+pWghm/EbJDpI1dh7InZGaCgd/E/VtisMJNnSnyQTLMLrXaOAYb6H+M
++bj2AHgBWSb854NpoL8T9AObRgRrRSrt2Us5NJJ3Eo6fxZRQvH6gtxsvOsaeJdCYn
++w/OjhEw0ARQDfRY6yIslLnuQzEaxUjS6k27v/kOjrcZvUfu66jjjb9buY2I26l4I
++tOIqRonjrrO0Bu9jem5d3cnsAk/3ZMAnB7RvShhyWzR0fNCpBI9Ai2o50msaAfIB
++qIE0OuWwVdE8lcqwgtbtmCgVWX6Vp2nHtXvsAadN5rmi/jU=
+ -----END CERTIFICATE-----
 diff --git a/cmake/README.md b/cmake/README.md
 new file mode 100644
 index 0000000..a138be5
@@ -537,7 +747,7 @@ index 0000000..ceec20a
 +EXTRA_DIST += cmake/README.md
 +EXTRA_DIST += cmake/config.in
 diff --git a/configure.ac b/configure.ac
-index 134e6b7..7d2101e 100644
+index 134e6b7..0841058 100644
 --- a/configure.ac
 +++ b/configure.ac
 @@ -60,6 +60,7 @@ AC_CHECK_SIZEOF([long long], 8)
@@ -548,6 +758,38 @@ index 134e6b7..7d2101e 100644
  AC_CHECK_FUNCS([gethostbyname getaddrinfo gettimeofday inet_ntoa memset socket])
  AC_CHECK_LIB([network],[socket])
  
+@@ -407,6 +408,18 @@ then
+ fi
+ 
+ 
++# Built-in TPM firmware upgrade support
++AC_ARG_ENABLE([firmware],
++    [AS_HELP_STRING([--enable-firmware],[Enable support for TPM firmware upgrades (default: enabled)])],
++    [ ENABLED_FIRMWARE=$enableval ],
++    [ ENABLED_FIRMWARE=yes ]
++    )
++if test "x$ENABLED_FIRMWARE" = "xyes"
++then
++    AM_CFLAGS="$AM_CFLAGS -DWOLFTPM_FIRMWARE_UPGRADE"
++fi
++
++
+ # HARDEN FLAGS
+ AX_HARDEN_CC_COMPILER_FLAGS
+ 
+@@ -430,6 +443,7 @@ AM_CONDITIONAL([BUILD_WINAPI], [test "x$ENABLED_WINAPI" = "xyes"])
+ AM_CONDITIONAL([BUILD_NUVOTON], [test "x$ENABLED_NUVOTON" = "xyes"])
+ AM_CONDITIONAL([BUILD_CHECKWAITSTATE], [test "x$ENABLED_CHECKWAITSTATE" = "xyes"])
+ AM_CONDITIONAL([BUILD_AUTODETECT], [test "x$ENABLED_AUTODETECT" = "xyes"])
++AM_CONDITIONAL([BUILD_FIRMWARE], [test "x$ENABLED_FIRMWARE" = "xyes"])
+ AM_CONDITIONAL([BUILD_HAL], [test "x$ENABLED_EXAMPLE_HAL" = "xyes" || test "x$ENABLED_MMIO" = "xyes"])
+ 
+ 
+@@ -555,3 +569,4 @@ echo "   * Microchip ATTPM20:         $ENABLED_MICROCHIP"
+ echo "   * Nuvoton NPCT75x:           $ENABLED_NUVOTON"
+ 
+ echo "   * Runtime Module Detection:  $ENABLED_AUTODETECT"
++echo "   * Firmware Upgrade Support:  $ENABLED_FIRMWARE"
 diff --git a/docs/README.md b/docs/README.md
 index 7f8b8ca..b72472f 100644
 --- a/docs/README.md
@@ -628,6 +870,19 @@ index 7296713..e036c78 100644
 +
  #include <wolftpm/tpm2.h>
  #include <wolftpm/tpm2_wrap.h>
+ 
+diff --git a/examples/boot/include.am b/examples/boot/include.am
+index d7ec884..7a19340 100644
+--- a/examples/boot/include.am
++++ b/examples/boot/include.am
+@@ -1,6 +1,8 @@
+ # vim:ft=automake
+ # All paths should be given relative to the root
+ 
++EXTRA_DIST += examples/boot/README.md
++
+ if BUILD_EXAMPLES
+ noinst_HEADERS  += examples/boot/boot.h
  
 diff --git a/examples/boot/secret_seal.c b/examples/boot/secret_seal.c
 index c3be981..93ec084 100644
@@ -799,6 +1054,776 @@ index 6bd3bd0..e2a0333 100644
      wolfTPM2_Cleanup(&dev);
  
      return rc;
+diff --git a/examples/firmware/Makefile b/examples/firmware/Makefile
+new file mode 100644
+index 0000000..1bc53d2
+--- /dev/null
++++ b/examples/firmware/Makefile
+@@ -0,0 +1,13 @@
++CC=gcc
++CFLAGS=-Wall -Werror -Wextra -g
++LIBS=
++
++all: clean ifx_fw_extract
++
++ifx_fw_extract: ifx_fw_extract.o
++	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
++
++.PHONY: clean
++
++clean:
++	rm -f *.o ifx_fw_extract
+diff --git a/examples/firmware/README.md b/examples/firmware/README.md
+new file mode 100644
+index 0000000..45e4a60
+--- /dev/null
++++ b/examples/firmware/README.md
+@@ -0,0 +1,104 @@
++# TPM Firmware Update Support
++
++Currently wolfTPM supports firmware update capability for the Infineon SLB9672 (SPI) and SLB9673 (I2C) TPM 2.0 modules. Infineon has open sourced their firmware update.
++
++## Infineon Firmware
++
++### Extracting the firmware
++
++Infineon releases firmware as a .bin file (example: TPM20_15.23.17664.0_R1.BIN).
++
++The .bin contains a 16-byte GUID header, at least one manifest based on key group and the firmware. A typical manifest is 3KB and firmware is 920KB.
++
++We have included a host side tool `ifx_fw_extract` for extracting the manifest and firmware data file required for a TPM upgrade.
++
++Example usage:
++
++```sh
++# Build host tool
++make
++
++# Help
++./ifx_fw_extract --help
++Usage:
++  ifx_fw_extract <fw-file>
++  ifx_fw_extract <fw-file> <keygroup_id> <manifest-file> <data-file>
++
++# Find key groups in .bin
++./ifx_fw_extract TPM20_26.13.17770.0_R1.BIN
++Reading TPM20_26.13.17770.0_R1.BIN
++Found group 00000007
++
++# Extract manifest and firmware data files for key group
++./ifx_fw_extract TPM20_26.13.17770.0_R1.BIN 7 TPM20_26.13.17770.0_R1.MANIFEST TPM20_26.13.17770.0_R1.DATA
++Reading TPM20_26.13.17770.0_R1.BIN
++Found group 00000007
++Chosen group found: 00000007
++Manifest size is 3224
++Data size is 934693
++Writing TPM20_26.13.17770.0_R1.MANIFEST
++Writing TPM20_26.13.17770.0_R1.DATA
++```
++
++### Updating the firmware
++
++The `ifx_fw_update` tool uses the manifest (header) and firmware data file.
++
++The TPM has a vendor capability for getting the key group id. This is populated in the `WOLFTPM2_CAPS.keyGroupId` when `wolfTPM2_GetCapabilities` is called. This value should match the firmware extract tool `keygroup_id`.
++
++```sh
++# Help
++./ifx_fw_update --help
++Infineon Firmware Update Usage:
++        ./ifx_fw_update (get info)
++        ./ifx_fw_update --abandon (cancel)
++        ./ifx_fw_update <manifest_file> <firmware_file>
++
++# Run without arguments to display the current firmware information including key group id and operational mode
++./ifx_fw_update
++Infineon Firmware Update Tool
++TPM2: Caps 0x1ae00082, Did 0x001c, Vid 0x15d1, Rid 0x16
++TPM2_Startup pass
++Mfg IFX (1), Vendor SLB9673, Fw 26.13 (0x456a)
++Operational mode: Normal TPM operational mode (0x0)
++KeyGroupId 0x7, FwCounter 1254 (255 same)
++
++# Run with manifest and firmware files
++./ifx_fw_update TPM20_26.13.17770.0_R1.MANIFEST TPM20_26.13.17770.0_R1.DATA
++Infineon Firmware Update Tool
++	Manifest File: TPM20_26.13.17770.0_R1.MANIFEST
++	Firmware File: TPM20_26.13.17770.0_R1.DATA
++TPM2: Caps 0x1ae00082, Did 0x001c, Vid 0x15d1, Rid 0x16
++TPM2_Startup pass
++Mfg IFX (1), Vendor SLB9673, Fw 26.13 (0x456a)
++Operational mode: Normal TPM operational mode (0x0)
++KeyGroupId 0x7, FwCounter 1254 (255 same)
++TPM2_StartAuthSession: handle 0x3000000, algorithm NULL
++TPM2_FlushContext: Closed handle 0x3000000
++TPM2_StartAuthSession: handle 0x3000000, algorithm NULL
++Firmware manifest chunk 1024 offset (0 / 3224), state 1
++Firmware manifest chunk 1024 offset (1024 / 3224), state 2
++Firmware manifest chunk 1024 offset (2048 / 3224), state 2
++Firmware manifest chunk 152 offset (3072 / 3224), state 0
++Firmware data chunk offset 0
++Firmware data chunk offset 1024
++Firmware data chunk offset 2048
++Firmware data chunk offset 3072
++...
++Firmware data chunk offset 932864
++Firmware data chunk offset 933888
++Firmware data done
++Mfg IFX (1), Vendor , Fw 0.0 (0x0)
++Operational mode: After finalize or abandon, reboot required (0x4)
++KeyGroupId 0x7, FwCounter 1253 (254 same)
++TPM2_Shutdown failed 304: Unknown
++
++# Reset or power cycle TPM
++./ifx_fw_update
++Infineon Firmware Update Tool
++TPM2: Caps 0x1ae00082, Did 0x001c, Vid 0x15d1, Rid 0x16
++TPM2_Startup pass
++Mfg IFX (1), Vendor SLB9673, Fw 26.13 (0x456a)
++Operational mode: Normal TPM operational mode (0x0)
++KeyGroupId 0x7, FwCounter 1253 (254 same)
++```
+diff --git a/examples/firmware/ifx_fw_extract.c b/examples/firmware/ifx_fw_extract.c
+new file mode 100644
+index 0000000..a2ddfc6
+--- /dev/null
++++ b/examples/firmware/ifx_fw_extract.c
+@@ -0,0 +1,323 @@
++/* ifx_fw_extract.c
++ *
++ * Copyright (C) 2006-2024 wolfSSL Inc.
++ *
++ * This file is part of wolfTPM.
++ *
++ * wolfTPM is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * wolfTPM is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
++ */
++
++/* Tool source based on simple-update example from
++ * Infineon Technologies AG (www.infineon.com).
++ * This is a stand-alone host side tool for extracting the firmware
++ * manifest and data files from a supplied .bin
++ */
++
++#define _DEFAULT_SOURCE
++#include <fcntl.h>
++#include <sys/stat.h>
++#include <stdbool.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/mman.h>
++#include <unistd.h>
++#include <stdint.h>
++
++/* Endianess helpers */
++#if defined(__MACH__) || defined(__APPLE__)
++    #include <machine/endian.h>
++    #include <libkern/OSByteOrder.h>
++
++    #define htobe16(x) OSSwapHostToBigInt16(x)
++    #define htole16(x) OSSwapHostToLittleInt16(x)
++    #define be16toh(x) OSSwapBigToHostInt16(x)
++    #define le16toh(x) OSSwapLittleToHostInt16(x)
++
++    #define htobe32(x) OSSwapHostToBigInt32(x)
++    #define htole32(x) OSSwapHostToLittleInt32(x)
++    #define be32toh(x) OSSwapBigToHostInt32(x)
++    #define le32toh(x) OSSwapLittleToHostInt32(x)
++
++    #define htobe64(x) OSSwapHostToBigInt64(x)
++    #define htole64(x) OSSwapHostToLittleInt64(x)
++    #define be64toh(x) OSSwapBigToHostInt64(x)
++    #define le64toh(x) OSSwapLittleToHostInt64(x)
++#else
++    #include <endian.h>
++#endif
++
++/* Helper to print file and line */
++#define LOG(t) { printf(__FILE__":%i: %s\n", __LINE__, t); }
++
++#define READ_BE16(dest, buf, size, off) { \
++    if (off + sizeof(dest) >= size) { \
++        LOG("FW file too short"); \
++        return -1; \
++    } \
++    memcpy(&dest, &fw[off], sizeof(dest)); \
++    dest = be16toh(dest); \
++    off += sizeof(dest); \
++}
++
++#define READ_BE32(dest, buf, size, off) { \
++    if (off + sizeof(dest) >= size) { \
++        LOG("FW file too short"); \
++        return -1; \
++    } \
++    memcpy(&dest, &fw[off], sizeof(dest)); \
++    dest = be32toh(dest); \
++    off += sizeof(dest); \
++}
++
++
++/* portability macros for stdio */
++#define XFILE      FILE*
++#define XFOPEN     fopen
++#define XFSEEK     fseek
++#define XFTELL     ftell
++#define XREWIND    rewind
++#define XFREAD     fread
++#define XFWRITE    fwrite
++#define XFCLOSE    fclose
++#define XSEEK_END  SEEK_END
++#define XBADFILE   NULL
++#define XFGETS     fgets
++#define XFEOF      feof
++
++
++/* Helper function to split .bin into manifest and firmware file
++ * based on key group id */
++/* Can also display the key group */
++static int extractFW(
++    uint8_t *fw, size_t fw_size, uint32_t keygroup_id,
++    uint8_t **manifest, size_t *manifest_size,
++    uint8_t **data, size_t *data_size)
++{
++    size_t offset = 0, offset2;
++    uint16_t size16, num;
++    uint32_t size32, group;
++    int i;
++
++    /* all Infineon firmware.bin files have this GUID header */
++    const uint8_t guid[] = { 0x1a, 0x53, 0x66, 0x7a,
++                             0xfb, 0x12, 0x47, 0x9e,
++                             0xac, 0x58, 0xec, 0x99,
++                             0x58, 0x86, 0x10, 0x94 };
++
++    if (offset + sizeof(guid) > fw_size) {
++        LOG("FW file too short");
++        return -1;
++    }
++    if (memcmp(&fw[offset], &guid[0], sizeof(guid)) != 0) {
++        LOG("Wrong GUID");
++        return -1;
++    }
++    offset += sizeof(guid) + 1;
++
++    READ_BE16(size16, fw, fw_size, offset);
++    offset += size16 + 1;
++
++    READ_BE16(size16, fw, fw_size, offset);
++    offset += size16;
++
++    READ_BE16(size16, fw, fw_size, offset);
++    offset2 = offset;
++    offset += size16;
++
++    READ_BE16(size16, fw, offset, offset2);
++    offset2 += size16;
++
++    READ_BE16(num, fw, offset, offset2);
++
++    *manifest = NULL;
++    for (i = 0; i < num; i++) {
++        READ_BE32(group, fw, offset, offset2);
++        printf("Found group %08x\n", group);
++
++        READ_BE16(size16, fw, offset, offset2);
++
++        if (group == keygroup_id) {
++            printf("Chosen group found: %08x\n", group);
++            *manifest = &fw[offset2];
++            *manifest_size = size16;
++        }
++        offset2 += size16;
++    }
++    if (*manifest == NULL) {
++        if (keygroup_id == 0) {
++            /* just list key groups */
++            return 0;
++        }
++        LOG("Chosen group not found");
++        return -1;
++    }
++
++    printf("Manifest size is %zi\n", *manifest_size);
++    if (offset2 != offset) {
++        LOG("Bad Manifest size");
++        return -1;
++    }
++
++    READ_BE32(size32, fw, fw_size, offset);
++    if (offset + size32 >= fw_size) {
++        LOG("FW file too short");
++        return -1;
++    }
++    *data = &fw[offset];
++    *data_size = size32;
++    offset += size32;
++    printf("Data size is %zi\n", *data_size);
++
++    READ_BE16(size16, fw, fw_size, offset);
++    offset += size16 + 4;
++
++    if (offset != fw_size) {
++        LOG("Wrong FW file size");
++        printf("offset at %zi, fw_size at %zi\n", offset, fw_size);
++        return -1;
++    }
++
++    return 0;
++}
++
++static int readfile(const char* fname, uint8_t** buf, size_t* bufLen)
++{
++    int ret = 0;
++    ssize_t fileSz, readLen;
++    XFILE fp;
++
++    if (fname == NULL || buf == NULL || bufLen == NULL)
++        return -1;
++
++    /* open file (read-only binary) */
++    fp = XFOPEN(fname, "rb");
++    if (fp == XBADFILE) {
++        fprintf(stderr, "Error loading %s\n", fname);
++        return -1;
++    }
++
++    XFSEEK(fp, 0, XSEEK_END);
++    fileSz = XFTELL(fp);
++    XREWIND(fp);
++    if (fileSz > 0) {
++        if (*buf == NULL) {
++            *buf = (uint8_t*)malloc(fileSz);
++            if (*buf == NULL)
++                ret = -1;
++        }
++        else if (*buf != NULL && fileSz > (ssize_t)*bufLen) {
++            ret = -1;
++        }
++        *bufLen = (size_t)fileSz;
++        if (ret == 0) {
++            readLen = XFREAD(*buf, 1, *bufLen, fp);
++            ret = (readLen == (ssize_t)*bufLen) ? 0 : -1;
++        }
++    }
++    else {
++        ret = -1;
++    }
++    XFCLOSE(fp);
++    return ret;
++}
++
++static int writefile(const char* filename, const uint8_t *buf, size_t bufSz)
++{
++    int rc = -1;
++    XFILE fp;
++    size_t fileSz = 0;
++
++    if (filename == NULL || buf == NULL)
++        return -1;
++
++    fp = XFOPEN(filename, "wb");
++    if (fp != XBADFILE) {
++        fileSz = XFWRITE(buf, 1, bufSz, fp);
++        /* sanity check */
++        if (fileSz == bufSz) {
++            rc = 0;
++        }
++        printf("Wrote %d bytes to %s\n", (int)fileSz, filename);
++        XFCLOSE(fp);
++    }
++
++    return rc;
++}
++
++int main(int argc, char **argv)
++{
++    int rc;
++    uint8_t *manifest = NULL, *data = NULL, *fw = NULL;
++    size_t manifest_size, data_size, fw_size;
++    uint32_t keygroup_id = 0;
++
++    if (argc <= 1 ||
++        strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0 ||
++        strcmp(argv[argc-1], "-h") == 0 || strcmp(argv[argc-1], "--help") == 0)
++    {
++        printf("Usage:\n");
++        printf("  ifx_fw_extract <fw-file>\n");
++        printf("  ifx_fw_extract <fw-file> "
++                    "<keygroup_id> <manifest-file> <data-file>\n");
++        exit(1);
++    }
++
++    if (argc >= 2) {
++        if (readfile(argv[1], &fw, &fw_size) < 0) {
++            LOG("Cannot read FW file.");
++            rc = EXIT_FAILURE;
++            goto exit;
++        }
++
++        if (argc >= 3) {
++            if (sscanf(argv[2], "0x%08x", &keygroup_id) != 1 &&
++                sscanf(argv[2], "%08x", &keygroup_id) != 1)
++            {
++                LOG("Cannot read keygroup_id.");
++                rc = EXIT_FAILURE;
++                goto exit;
++            }
++        }
++        rc = extractFW(fw, fw_size, keygroup_id,
++                       &manifest, &manifest_size,
++                       &data, &data_size);
++        if (rc != 0) {
++            printf(__FILE__":%i: Received error 0x%08x\n", __LINE__, rc);
++            goto exit;
++        }
++
++        if (argc >= 5) {
++            if (writefile(argv[3], manifest, manifest_size) < 0) {
++                rc = EXIT_FAILURE;
++                goto exit;
++            }
++            if (writefile(argv[4], data, data_size) < 0) {
++                rc = EXIT_FAILURE;
++                goto exit;
++            }
++        }
++        rc = 0; /* success */
++    }
++    else {
++        printf("Bad arguments.\n");
++        rc = EXIT_FAILURE;
++    }
++
++exit:
++    if (fw != NULL)
++        free(fw);
++    return rc;
++}
+diff --git a/examples/firmware/ifx_fw_update.c b/examples/firmware/ifx_fw_update.c
+new file mode 100644
+index 0000000..35d35bf
+--- /dev/null
++++ b/examples/firmware/ifx_fw_update.c
+@@ -0,0 +1,235 @@
++/* ifx_fw_update.c
++ *
++ * Copyright (C) 2006-2024 wolfSSL Inc.
++ *
++ * This file is part of wolfTPM.
++ *
++ * wolfTPM is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * wolfTPM is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
++ */
++
++/* This tool will perform a firmware update on Infineon SLB9672 or SLB9673
++ * TPM 2.0 module */
++
++#ifdef HAVE_CONFIG_H
++    #include <config.h>
++#endif
++
++#include <wolftpm/tpm2_wrap.h>
++
++#ifdef WOLFTPM_FIRMWARE_UPGRADE
++
++#include <examples/firmware/ifx_fw_update.h>
++#include <examples/tpm_test_keys.h>
++#include <hal/tpm_io.h>
++
++/******************************************************************************/
++/* --- BEGIN TPM2.0 Firmware Update tool  -- */
++/******************************************************************************/
++
++static void usage(void)
++{
++    printf("Infineon Firmware Update Usage:\n");
++    printf("\t./ifx_fw_update (get info)\n");
++    printf("\t./ifx_fw_update --abandon (cancel)\n");
++    printf("\t./ifx_fw_update <manifest_file> <firmware_file>\n");
++}
++
++typedef struct {
++    byte*  manifest_buf;
++    byte*  firmware_buf;
++    size_t manifest_bufSz;
++    size_t firmware_bufSz;
++} fw_info_t;
++
++static int TPM2_IFX_FwData_Cb(uint8_t* data, uint32_t data_req_sz,
++    uint32_t offset, void* cb_ctx)
++{
++    fw_info_t* fwinfo = (fw_info_t*)cb_ctx;
++    if (offset > fwinfo->firmware_bufSz) {
++        return BUFFER_E;
++    }
++    if (offset + data_req_sz > (uint32_t)fwinfo->firmware_bufSz) {
++        data_req_sz = (uint32_t)fwinfo->firmware_bufSz - offset;
++    }
++    if (data_req_sz > 0) {
++        XMEMCPY(data, &fwinfo->firmware_buf[offset], data_req_sz);
++    }
++    return data_req_sz;
++}
++
++static const char* TPM2_IFX_GetOpModeStr(int opMode)
++{
++    const char* opModeStr = "Unknown";
++    switch (opMode) {
++        case 0x00:
++            opModeStr = "Normal TPM operational mode";
++            break;
++        case 0x01:
++            opModeStr = "TPM firmware update mode (abandon possible)";
++            break;
++        case 0x02:
++            opModeStr = "TPM firmware update mode (abandon not possible)";
++            break;
++        case 0x03:
++            opModeStr = "After successful update, but before finalize";
++            break;
++        case 0x04:
++            opModeStr = "After finalize or abandon, reboot required";
++            break;
++        default:
++            break;
++    }
++    return opModeStr;
++}
++
++static int TPM2_IFX_PrintInfo(WOLFTPM2_DEV* dev)
++{
++    int rc;
++    WOLFTPM2_CAPS caps;
++    rc = wolfTPM2_GetCapabilities(dev, &caps);
++    if (rc == TPM_RC_SUCCESS) {
++        printf("Mfg %s (%d), Vendor %s, Fw %u.%u (0x%x)\n",
++            caps.mfgStr, caps.mfg, caps.vendorStr, caps.fwVerMajor,
++            caps.fwVerMinor, caps.fwVerVendor);
++        printf("Operational mode: %s (0x%x)\n",
++            TPM2_IFX_GetOpModeStr(caps.opMode), caps.opMode);
++        printf("KeyGroupId 0x%x, FwCounter %d (%d same)\n",
++            caps.keyGroupId, caps.fwCounter, caps.fwCounterSame);
++        if (caps.keyGroupId == 0) {
++            printf("Error getting key group id from TPM!\n");
++            rc = -1;
++        }
++    }
++    return rc;
++}
++
++int TPM2_IFX_Firmware_Update(void* userCtx, int argc, char *argv[])
++{
++    int rc;
++    WOLFTPM2_DEV dev;
++    const char* manifest_file = NULL;
++    const char* firmware_file = NULL;
++    fw_info_t fwinfo;
++    int abandon = 0;
++
++    XMEMSET(&fwinfo, 0, sizeof(fwinfo));
++
++    if (argc >= 2) {
++        if (XSTRCMP(argv[1], "-?") == 0 ||
++            XSTRCMP(argv[1], "-h") == 0 ||
++            XSTRCMP(argv[1], "--help") == 0) {
++            usage();
++            return 0;
++        }
++        if (XSTRCMP(argv[1], "--abandon") == 0) {
++            abandon = 1;
++        }
++        else {
++            manifest_file = argv[1];
++            if (argc >= 3) {
++                firmware_file = argv[2];
++            }
++        }
++    }
++
++    printf("Infineon Firmware Update Tool\n");
++    if (manifest_file != NULL)
++        printf("\tManifest File: %s\n", manifest_file);
++    if (firmware_file != NULL)
++        printf("\tFirmware File: %s\n", firmware_file);
++
++    rc = wolfTPM2_Init(&dev, TPM2_IoCb, userCtx);
++    if (rc != TPM_RC_SUCCESS) {
++        printf("wolfTPM2_Init failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
++        goto exit;
++    }
++
++    rc = TPM2_IFX_PrintInfo(&dev);
++    if (rc != 0) {
++        goto exit;
++    }
++
++    if (abandon) {
++        printf("Firmware Update Abandon:\n");
++        rc = wolfTPM2_FirmwareUpgradeCancel(&dev);
++        if (rc != 0) {
++            printf("Abandon failed 0x%x: %s\n", rc, TPM2_GetRCString(rc));
++        }
++        else {
++            printf("Success: Please reset or power cycle TPM\n");
++        }
++        return rc;
++    }
++
++    if (manifest_file == NULL || firmware_file == NULL) {
++        if (argc > 1) {
++            printf("Manifest file or firmware file arguments missing!\n");
++        }
++        goto exit;
++    }
++
++    /* load manifest and data files */
++    rc = loadFile(manifest_file,
++        &fwinfo.manifest_buf, &fwinfo.manifest_bufSz);
++    if (rc == 0) {
++        rc = loadFile(firmware_file,
++            &fwinfo.firmware_buf, &fwinfo.firmware_bufSz);
++    }
++    if (rc == 0) {
++        rc = wolfTPM2_FirmwareUpgrade(&dev,
++            fwinfo.manifest_buf, (uint32_t)fwinfo.manifest_bufSz,
++            TPM2_IFX_FwData_Cb, &fwinfo);
++    }
++    if (rc == 0) {
++        rc = TPM2_IFX_PrintInfo(&dev);
++    }
++
++exit:
++
++    if (rc != 0) {
++        printf("Infineon firmware update failed 0x%x: %s\n",
++            rc, TPM2_GetRCString(rc));
++    }
++
++    XFREE(fwinfo.firmware_buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
++    XFREE(fwinfo.manifest_buf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
++    wolfTPM2_Cleanup(&dev);
++
++    return rc;
++}
++
++/******************************************************************************/
++/* --- END TPM2.0 Firmware Update tool  -- */
++/******************************************************************************/
++
++#endif /* WOLFTPM_FIRMWARE_UPGRADE */
++
++#ifndef NO_MAIN_DRIVER
++int main(int argc, char *argv[])
++{
++    int rc = -1;
++
++#ifdef WOLFTPM_FIRMWARE_UPGRADE
++    rc = TPM2_IFX_Firmware_Update(NULL, argc, argv);
++#else
++    printf("Support for firmware upgrade not compiled in! "
++        "See --enable-firmware or WOLFTPM_FIRMWARE_UPGRADE\n");
++    (void)argc;
++    (void)argv;
++#endif /* WOLFTPM_FIRMWARE_UPGRADE */
++
++    return rc;
++}
++#endif
+diff --git a/examples/firmware/ifx_fw_update.h b/examples/firmware/ifx_fw_update.h
+new file mode 100644
+index 0000000..34d9fa5
+--- /dev/null
++++ b/examples/firmware/ifx_fw_update.h
+@@ -0,0 +1,35 @@
++/* ifx_firmware_update.h
++ *
++ * Copyright (C) 2006-2024 wolfSSL Inc.
++ *
++ * This file is part of wolfTPM.
++ *
++ * wolfTPM is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * wolfTPM is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
++ */
++
++#ifndef _IFX_FIRMWARE_H_
++#define _IFX_FIRMWARE_H_
++
++#ifdef __cplusplus
++    extern "C" {
++#endif
++
++int TPM2_IFX_Firmware_Update(void* userCtx, int argc, char *argv[]);
++
++#ifdef __cplusplus
++    }  /* extern "C" */
++#endif
++
++#endif /* _IFX_FIRMWARE_H_ */
+diff --git a/examples/firmware/include.am b/examples/firmware/include.am
+new file mode 100644
+index 0000000..f233fe4
+--- /dev/null
++++ b/examples/firmware/include.am
+@@ -0,0 +1,24 @@
++# vim:ft=automake
++# All paths should be given relative to the root
++
++EXTRA_DIST += examples/firmware/README.md
++EXTRA_DIST += examples/firmware/Makefile
++
++# Host side tool for extracting the firmware manifest and data
++EXTRA_DIST += examples/firmware/ifx_fw_extract.c
++
++if BUILD_EXAMPLES
++if BUILD_INFINEON
++noinst_PROGRAMS += examples/firmware/ifx_fw_update
++noinst_HEADERS  += examples/firmware/ifx_fw_update.h
++examples_firmware_ifx_fw_update_SOURCES      = examples/firmware/ifx_fw_update.c \
++                                               examples/tpm_test_keys.c
++examples_firmware_ifx_fw_update_LDADD        = src/libwolftpm.la $(LIB_STATIC_ADD)
++examples_firmware_ifx_fw_update_DEPENDENCIES = src/libwolftpm.la
++endif
++endif
++
++example_firmwaredir = $(exampledir)/firmware
++dist_example_firmware_DATA = examples/firmware/ifx_fw_update.c
++
++DISTCLEANFILES+= examples/firmware/.libs/ifx_fw_update
 diff --git a/examples/gpio/gpio_config.c b/examples/gpio/gpio_config.c
 index ebd5cac..0d37c71 100644
 --- a/examples/gpio/gpio_config.c
@@ -847,6 +1872,18 @@ index 8762ce9..77dc8cf 100644
  #include <wolftpm/tpm2_wrap.h>
  
  #include <stdio.h>
+diff --git a/examples/include.am b/examples/include.am
+index 421fa33..2599321 100644
+--- a/examples/include.am
++++ b/examples/include.am
+@@ -16,6 +16,7 @@ include examples/nvram/include.am
+ include examples/gpio/include.am
+ include examples/seal/include.am
+ include examples/attestation/include.am
++include examples/firmware/include.am
+ 
+ if BUILD_EXAMPLES
+ EXTRA_DIST += examples/run_examples.sh
 diff --git a/examples/keygen/create_primary.c b/examples/keygen/create_primary.c
 index c981bec..a5f4acc 100644
 --- a/examples/keygen/create_primary.c
@@ -1042,7 +2079,7 @@ index 82d0180..dc635f4 100644
  
  #include <examples/management/flush.h>
 diff --git a/examples/native/native_test.c b/examples/native/native_test.c
-index e471bf0..ae864da 100644
+index e471bf0..646c6db 100644
 --- a/examples/native/native_test.c
 +++ b/examples/native/native_test.c
 @@ -21,6 +21,10 @@
@@ -1056,6 +2093,33 @@ index e471bf0..ae864da 100644
  #include <wolftpm/tpm2.h>
  #include <wolftpm/tpm2_param_enc.h>
  
+@@ -327,7 +331,7 @@ int TPM2_Native_TestArgs(void* userCtx, int argc, char *argv[])
+ #if defined(WOLFTPM_ST33) || defined(WOLFTPM_AUTODETECT)
+     if (TPM2_GetVendorID() == TPM_VENDOR_STM) {
+         XMEMSET(&cmdIn.getRand, 0, sizeof(cmdIn.getRand));
+-        i = (int)sizeof(cmdOut.getRand2.randomBytes);
++        i = (int)sizeof(cmdOut.getRand2.randomBytes.buffer);
+         if (i > (MAX_RESPONSE_SIZE-(int)sizeof(UINT16))) {
+             i = (MAX_RESPONSE_SIZE-(int)sizeof(UINT16));
+         }
+@@ -357,7 +361,7 @@ int TPM2_Native_TestArgs(void* userCtx, int argc, char *argv[])
+     /* the getRand and getRand2 have same return size header in cmdOut union */
+     if (cmdOut.getRand.randomBytes.size != i) {
+         printf("TPM2_GetRandom length mismatch %d != %d\n",
+-            cmdOut.getRand.randomBytes.size, MAX_RNG_REQ_SIZE);
++            cmdOut.getRand.randomBytes.size, i);
+         goto exit;
+     }
+     printf("TPM2_GetRandom: Got %d bytes\n", cmdOut.getRand.randomBytes.size);
+@@ -367,7 +371,7 @@ int TPM2_Native_TestArgs(void* userCtx, int argc, char *argv[])
+ 
+     /* Stir Random */
+     XMEMSET(&cmdIn.stirRand, 0, sizeof(cmdIn.stirRand));
+-    cmdIn.stirRand.inData.size = cmdOut.getRand.randomBytes.size;
++    cmdIn.stirRand.inData.size = MAX_RNG_REQ_SIZE;
+     XMEMCPY(cmdIn.stirRand.inData.buffer,
+         cmdOut.getRand.randomBytes.buffer, cmdIn.stirRand.inData.size);
+     rc = TPM2_StirRandom(&cmdIn.stirRand);
 diff --git a/examples/nvram/counter.c b/examples/nvram/counter.c
 index 75e9e80..5d3dd82 100644
 --- a/examples/nvram/counter.c
@@ -2310,7 +3374,7 @@ index 67deb1d..f3e192c 100644
  
  #include <stdio.h>
 diff --git a/examples/tls/tls_client.c b/examples/tls/tls_client.c
-index bd9fffb..71d2437 100644
+index bd9fffb..5ef60df 100644
 --- a/examples/tls/tls_client.c
 +++ b/examples/tls/tls_client.c
 @@ -19,6 +19,9 @@
@@ -2366,16 +3430,52 @@ index bd9fffb..71d2437 100644
                      tpmDevId,
                      (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
                      &publicTemplate);
-@@ -269,7 +269,7 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
-         rc = getECCkey(&dev,
-                     &storageKey,
-                     &eccKey,
+@@ -260,19 +260,31 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+ 
+ #ifdef HAVE_ECC
+     if (useECC) {
+-        /* Create/Load ECC key for TLS authentication */
+-        rc = wolfTPM2_GetKeyTemplate_ECC(&publicTemplate,
+-                TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
+-                TPMA_OBJECT_sign | TPMA_OBJECT_noDA,
+-                TPM_ECC_NIST_P256, TPM_ALG_ECDSA);
+-        if (rc != 0) goto exit;
+-        rc = getECCkey(&dev,
+-                    &storageKey,
+-                    &eccKey,
 -                    &wolfEccKey,
-+                    NULL,
-                     tpmDevId,
-                     (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
-                     &publicTemplate);
-@@ -377,17 +377,16 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+-                    tpmDevId,
+-                    (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
+-                    &publicTemplate);
++    #ifdef WOLFTPM_MFG_IDENTITY
++        /* Attempt to use pre-provisioned identity key */
++        rc = wolfTPM2_ReadPublicKey(&dev, &eccKey, TPM2_IDEVID_KEY_HANDLE);
++        if (rc == 0) {
++            /* TODO: Supply master password (if not TEST_SAMPLE) */
++            wolfTPM2_SetIdentityAuth(&dev, &eccKey.handle, NULL, 0);
++        }
++        else
++    #endif
++        {
++            /* Create/Load ECC key for TLS authentication */
++            rc = wolfTPM2_GetKeyTemplate_ECC(&publicTemplate,
++                    TPMA_OBJECT_sensitiveDataOrigin | TPMA_OBJECT_userWithAuth |
++                    TPMA_OBJECT_sign | TPMA_OBJECT_noDA,
++                    TPM_ECC_NIST_P256, TPM_ALG_ECDSA);
++            if (rc == 0) {
++                rc = getECCkey(&dev,
++                            &storageKey,
++                            &eccKey,
++                            NULL,
++                            tpmDevId,
++                            (byte*)gKeyAuth, sizeof(gKeyAuth)-1,
++                            &publicTemplate);
++            }
++        }
+         if (rc != 0) goto exit;
+     }
+ 
+@@ -377,17 +389,16 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
       *   public key instead (if crypto callbacks are enabled).
       */
  #ifndef NO_TLS_MUTUAL_AUTH
@@ -2399,7 +3499,7 @@ index bd9fffb..71d2437 100644
  
          /* Private key only exists on the TPM and crypto callbacks are used for
           * signing. Public key is required to enable TLS client (mutual auth).
-@@ -397,37 +396,6 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+@@ -397,37 +408,6 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
              printf("Failed to set RSA key!\n");
              goto exit;
          }
@@ -2437,7 +3537,7 @@ index bd9fffb..71d2437 100644
      }
  
      /* Client Certificate (Mutual Authentication) */
-@@ -436,8 +404,10 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+@@ -436,8 +416,10 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
          printf("Loading RSA certificate\n");
          #ifdef NO_FILESYSTEM
          /* Load "cert" buffer with ASN.1/DER certificate */
@@ -2448,9 +3548,22 @@ index bd9fffb..71d2437 100644
          #else
          rc = wolfSSL_CTX_use_certificate_file(ctx, "./certs/client-rsa-cert.pem",
                                                WOLFSSL_FILETYPE_PEM);
-@@ -457,8 +427,10 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+@@ -455,10 +437,22 @@ int TPM2_TLS_ClientArgs(void* userCtx, int argc, char *argv[])
+     else {
+     #ifdef HAVE_ECC
          printf("Loading ECC certificate\n");
-         #ifdef NO_FILESYSTEM
+-        #ifdef NO_FILESYSTEM
++        #ifdef WOLFTPM_MFG_IDENTITY
++        uint8_t cert[800];
++        uint32_t certSz = (uint32_t)sizeof(cert);
++        rc = wolfTPM2_NVReadCert(&dev, TPM2_IDEVID_CERT_HANDLE, cert, &certSz);
++        if (rc == 0) {
++            /* Load "cert" buffer with ASN.1/DER certificate */
++            rc = wolfSSL_CTX_use_certificate_buffer(ctx, cert, (long)certSz,
++                WOLFSSL_FILETYPE_ASN1);
++
++        }
++        #elif defined(NO_FILESYSTEM)
          /* Load "cert" buffer with ASN.1/DER certificate */
 +        #if 0
          rc = wolfSSL_CTX_use_certificate_buffer(ctx, cert.buffer, (long)cert.size,
@@ -2459,7 +3572,16 @@ index bd9fffb..71d2437 100644
          #else
          rc = wolfSSL_CTX_use_certificate_file(ctx, "./certs/client-ecc-cert.pem",
                                                WOLFSSL_FILETYPE_PEM);
-@@ -611,11 +583,9 @@ exit:
+@@ -600,7 +594,7 @@ exit:
+     }
+ 
+     /* Bidirectional shutdown */
+-    while (wolfSSL_shutdown(ssl) == SSL_SHUTDOWN_NOT_DONE) {
++    while (wolfSSL_shutdown(ssl) == WOLFSSL_SHUTDOWN_NOT_DONE) {
+         printf("Shutdown not complete\n");
+     }
+ 
+@@ -611,11 +605,9 @@ exit:
  
      wolfTPM2_UnloadHandle(&dev, &storageKey.handle);
  #ifndef NO_RSA
@@ -2500,7 +3622,7 @@ index faa98fd..348ad2d 100644
  static inline int SockIORecv(WOLFSSL* ssl, char* buff, int sz, void* ctx)
  {
 diff --git a/examples/tls/tls_server.c b/examples/tls/tls_server.c
-index 5fe5bd9..0bcfe79 100644
+index 5fe5bd9..2fc0b16 100644
 --- a/examples/tls/tls_server.c
 +++ b/examples/tls/tls_server.c
 @@ -19,6 +19,9 @@
@@ -2657,6 +3779,24 @@ index 5fe5bd9..0bcfe79 100644
      #else
          printf("Error: ECC not compiled in\n");
          rc = -1;
+@@ -580,7 +564,7 @@ int TPM2_TLS_ServerArgs(void* userCtx, int argc, char *argv[])
+         }
+ 
+         /* Bidirectional shutdown */
+-        while (wolfSSL_shutdown(ssl) == SSL_SHUTDOWN_NOT_DONE) {
++        while (wolfSSL_shutdown(ssl) == WOLFSSL_SHUTDOWN_NOT_DONE) {
+             printf("Shutdown not complete\n");
+         }
+ 
+@@ -599,7 +583,7 @@ exit:
+ 
+     if (ssl != NULL) {
+         /* Bidirectional shutdown */
+-        while (wolfSSL_shutdown(ssl) == SSL_SHUTDOWN_NOT_DONE) {
++        while (wolfSSL_shutdown(ssl) == WOLFSSL_SHUTDOWN_NOT_DONE) {
+             printf("Shutdown not complete\n");
+         }
+ 
 @@ -611,11 +595,9 @@ exit:
  
      wolfTPM2_UnloadHandle(&dev, &storageKey.handle);
@@ -2725,7 +3865,7 @@ index 1e0e53e..c5df182 100644
      if (fp != XBADFILE) {
          XFSEEK(fp, 0, XSEEK_END);
 diff --git a/examples/wrap/wrap_test.c b/examples/wrap/wrap_test.c
-index cc347c7..4504a61 100644
+index cc347c7..ddf8377 100644
 --- a/examples/wrap/wrap_test.c
 +++ b/examples/wrap/wrap_test.c
 @@ -19,7 +19,12 @@
@@ -2742,21 +3882,25 @@ index cc347c7..4504a61 100644
  
  #include <wolftpm/tpm2.h>
  #include <wolftpm/tpm2_wrap.h>
-@@ -194,6 +199,12 @@ int TPM2_Wrapper_TestArgs(void* userCtx, int argc, char *argv[])
+@@ -193,6 +198,16 @@ int TPM2_Wrapper_TestArgs(void* userCtx, int argc, char *argv[])
+         "FIPS 140-2 %d, CC-EAL4 %d\n",
          caps.mfgStr, caps.mfg, caps.vendorStr, caps.fwVerMajor,
          caps.fwVerMinor, caps.fwVerVendor, caps.fips140_2, caps.cc_eal4);
- 
++#if defined(WOLFTPM_SLB9672) || defined(WOLFTPM_SLB9673)
++    printf("\tKeyGroupId 0x%x, Operational Mode 0x%x, FwCounter %d (%d same)\n",
++        caps.keyGroupId, caps.opMode, caps.fwCounter, caps.fwCounterSame);
++#endif
++
 +    /* List the active persistent handles */
 +    rc = wolfTPM2_GetHandles(PERSISTENT_FIRST, NULL);
 +    if (rc >= 0) {
 +        printf("Found %d persistent handles\n", rc);
 +    }
-+
+ 
      if (resetTPM) {
          /* reset all content on TPM and reseed */
-         rc = wolfTPM2_Clear(&dev);
 diff --git a/hal/tpm_io.c b/hal/tpm_io.c
-index c0d8751..d6faba1 100644
+index c0d8751..f132430 100644
 --- a/hal/tpm_io.c
 +++ b/hal/tpm_io.c
 @@ -31,6 +31,10 @@
@@ -2770,6 +3914,57 @@ index c0d8751..d6faba1 100644
  #include <wolftpm/tpm2.h>
  #include <wolftpm/tpm2_tis.h>
  #include "tpm_io.h"
+@@ -61,7 +65,7 @@
+ #include "hal/tpm_io_qnx.c"
+ #elif defined(__XILINX__)
+ #include "hal/tpm_io_xilinx.c"
+-#elif defined(WOLFTPM_INFINEON_TRICORE)
++#elif defined(WOLFTPM_INFINEON_TRICORE) || defined(CY_USING_HAL)
+ #include "hal/tpm_io_infineon.c"
+ #elif defined(WOLFTPM_MICROCHIP_HARMONY)
+ #include "hal/tpm_io_microchip.c"
+@@ -85,6 +89,8 @@ static int TPM2_IoCb_SPI(TPM2_CTX* ctx, const byte* txBuf, byte* rxBuf,
+     ret = TPM2_IoCb_QNX_SPI(ctx, txBuf, rxBuf, xferSz, userCtx);
+ #elif defined(__XILINX__)
+     ret = TPM2_IoCb_Xilinx_SPI(ctx, txBuf, rxBuf, xferSz, userCtx);
++#elif defined(CY_USING_HAL)
++    ret = TPM2_IoCb_Infineon_SPI(ctx, txBuf, rxBuf, xferSz, userCtx);
+ #elif defined(WOLFTPM_INFINEON_TRICORE)
+     ret = TPM2_IoCb_Infineon_TriCore_SPI(ctx, txBuf, rxBuf, xferSz, userCtx);
+ #elif defined(WOLFTPM_MICROCHIP_HARMONY)
+@@ -136,6 +142,8 @@ int TPM2_IoCb(TPM2_CTX* ctx, INT32 isRead, UINT32 addr,
+     #elif defined(WOLFSSL_STM32_CUBEMX)
+         /* Use STM32 CubeMX HAL for I2C */
+         ret = TPM2_IoCb_STCubeMX_I2C(ctx, isRead, addr, buf, size, userCtx);
++    #elif defined(CY_USING_HAL)
++        ret = TPM2_IoCb_Infineon_I2C(ctx, isRead, addr, buf, size, userCtx);
+     #else
+         /* TODO: Add your platform here for HW I2C interface */
+         printf("Add your platform here for HW I2C interface\n");
+diff --git a/hal/tpm_io.h b/hal/tpm_io.h
+index 402412b..371782a 100644
+--- a/hal/tpm_io.h
++++ b/hal/tpm_io.h
+@@ -82,6 +82,9 @@ WOLFTPM_LOCAL int TPM2_IoCb_Linux_I2C(TPM2_CTX* ctx, int isRead, word32 addr, by
+ #elif defined(WOLFSSL_STM32_CUBEMX)
+ WOLFTPM_LOCAL int TPM2_IoCb_STCubeMX_I2C(TPM2_CTX* ctx, int isRead, word32 addr,
+     byte* buf, word16 size, void* userCtx);
++#elif defined(CY_USING_HAL)
++WOLFTPM_LOCAL int TPM2_IoCb_Infineon_I2C(TPM2_CTX* ctx, int isRead, word32 addr,
++    byte* buf, word16 size, void* userCtx);
+ #endif /* __linux__ */
+ 
+ #else /* SPI */
+@@ -104,6 +107,9 @@ WOLFTPM_LOCAL int TPM2_IoCb_QNX_SPI(TPM2_CTX* ctx, const byte* txBuf,
+ #elif defined(__XILINX__)
+ WOLFTPM_LOCAL int TPM2_IoCb_Xilinx_SPI(TPM2_CTX* ctx, const byte* txBuf,
+     byte* rxBuf, word16 xferSz, void* userCtx);
++#elif defined(CY_USING_HAL)
++WOLFTPM_LOCAL int TPM2_IoCb_Infineon_SPI(TPM2_CTX* ctx, const byte* txBuf,
++    byte* rxBuf, word16 xferSz, void* userCtx);
+ #elif defined(WOLFTPM_INFINEON_TRICORE)
+ WOLFTPM_LOCAL int TPM2_IoCb_Infineon_TriCore_SPI(TPM2_CTX* ctx, const byte* txBuf,
+     byte* rxBuf, word16 xferSz, void* userCtx);
 diff --git a/hal/tpm_io_atmel.c b/hal/tpm_io_atmel.c
 index bbb3f8f..31c3778 100644
 --- a/hal/tpm_io_atmel.c
@@ -2799,10 +3994,24 @@ index 3513d50..478b140 100644
  #include <wolftpm/tpm2.h>
  #include <wolftpm/tpm2_tis.h>
 diff --git a/hal/tpm_io_infineon.c b/hal/tpm_io_infineon.c
-index 252b986..04bca15 100644
+index 252b986..7689f7a 100644
 --- a/hal/tpm_io_infineon.c
 +++ b/hal/tpm_io_infineon.c
-@@ -23,6 +23,9 @@
+@@ -1,6 +1,6 @@
+ /* tpm_io_infineon.c
+  *
+- * Copyright (C) 2006-2022 wolfSSL Inc.
++ * Copyright (C) 2006-2024 wolfSSL Inc.
+  *
+  * This file is part of wolfTPM.
+  *
+@@ -19,10 +19,14 @@
+  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
+  */
+ 
+-/* This example shows IO interfaces for Infineon TriCore hardware:
++/* This example shows IO interfaces for Infineon CyHal or TriCore hardware:
++ * - PSoC6 CyHal set automatically with `CY_USING_HAL`.
   * - TC2XX/TC3XX using macro: `WOLFTPM_INFINEON_TRICORE`.
   */
  
@@ -2812,8 +4021,181 @@ index 252b986..04bca15 100644
  
  #include <wolftpm/tpm2.h>
  #include <wolftpm/tpm2_tis.h>
+@@ -39,12 +43,143 @@
+        defined(WOLFTPM_SWTPM) ||     \
+        defined(WOLFTPM_WINAPI) )
+ 
+-/* Use the max speed by default - see tpm2_types.h for chip specific max values */
+-#ifndef TPM2_SPI_HZ
+-    #define TPM2_SPI_HZ TPM2_SPI_MAX_HZ
+-#endif
++#ifdef WOLFTPM_I2C
++    #ifndef TPM_I2C_TRIES
++        #define TPM_I2C_TRIES 10
++    #endif
++    #ifndef TPM2_I2C_ADDR
++        #define TPM2_I2C_ADDR 0x2e
++    #endif
++
++    #if defined(CY_USING_HAL)
++    #include "cyhal_i2c.h"
++
++    static int tpm_ifx_i2c_read(void* userCtx, word32 reg, byte* data, int len)
++    {
++        int ret = TPM_RC_FAILURE;
++        cy_rslt_t result;
++        cyhal_i2c_t* i2c = (cyhal_i2c_t*)userCtx;
++        int timeout = TPM_I2C_TRIES;
++        byte buf[1];
++
++        /* TIS layer should never provide a buffer larger than this,
++         * but double check for good coding practice */
++        if (i2c == NULL || len > MAX_SPI_FRAMESIZE)
++            return BAD_FUNC_ARG;
++
++        buf[0] = (reg & 0xFF); /* convert to simple 8-bit address for I2C */
++
++        /* The I2C takes about 80us to wake up and will NAK until it is ready */
++        do {
++            /* Write address to read from - retry until ack  */
++            result = cyhal_i2c_master_write(i2c, TPM2_I2C_ADDR, buf, sizeof(buf),
++                0, true);
++            /* for read we always need this guard time (success wake or real read) */
++            XSLEEP_MS(1); /* guard time - should be 250us */
++        } while (result != CY_RSLT_SUCCESS && --timeout > 0);
++
++        if (result == CY_RSLT_SUCCESS) {
++            timeout = TPM_I2C_TRIES;
++            do {
++                result = cyhal_i2c_master_read(i2c, TPM2_I2C_ADDR, data, len,
++                    0, true);
++                if (result != CY_RSLT_SUCCESS) {
++                    XSLEEP_MS(1); /* guard time - should be 250us */
++                }
++            } while (result != CY_RSLT_SUCCESS && --timeout > 0);
++        }
++        if (result == CY_RSLT_SUCCESS) {
++            ret = TPM_RC_SUCCESS;
++        }
++        else {
++            printf("CyHAL I2C Read failure %d (tries %d)\n",
++                (int)result, TPM_I2C_TRIES - timeout);
++        }
++        return ret;
++    }
+ 
+-#if defined(WOLFTPM_INFINEON_TRICORE)
++    static int tpm_ifx_i2c_write(void* userCtx, word32 reg, byte* data, int len)
++    {
++        int ret = TPM_RC_FAILURE;
++        cy_rslt_t result;
++        cyhal_i2c_t* i2c = (cyhal_i2c_t*)userCtx;
++        int timeout = TPM_I2C_TRIES;
++        byte buf[MAX_SPI_FRAMESIZE+1];
++
++        /* TIS layer should never provide a buffer larger than this,
++         * but double check for good coding practice */
++        if (i2c == NULL || len > MAX_SPI_FRAMESIZE)
++            return BAD_FUNC_ARG;
++
++        /* Build packet with TPM register and data */
++        buf[0] = (reg & 0xFF); /* convert to simple 8-bit address for I2C */
++        XMEMCPY(buf + 1, data, len);
++
++        /* The I2C takes about 80us to wake up and will NAK until it is ready */
++        do {
++            result = cyhal_i2c_master_write(i2c, TPM2_I2C_ADDR, buf, len+1,
++                0, true);
++            if (result != CY_RSLT_SUCCESS) {
++                XSLEEP_MS(1); /* guard time - should be 250us */
++            }
++        } while (result != CY_RSLT_SUCCESS && --timeout > 0);
++        if (result == CY_RSLT_SUCCESS) {
++            ret = TPM_RC_SUCCESS;
++        }
++        else {
++            printf("CyHAL I2C Write failure %d\n", (int)result);
++        }
++        return ret;
++    }
++
++    int TPM2_IoCb_Infineon_I2C(TPM2_CTX* ctx, int isRead, word32 addr,
++        byte* buf, word16 size, void* userCtx)
++    {
++        int ret = TPM_RC_FAILURE;
++        if (userCtx != NULL) {
++            if (isRead)
++                ret = tpm_ifx_i2c_read(userCtx, addr, buf, size);
++            else
++                ret = tpm_ifx_i2c_write(userCtx, addr, buf, size);
++        }
++        (void)ctx;
++        return ret;
++    }
++
++    #else
++        #error Infineon I2C support on this platform not supported yet
++    #endif /* CY_USING_HAL or WOLFTPM_INFINEON_TRICORE */
++
++#else /* SPI */
++
++    #ifndef TPM2_SPI_HZ
++        /* Use the max speed by default
++         * See tpm2_types.h for chip specific max values */
++        #define TPM2_SPI_HZ TPM2_SPI_MAX_HZ
++    #endif
++    #ifdef WOLFTPM_CHECK_WAIT_STATE
++        #error SPI check wait state logic not supported
++    #endif
++
++    #if defined(CY_USING_HAL)
++    #include "cyhal_spi.h"
++    int TPM2_IoCb_Infineon_SPI(TPM2_CTX* ctx, const byte* txBuf,
++        byte* rxBuf, word16 xferSz, void* userCtx)
++    {
++        cyhal_spi_t* spi = (cyhal_spi_t*)userCtx;
++        cy_rslt_t result;
++
++        if (userCtx == NULL) {
++            return BAD_FUNC_ARG;
++        }
++
++        result = cyhal_spi_transfer(spi, txBuf, xferSz, rxBuf, xferSz, 0);
++        if (result != CY_RSLT_SUCCESS) {
++            return TPM_RC_FAILURE;
++        }
++        return TPM_RC_SUCCESS;
++    }
++    #elif defined(WOLFTPM_INFINEON_TRICORE)
+ 
+     #include <Ifx_Types.h>
+     #include <Qspi/SpiMaster/IfxQspi_SpiMaster.h>
+@@ -57,10 +192,6 @@
+     {
+         int ret = TPM_RC_FAILURE;
+ 
+-    #ifdef WOLFTPM_CHECK_WAIT_STATE
+-        #error SPI check wait state logic not supported
+-    #endif
+-
+         /* wait for SPI not busy */
+         while (IfxQspi_SpiMaster_getStatus(&spiMasterChannel) ==
+                                                           SpiIf_Status_busy) {};
+@@ -76,8 +207,11 @@
+ 
+         return ret;
+     }
++    #else
++        #error Infineon I2C support on this platform not supported yet
++    #endif /* CY_USING_HAL or WOLFTPM_INFINEON_TRICORE */
++#endif /* SPI or I2C */
+ 
+-#endif /* WOLFTPM_INFINEON_TRICORE */
+ #endif /* !(WOLFTPM_LINUX_DEV || WOLFTPM_SWTPM || WOLFTPM_WINAPI) */
+ #endif /* WOLFTPM_INCLUDE_IO_FILE */
+ 
 diff --git a/hal/tpm_io_linux.c b/hal/tpm_io_linux.c
-index 5ca01e8..193498d 100644
+index 5ca01e8..8e340c6 100644
 --- a/hal/tpm_io_linux.c
 +++ b/hal/tpm_io_linux.c
 @@ -23,8 +23,11 @@
@@ -2829,6 +4211,15 @@ index 5ca01e8..193498d 100644
  
  #include <wolftpm/tpm2.h>
  #include <wolftpm/tpm2_tis.h>
+@@ -62,7 +65,7 @@
+     #include <unistd.h>
+ 
+     #ifdef WOLFTPM_I2C
+-        /* I2C - (Only tested with ST33HTPH I2C) */
++        /* I2C - (Only tested with SLB9673 and ST33 I2C) */
+         #define TPM2_I2C_ADDR 0x2e
+         #define TPM2_I2C_DEV  "/dev/i2c-1"
+         #define TPM2_I2C_HZ   400000 /* 400kHz */
 diff --git a/hal/tpm_io_microchip.c b/hal/tpm_io_microchip.c
 index 46403c5..178963f 100644
 --- a/hal/tpm_io_microchip.c
@@ -2904,7 +4295,7 @@ index 43f20ff..6516b73 100644
  #include <wolftpm/tpm2.h>
  #include <wolftpm/tpm2_tis.h>
 diff --git a/src/tpm2.c b/src/tpm2.c
-index 75f7ec7..cffd488 100644
+index 75f7ec7..89f6b13 100644
 --- a/src/tpm2.c
 +++ b/src/tpm2.c
 @@ -19,6 +19,9 @@
@@ -2917,6 +4308,15 @@ index 75f7ec7..cffd488 100644
  
  #include <wolftpm/tpm2.h>
  #include <wolftpm/tpm2_packet.h>
+@@ -572,7 +575,7 @@ TPM_RC TPM2_SetHalIoCb(TPM2_CTX* ctx, TPM2HalIoCb ioCb, void* userCtx)
+ }
+ 
+ /* If timeoutTries <= 0 then it will not try and startup chip and will
+-    use existing default locality */
++ * use existing default locality */
+ TPM_RC TPM2_Init_ex(TPM2_CTX* ctx, TPM2HalIoCb ioCb, void* userCtx,
+     int timeoutTries)
+ {
 @@ -844,7 +847,8 @@ TPM_RC TPM2_GetCapability(GetCapability_In* in, GetCapability_Out* out)
              TPM2_Packet_ParseU32(&packet, &out->capabilityData.capability);
  
@@ -2927,7 +4327,7 @@ index 75f7ec7..cffd488 100644
                      TPML_TAGGED_TPM_PROPERTY* prop =
                          &out->capabilityData.data.tpmProperties;
                      TPM2_Packet_ParseU32(&packet, &prop->count);
-@@ -856,6 +860,16 @@ TPM_RC TPM2_GetCapability(GetCapability_In* in, GetCapability_Out* out)
+@@ -856,6 +860,30 @@ TPM_RC TPM2_GetCapability(GetCapability_In* in, GetCapability_Out* out)
                      }
                      break;
                  }
@@ -2941,9 +4341,158 @@ index 75f7ec7..cffd488 100644
 +                    }
 +                    break;
 +                }
++                case TPM_CAP_VENDOR_PROPERTY:
++                {
++                    out->capabilityData.data.vendor.size =
++                        packet.size - packet.pos;
++                    if (out->capabilityData.data.vendor.size >
++                            sizeof(out->capabilityData.data.vendor.buffer)) {
++                        out->capabilityData.data.vendor.size =
++                            sizeof(out->capabilityData.data.vendor.buffer);
++                    }
++                    TPM2_Packet_ParseBytes(&packet,
++                        out->capabilityData.data.vendor.buffer,
++                        out->capabilityData.data.vendor.size);
++                    break;
++                }
                  default:
              #ifdef DEBUG_WOLFTPM
                      printf("Unknown capability type 0x%x\n",
+@@ -5163,6 +5191,7 @@ int TPM2_SetCommandSet(SetCommandSet_In* in)
+         TPM2_Packet packet;
+         CmdInfo_t info = {0,0,0,0};
+         info.inHandleCnt = 1;
++        info.flags = (CMD_FLAG_AUTH_USER1);
+ 
+         TPM2_Packet_Init(ctx, &packet);
+ 
+@@ -5195,6 +5224,7 @@ int TPM2_SetMode(SetMode_In* in)
+         TPM2_Packet packet;
+         CmdInfo_t info = {0,0,0,0};
+         info.inHandleCnt = 1;
++        info.flags = (CMD_FLAG_AUTH_USER1);
+ 
+         TPM2_Packet_Init(ctx, &packet);
+ 
+@@ -5242,6 +5272,45 @@ TPM_RC TPM2_GetRandom2(GetRandom2_In* in, GetRandom2_Out* out)
+     }
+     return rc;
+ }
++
++TPM_RC TPM2_GetProductInfo(uint8_t* info, uint16_t size)
++{
++    TPM_RC rc;
++    TPM2_CTX* ctx = TPM2_GetActiveCtx();
++
++    if (ctx == NULL || info == NULL)
++        return BAD_FUNC_ARG;
++
++    rc = TPM2_AcquireLock(ctx);
++    if (rc == TPM_RC_SUCCESS) {
++        TPM2_Packet packet;
++        TPM2_Packet_Init(ctx, &packet);
++        TPM2_Packet_AppendU32(&packet, TPM_CAP_VENDOR_PROPERTY);
++        TPM2_Packet_AppendU32(&packet, 3); /* cTPM_SUBCAP_VENDOR_GET_PRODUCT_INFO */
++        TPM2_Packet_AppendU32(&packet, 1); /* only 1 property */
++        TPM2_Packet_Finalize(&packet, TPM_ST_NO_SESSIONS, TPM_CC_GetCapability);
++
++        /* send command */
++        rc = TPM2_SendCommand(ctx, &packet);
++        if (rc == TPM_RC_SUCCESS) {
++            /* Product info is:
++             * Serial Number (7 bytes)
++             * Pad (1 byte)
++             * Product ID (PIN) (2 bytes)
++             * Master Product ID (MPIN) (2 bytes)
++             * Product Internal Revision (1 byte)
++             * Pad (3 bytes)
++             * Firmware kernel version (4 bytes)
++             */
++
++            /* start of product info starts at byte 26 */
++            if (size > packet.size - 26)
++                size = packet.size - 26;
++            XMEMCPY(info, &packet.buf[25], size);
++        }
++    }
++    return rc;
++}
+ #endif /* WOLFTPM_ST33 || WOLFTPM_AUTODETECT */
+ 
+ /* GPIO Vendor Specific API's */
+@@ -5339,6 +5408,63 @@ int TPM2_NTC2_GetConfig(NTC2_GetConfig_Out* out)
+     return rc;
+ }
+ #endif /* WOLFTPM_NUVOTON */
++
++
++#ifdef WOLFTPM_FIRMWARE_UPGRADE
++#if defined(WOLFTPM_SLB9672) || defined(WOLFTPM_SLB9673)
++int TPM2_IFX_FieldUpgradeStart(TPM_HANDLE sessionHandle,
++    uint8_t* data, uint32_t size)
++{
++    int rc;
++    TPM2_CTX* ctx = TPM2_GetActiveCtx();
++    TPMS_AUTH_COMMAND session;
++
++    rc = TPM2_AcquireLock(ctx);
++    if (rc == TPM_RC_SUCCESS) {
++        TPM2_Packet packet;
++        int tmpSz = 0;
++        TPM2_Packet_Init(ctx, &packet);
++        TPM2_Packet_AppendU32(&packet, TPM_RH_PLATFORM);
++
++        XMEMSET(&session, 0, sizeof(session));
++        session.sessionHandle = sessionHandle;
++
++        TPM2_Packet_MarkU32(&packet, &tmpSz);
++        TPM2_Packet_AppendAuthCmd(&packet, &session);
++        TPM2_Packet_PlaceU32(&packet, tmpSz);
++
++        TPM2_Packet_AppendBytes(&packet, data, size);
++
++        TPM2_Packet_Finalize(&packet, TPM_ST_SESSIONS,
++            TPM_CC_FieldUpgradeStartVendor);
++
++        rc = TPM2_SendCommand(ctx, &packet);
++
++        TPM2_ReleaseLock(ctx);
++    }
++    return rc;
++}
++int TPM2_IFX_FieldUpgradeCommand(TPM_CC cc, uint8_t* data, uint32_t size)
++{
++    int rc;
++    TPM2_CTX* ctx = TPM2_GetActiveCtx();
++
++    rc = TPM2_AcquireLock(ctx);
++    if (rc == TPM_RC_SUCCESS) {
++        TPM2_Packet packet;
++        TPM2_Packet_Init(ctx, &packet);
++        TPM2_Packet_AppendBytes(&packet, data, size);
++        TPM2_Packet_Finalize(&packet, TPM_ST_NO_SESSIONS, cc);
++        rc = TPM2_SendCommand(ctx, &packet);
++        TPM2_ReleaseLock(ctx);
++    }
++    return rc;
++}
++
++
++#endif /* WOLFTPM_SLB9672 || WOLFTPM_SLB9673 */
++#endif /* WOLFTPM_FIRMWARE_UPGRADE */
++
+ /******************************************************************************/
+ /* --- END Manufacture Specific TPM API's -- */
+ /******************************************************************************/
+@@ -5572,7 +5698,7 @@ const char* TPM2_GetRCString(int rc)
+         return "Success";
+     }
+ 
+-    if ((rc & RC_WARN) && (rc & RC_FMT1) == 0) {
++    if ((rc & RC_WARN) && (rc & RC_FMT1) == 0 && (rc & RC_VER1) == 0) {
+         int rc_warn = rc & RC_MAX_WARN;
+ 
+         switch (rc_warn) {
 diff --git a/src/tpm2_cryptocb.c b/src/tpm2_cryptocb.c
 index dd30009..4746374 100644
 --- a/src/tpm2_cryptocb.c
@@ -3001,10 +4550,10 @@ index c1b2032..9c3f354 100644
  
  #ifdef WOLFTPM_LINUX_DEV
 diff --git a/src/tpm2_packet.c b/src/tpm2_packet.c
-index ac2a8cc..0cb830e 100644
+index ac2a8cc..e7f687f 100644
 --- a/src/tpm2_packet.c
 +++ b/src/tpm2_packet.c
-@@ -19,10 +19,12 @@
+@@ -19,27 +19,12 @@
   * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
   */
  
@@ -3015,10 +4564,27 @@ index ac2a8cc..0cb830e 100644
  #include <wolftpm/tpm2_packet.h>
  
 -
- /* Endianess Helpers */
- #ifdef LITTLE_ENDIAN_ORDER
-     #define cpu_to_be16(d) ByteReverseWord16(d)
-@@ -332,8 +334,7 @@ int TPM2_GetCmdAuthCount(TPM2_CTX* ctx, const CmdInfo_t* info)
+-/* Endianess Helpers */
+-#ifdef LITTLE_ENDIAN_ORDER
+-    #define cpu_to_be16(d) ByteReverseWord16(d)
+-    #define cpu_to_be32(d) ByteReverseWord32(d)
+-    #define cpu_to_be64(d) ByteReverseWord64(d)
+-    #define be16_to_cpu(d) ByteReverseWord16(d)
+-    #define be32_to_cpu(d) ByteReverseWord32(d)
+-    #define be64_to_cpu(d) ByteReverseWord64(d)
+-#else
+-    #define cpu_to_be16(d) (d)
+-    #define cpu_to_be32(d) (d)
+-    #define cpu_to_be64(d) (d)
+-    #define be16_to_cpu(d) (d)
+-    #define be32_to_cpu(d) (d)
+-    #define be64_to_cpu(d) (d)
+-#endif
+-
+ /* convert 16 bit integer to opaque */
+ static inline void c16toa(word16 wc_u16, byte* c)
+ {
+@@ -332,8 +317,7 @@ int TPM2_GetCmdAuthCount(TPM2_CTX* ctx, const CmdInfo_t* info)
          }
  
          /* Allow policy auth */
@@ -3128,7 +4694,7 @@ index fcd8a46..840a5c2 100644
  #include <wolftpm/tpm2_types.h>
  
 diff --git a/src/tpm2_wrap.c b/src/tpm2_wrap.c
-index d2257dd..51fdeec 100644
+index d2257dd..6f1e95e 100644
 --- a/src/tpm2_wrap.c
 +++ b/src/tpm2_wrap.c
 @@ -19,6 +19,10 @@
@@ -3142,7 +4708,129 @@ index d2257dd..51fdeec 100644
  #include <wolftpm/tpm2_wrap.h>
  #include <wolftpm/tpm2_param_enc.h>
  
-@@ -749,6 +753,42 @@ int wolfTPM2_GetCapabilities(WOLFTPM2_DEV* dev, WOLFTPM2_CAPS* cap)
+@@ -615,6 +619,15 @@ int wolfTPM2_SelfTest(WOLFTPM2_DEV* dev)
+  *  TPM_PT_MODES = Bit 0 = FIPS_140_2
+  */
+ 
++#if defined(WOLFTPM_SLB9672) || defined(WOLFTPM_SLB9673)
++    /* Infineon SLB9672 or SLB9673 Firmware Upgrade support */
++    #define TPM_PT_VENDOR_FIX 0x80000000
++    #define TPM_PT_VENDOR_FIX_FU_COUNTER        (TPM_PT_VENDOR_FIX + 3)
++    #define TPM_PT_VENDOR_FIX_FU_COUNTER_SAME   (TPM_PT_VENDOR_FIX + 4)
++    #define TPM_PT_VENDOR_FIX_FU_OPERATION_MODE (TPM_PT_VENDOR_FIX + 7)
++    #define TPM_PT_VENDOR_FIX_FU_KEYGROUP_ID    (TPM_PT_VENDOR_FIX + 8)
++#endif
++
+ /* ST33TP
+  *  TPM_PT_MANUFACTURER 0x53544D20: "STM"
+  *  TPM_PT_FIRMWARE_VERSION_1 TPM FW version: 0x00006400
+@@ -694,6 +707,44 @@ static int wolfTPM2_ParseCapabilities(WOLFTPM2_CAPS* caps,
+     return rc;
+ }
+ 
++#if defined(WOLFTPM_SLB9672) || defined(WOLFTPM_SLB9673)
++static int tpm2_ifx_cap_vendor_get(WOLFTPM2_CAPS* cap, uint32_t property,
++    uint8_t* val, size_t valSz)
++{
++    int rc;
++    GetCapability_In  in;
++    GetCapability_Out out;
++
++    XMEMSET(&in, 0, sizeof(in));
++    XMEMSET(&out, 0, sizeof(out));
++    in.capability = TPM_CAP_VENDOR_PROPERTY;
++    in.property = property;
++    in.propertyCount = 1;
++    rc = TPM2_GetCapability(&in, &out);
++    if (rc == TPM_RC_SUCCESS) {
++        TPM2B_MAX_BUFFER* buf = &out.capabilityData.data.vendor;
++        /* 4 bytes=count + 2 bytes=len + vendor value */
++        if (buf->buffer[3] == 1 && buf->buffer[5] == valSz) {
++            XMEMCPY(val, &buf->buffer[6], valSz);
++            if (valSz == 2) {
++                *((uint16_t*)val) = be16_to_cpu(*((uint16_t*)val));
++            }
++            else if (valSz == 4) {
++                *((uint32_t*)val) = be32_to_cpu(*((uint32_t*)val));
++            }
++        }
++    }
++    else {
++    #ifdef DEBUG_WOLFTPM
++        printf("TPM2_GetCapability vendor prop 0x%x failed 0x%x: %s\n",
++            property, rc, TPM2_GetRCString(rc));
++    #endif
++    }
++    (void)cap;
++    return rc;
++}
++#endif
++
+ static int wolfTPM2_GetCapabilities_NoDev(WOLFTPM2_CAPS* cap)
+ {
+     int rc;
+@@ -708,14 +759,15 @@ static int wolfTPM2_GetCapabilities_NoDev(WOLFTPM2_CAPS* cap)
+ 
+     /* Get Capabilities TPM_PT_MANUFACTURER thru TPM_PT_FIRMWARE_VERSION_2 */
+     XMEMSET(&in, 0, sizeof(in));
++    XMEMSET(&out, 0, sizeof(out));
+     in.capability = TPM_CAP_TPM_PROPERTIES;
+     in.property = TPM_PT_MANUFACTURER;
+     in.propertyCount = 8;
+     rc = TPM2_GetCapability(&in, &out);
+     if (rc != TPM_RC_SUCCESS) {
+     #ifdef DEBUG_WOLFTPM
+-        printf("TPM2_GetCapability failed 0x%x: %s\n", rc,
+-            TPM2_GetRCString(rc));
++        printf("TPM2_GetCapability manufacture failed 0x%x: %s\n",
++            rc, TPM2_GetRCString(rc));
+     #endif
+         return rc;
+     }
+@@ -725,19 +777,40 @@ static int wolfTPM2_GetCapabilities_NoDev(WOLFTPM2_CAPS* cap)
+ 
+     /* Get Capability TPM_PT_MODES */
+     XMEMSET(&in, 0, sizeof(in));
++    XMEMSET(&out, 0, sizeof(out));
+     in.capability = TPM_CAP_TPM_PROPERTIES;
+     in.property = TPM_PT_MODES;
+     in.propertyCount = 1;
+     rc = TPM2_GetCapability(&in, &out);
+     if (rc != TPM_RC_SUCCESS) {
+     #ifdef DEBUG_WOLFTPM
+-        printf("TPM2_GetCapability failed 0x%x: %s\n", rc,
+-            TPM2_GetRCString(rc));
++        printf("TPM2_GetCapability modes failed 0x%x: %s\n",
++            rc, TPM2_GetRCString(rc));
+     #endif
+         return rc;
+     }
+     rc = wolfTPM2_ParseCapabilities(cap, &out.capabilityData.data.tpmProperties);
+ 
++#if defined(WOLFTPM_SLB9672) || defined(WOLFTPM_SLB9673)
++    /* Get vendor specific information */
++    if (rc == 0) {
++        rc = tpm2_ifx_cap_vendor_get(cap, TPM_PT_VENDOR_FIX_FU_OPERATION_MODE,
++            &cap->opMode, sizeof(cap->opMode));
++    }
++    if (rc == 0) {
++        rc = tpm2_ifx_cap_vendor_get(cap, TPM_PT_VENDOR_FIX_FU_KEYGROUP_ID,
++            (uint8_t*)&cap->keyGroupId, sizeof(cap->keyGroupId));
++    }
++    if (rc == 0) {
++        rc = tpm2_ifx_cap_vendor_get(cap, TPM_PT_VENDOR_FIX_FU_COUNTER,
++            (uint8_t*)&cap->fwCounter, sizeof(cap->fwCounter));
++    }
++    if (rc == 0) {
++        rc = tpm2_ifx_cap_vendor_get(cap, TPM_PT_VENDOR_FIX_FU_COUNTER_SAME,
++            (uint8_t*)&cap->fwCounterSame, sizeof(cap->fwCounterSame));
++    }
++#endif
++
+     return rc;
+ }
+ 
+@@ -749,6 +822,42 @@ int wolfTPM2_GetCapabilities(WOLFTPM2_DEV* dev, WOLFTPM2_CAPS* cap)
      return wolfTPM2_GetCapabilities_NoDev(cap);
  }
  
@@ -3185,7 +4873,16 @@ index d2257dd..51fdeec 100644
  int wolfTPM2_UnsetAuth(WOLFTPM2_DEV* dev, int index)
  {
      TPM2_AUTH_SESSION* session;
-@@ -2729,6 +2769,112 @@ int wolfTPM2_DecodeEccDer(const byte* der, word32 derSz, TPM2B_PUBLIC* pub,
+@@ -1104,7 +1213,7 @@ static int wolfTPM2_EncryptSecret_ECC(WOLFTPM2_DEV* dev, const WOLFTPM2_KEY* tpm
+     TPM2B_ECC_POINT pubPoint, secretPoint;
+     ecc_point r[1];
+     mp_int prime, a;
+-    word32 keySz;
++    word32 keySz = 0;
+ 
+     publicArea = &tpmKey->pub.publicArea;
+     XMEMSET(&rng, 0, sizeof(rng));
+@@ -2729,6 +2838,112 @@ int wolfTPM2_DecodeEccDer(const byte* der, word32 derSz, TPM2B_PUBLIC* pub,
  }
  #endif /* HAVE_ECC */
  
@@ -3298,7 +4995,7 @@ index d2257dd..51fdeec 100644
  int wolfTPM2_ImportPublicKeyBuffer(WOLFTPM2_DEV* dev, int keyType,
      WOLFTPM2_KEY* key, int encodingType, const char* input, word32 inSz,
      TPMA_OBJECT objectAttributes)
-@@ -2991,61 +3137,8 @@ int wolfTPM2_RsaKey_TpmToWolf(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKey,
+@@ -2991,61 +3206,8 @@ int wolfTPM2_RsaKey_TpmToWolf(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKey,
  int wolfTPM2_RsaKey_TpmToPemPub(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKey,
      byte* pem, word32* pemSz)
  {
@@ -3362,7 +5059,71 @@ index d2257dd..51fdeec 100644
  }
  
  static word32 wolfTPM2_RsaKey_Exponent(byte* e, word32 eSz)
-@@ -5419,6 +5512,14 @@ int GetKeyTemplateECC(TPMT_PUBLIC* publicTemplate,
+@@ -4328,6 +4490,43 @@ int wolfTPM2_NVReadAuth(WOLFTPM2_DEV* dev, WOLFTPM2_NV* nv,
+     return rc;
+ }
+ 
++int wolfTPM2_NVReadCert(WOLFTPM2_DEV* dev, TPM_HANDLE handle,
++    uint8_t* buffer, uint32_t* len)
++{
++    int rc;
++    WOLFTPM2_NV nv;
++    TPMS_NV_PUBLIC nvPublic;
++
++    XMEMSET(&nvPublic, 0, sizeof(nvPublic));
++    XMEMSET(&nv, 0, sizeof(nv));
++
++    /* Get or check size of NV */
++    rc = wolfTPM2_NVReadPublic(dev, handle, &nvPublic);
++    if (rc == 0) {
++        if (buffer == NULL) {
++            /* just set size and return success */
++            *len = nvPublic.dataSize;
++            return 0;
++        }
++        if (nvPublic.dataSize > *len) {
++            return BUFFER_E;
++        }
++        *len = nvPublic.dataSize;
++    }
++    else {
++    #ifdef DEBUG_WOLFTPM
++        printf("NV public read of handle 0x%x failed %d: %s\n",
++            handle, rc, wolfTPM2_GetRCString(rc));
++    #endif
++        return rc;
++    }
++
++    /* Perform read of NV without auth password */
++    nv.handle.hndl = handle;
++    rc = wolfTPM2_NVReadAuth(dev, &nv, handle, buffer, (word32*)len, 0);
++    return rc;
++}
++
+ /* older API kept for compatibility, recommend using wolfTPM2_NVReadAuth */
+ int wolfTPM2_NVRead(WOLFTPM2_DEV* dev, TPM_HANDLE authHandle,
+     word32 nvIndex, byte* dataBuf, word32* pDataSz, word32 offset)
+@@ -4960,6 +5159,9 @@ int wolfTPM2_EncryptDecryptBlock(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* key,
+         /* try to enable support */
+         rc = wolfTPM2_SetCommand(dev, TPM_CC_EncryptDecrypt2, YES);
+         if (rc == TPM_RC_SUCCESS) {
++            /* reset session auth for key */
++            wolfTPM2_SetAuthHandle(dev, 0, &key->handle);
++
+             /* try command again */
+             rc = TPM2_EncryptDecrypt2(&encDecIn, &encDecOut);
+         }
+@@ -5024,6 +5226,9 @@ int wolfTPM2_SetCommand(WOLFTPM2_DEV* dev, TPM_CC commandCode, int enableFlag)
+     if (TPM2_GetVendorID() == TPM_VENDOR_STM) {
+         SetCommandSet_In in;
+ 
++        /* set blank platform auth */
++        wolfTPM2_SetAuthPassword(dev, 0, NULL);
++
+         /* Enable commands (like TPM2_EncryptDecrypt2) */
+         XMEMSET(&in, 0, sizeof(in));
+         in.authHandle = TPM_RH_PLATFORM;
+@@ -5419,6 +5624,14 @@ int GetKeyTemplateECC(TPMT_PUBLIC* publicTemplate,
      return TPM_RC_SUCCESS;
  }
  
@@ -3377,7 +5138,7 @@ index d2257dd..51fdeec 100644
  int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
      TPMA_OBJECT objectAttributes)
  {
-@@ -5427,6 +5528,14 @@ int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
+@@ -5427,6 +5640,14 @@ int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
          TPM_ALG_NULL, WOLFTPM2_WRAP_DIGEST);
  }
  
@@ -3392,7 +5153,7 @@ index d2257dd..51fdeec 100644
  int wolfTPM2_GetKeyTemplate_ECC(TPMT_PUBLIC* publicTemplate,
      TPMA_OBJECT objectAttributes, TPM_ECC_CURVE curve, TPM_ALG_ID sigScheme)
  {
-@@ -5490,7 +5599,7 @@ int wolfTPM2_GetKeyTemplate_KeySeal(TPMT_PUBLIC* publicTemplate, TPM_ALG_ID name
+@@ -5490,7 +5711,7 @@ int wolfTPM2_GetKeyTemplate_KeySeal(TPMT_PUBLIC* publicTemplate, TPM_ALG_ID name
      publicTemplate->nameAlg = nameAlg;
      publicTemplate->objectAttributes = (
          TPMA_OBJECT_fixedTPM | TPMA_OBJECT_fixedParent |
@@ -3401,6 +5162,411 @@ index d2257dd..51fdeec 100644
      publicTemplate->parameters.keyedHashDetail.scheme.scheme = TPM_ALG_NULL;
      return TPM_RC_SUCCESS;
  }
+@@ -6894,4 +7115,404 @@ int wolfTPM2_PolicyAuthorizeMake(TPM_ALG_ID pcrAlg,
+ /* --- END Policy Support -- */
+ /******************************************************************************/
+ 
++
++
++/******************************************************************************/
++/* --- BEGIN Provisioned TPM Support -- */
++/******************************************************************************/
++
++/* pre-provisioned IAK and IDevID key/cert from TPM vendor */
++#ifdef WOLFTPM_MFG_IDENTITY
++
++#ifdef TEST_SAMPLE
++static const uint8_t TPM2_IAK_SAMPLE_MASTER_PASSWORD[] = {
++    0xFE, 0xEF, 0x8C, 0xDF, 0x1B, 0x77, 0xBD, 0x00,
++    0x30, 0x58, 0x5E, 0x47, 0xB8, 0x21, 0x46, 0x0B
++};
++#endif
++
++int wolfTPM2_SetIdentityAuth(WOLFTPM2_DEV* dev, WOLFTPM2_HANDLE* handle,
++    uint8_t* masterPassword, uint16_t masterPasswordSz)
++{
++    int rc;
++    uint8_t serialNum[7];
++    wc_HashAlg hash_ctx;
++    enum wc_HashType hashType = WC_HASH_TYPE_SHA256;
++    uint8_t digest[TPM_SHA256_DIGEST_SIZE];
++
++    /* Get TPM serial number */
++    rc = TPM2_GetProductInfo(serialNum, (uint16_t)sizeof(serialNum));
++    if (rc != 0) {
++    #ifdef DEBUG_WOLFTPM
++        printf("TPM2_GetProductInfo failed %d: %s\n",
++            rc, wolfTPM2_GetRCString(rc));
++    #endif
++        return rc;
++    }
++
++    /* Hash both values */
++    rc = wc_HashInit(&hash_ctx, hashType);
++    if (rc == 0) {
++        rc = wc_HashUpdate(&hash_ctx, hashType, serialNum, sizeof(serialNum));
++        if (rc == 0) {
++        #ifdef TEST_SAMPLE
++            rc = wc_HashUpdate(&hash_ctx, hashType,
++                TPM2_IAK_SAMPLE_MASTER_PASSWORD,
++                sizeof(TPM2_IAK_SAMPLE_MASTER_PASSWORD));
++            (void)masterPassword;
++            (void)masterPasswordSz;
++        #else
++            rc = wc_HashUpdate(&hash_ctx, hashType,
++                masterPassword, masterPasswordSz);
++        #endif
++        }
++        if (rc == 0) {
++            rc = wc_HashFinal(&hash_ctx, hashType, digest);
++        }
++
++        wc_HashFree(&hash_ctx, hashType);
++    }
++
++    /* Hash Final truncate to 16 bytes */
++    /* Use 16-byte for auth when accessing key */
++    handle->auth.size = 16;
++    XMEMCPY(handle->auth.buffer, &digest[16], 16);
++
++    (void)dev;
++
++    return rc;
++}
++
++#endif /* WOLFTPM_MFG_IDENTITY */
++
++/******************************************************************************/
++/* --- END Provisioned TPM Support -- */
++/******************************************************************************/
++
++
++
++
++
++/******************************************************************************/
++/* --- BEGIN Firmware Upgrade Support -- */
++/******************************************************************************/
++
++#ifdef WOLFTPM_FIRMWARE_UPGRADE
++#if defined(WOLFTPM_SLB9672) || defined(WOLFTPM_SLB9673)
++
++/* Maximum size of firmware chunks */
++#define IFX_FW_MAX_CHUNK_SZ 1024
++
++/* Setup the policy to enable firmware upgrade start */
++static int tpm2_ifx_firmware_enable_policy(WOLFTPM2_DEV* dev)
++{
++    int rc;
++    PolicyCommandCode_In policyCC;
++    SetPrimaryPolicy_In policy;
++    WOLFTPM2_SESSION tpmSession;
++
++    XMEMSET(&tpmSession, 0, sizeof(tpmSession));
++    XMEMSET(&policyCC, 0, sizeof(policyCC));
++    XMEMSET(&policy, 0, sizeof(policy));
++
++    rc = wolfTPM2_StartSession(dev, &tpmSession, NULL, NULL,
++        TPM_SE_POLICY, TPM_ALG_NULL);
++    if (rc == TPM_RC_SUCCESS) {
++        policyCC.policySession = tpmSession.handle.hndl;
++        policyCC.code = TPM_CC_FieldUpgradeStartVendor;
++        rc = TPM2_PolicyCommandCode(&policyCC);
++        if (rc == TPM_RC_SUCCESS) {
++            word32 policySz = (word32)sizeof(policy.authPolicy.buffer);
++            rc = wolfTPM2_GetPolicyDigest(dev, tpmSession.handle.hndl,
++                policy.authPolicy.buffer, &policySz);
++            policy.authPolicy.size = policySz;
++        }
++        wolfTPM2_UnloadHandle(dev, &tpmSession.handle);
++    }
++    if (rc == TPM_RC_SUCCESS) {
++        policy.authHandle = TPM_RH_PLATFORM;
++        policy.hashAlg = TPM_ALG_SHA256;
++        rc = TPM2_SetPrimaryPolicy(&policy);
++    }
++
++#ifdef DEBUG_WOLFTPM
++    if (rc != TPM_RC_SUCCESS) {
++        printf("Enable firmware start policy failed 0x%x: %s\n",
++            rc, TPM2_GetRCString(rc));
++    }
++#endif
++    return rc;
++}
++
++static int tpm2_ifx_firmware_start(WOLFTPM2_DEV* dev, TPM_ALG_ID hashAlg,
++    uint8_t* manifest_hash, uint32_t manifest_hash_sz)
++{
++    int rc;
++    WOLFTPM2_SESSION tpmSession;
++    PolicyCommandCode_In policyCC;
++
++    XMEMSET(&tpmSession, 0, sizeof(tpmSession));
++    XMEMSET(&policyCC, 0, sizeof(policyCC));
++
++    rc = wolfTPM2_StartSession(dev, &tpmSession, NULL, NULL,
++        TPM_SE_POLICY, TPM_ALG_NULL);
++    if (rc == TPM_RC_SUCCESS) {
++        policyCC.policySession = tpmSession.handle.hndl;
++        policyCC.code = TPM_CC_FieldUpgradeStartVendor;
++        rc = TPM2_PolicyCommandCode(&policyCC);
++        if (rc == TPM_RC_SUCCESS) {
++            /* build command for manifest header */
++            uint16_t val16;
++            /* max cmd: type (1) + data sz (2) + hash alg (2) + max digest (64) */
++            uint8_t cmd[1 + 2 + 2 + TPM_SHA512_DIGEST_SIZE];
++            cmd[0] = 0x01; /* type */
++            val16 = be16_to_cpu(manifest_hash_sz + 2);
++            XMEMCPY(&cmd[1], &val16, sizeof(val16)); /* data size */
++            val16 = be16_to_cpu(hashAlg);
++            XMEMCPY(&cmd[3], &val16, sizeof(val16)); /* hash algorithm */
++            XMEMCPY(&cmd[5], manifest_hash, manifest_hash_sz);
++
++            rc = TPM2_IFX_FieldUpgradeStart(tpmSession.handle.hndl,
++                cmd, 1 + 2 + 2 + manifest_hash_sz);
++        }
++        if (rc == TPM_RC_SUCCESS) {
++            /* delay to give the TPM time to switch modes */
++            XSLEEP_MS(300);
++            /* it is not required to release session handle,
++             * since TPM reset into firmware upgrade mode */
++
++        #if !defined(WOLFTPM_LINUX_DEV) && !defined(WOLFTPM_SWTPM) && \
++            !defined(WOLFTPM_WINAPI)
++            /* Do chip startup and request locality again */
++            rc = TPM2_ChipStartup(&dev->ctx, 10);
++        #endif
++        }
++        else {
++            wolfTPM2_UnloadHandle(dev, &tpmSession.handle);
++        }
++    }
++#ifdef DEBUG_WOLFTPM
++    if (rc != TPM_RC_SUCCESS) {
++        printf("Firmware upgrade start failed 0x%x: %s\n",
++            rc, TPM2_GetRCString(rc));
++    }
++#endif
++    return rc;
++}
++
++static int tpm2_ifx_firmware_manifest(WOLFTPM2_DEV* dev,
++    uint8_t* manifest, uint32_t manifest_sz)
++{
++    int rc = TPM_RC_FAILURE;
++    uint32_t offset, chunk_sz;
++    uint8_t state; /* 1=start, 2=more, 0=done */
++
++    (void)dev;
++    for (offset = 0; offset < manifest_sz; offset += chunk_sz) {
++        /* max cmd: type (1) + chunk sz (2) + max chunk (1024) */
++        uint8_t cmd[1 + 2 + IFX_FW_MAX_CHUNK_SZ];
++        uint16_t val16;
++
++        chunk_sz = manifest_sz - offset;
++        if (chunk_sz > IFX_FW_MAX_CHUNK_SZ) {
++            chunk_sz = IFX_FW_MAX_CHUNK_SZ;
++            state = (offset == 0) ? 1 : 2;
++        }
++        else {
++            state = 0;
++        }
++    #ifdef DEBUG_WOLFTPM
++        printf("Firmware manifest chunk %u offset (%u / %u), state %d\n",
++            chunk_sz, offset, manifest_sz, state);
++    #endif
++
++        cmd[0] = state;
++        val16 = be16_to_cpu(chunk_sz);
++        XMEMCPY(&cmd[1], &val16, sizeof(val16)); /* chunk size */
++        XMEMCPY(&cmd[3], &manifest[offset], chunk_sz);
++
++        rc = TPM2_IFX_FieldUpgradeCommand(TPM_CC_FieldUpgradeManifestVendor,
++            cmd, 1 + 2 + chunk_sz);
++        if (rc != TPM_RC_SUCCESS) {
++            break;
++        }
++    }
++#ifdef DEBUG_WOLFTPM
++    if (rc != TPM_RC_SUCCESS) {
++        printf("Firmware upgrade manifest failed 0x%x: %s\n",
++            rc, TPM2_GetRCString(rc));
++    }
++#endif
++    return rc;
++}
++
++static int tpm2_ifx_firmware_data(WOLFTPM2_DEV* dev,
++    wolfTPM2FwDataCb cb, void* cb_ctx)
++{
++    int rc;
++    uint32_t offset, chunk_sz;
++    uint8_t cmd[2 + IFX_FW_MAX_CHUNK_SZ];
++    uint16_t val16;
++
++    (void)dev;
++    for (offset = 0; ; offset += chunk_sz) {
++        XMEMSET(cmd, 0, sizeof(cmd));
++
++        /* get chunk */
++        rc = cb(&cmd[2], IFX_FW_MAX_CHUNK_SZ, offset, cb_ctx);
++        if (rc > 0 && rc <= IFX_FW_MAX_CHUNK_SZ) {
++            chunk_sz = rc;
++            rc = 0;
++        }
++        else if (rc == 0) {
++        #ifdef DEBUG_WOLFTPM
++            printf("Firmware data done\n");
++        #endif
++            break;
++        }
++        else {
++        #ifdef DEBUG_WOLFTPM
++            printf("Firmware data callback error! %d\n", rc);
++        #endif
++            break;
++        }
++
++    #ifdef DEBUG_WOLFTPM
++        printf("Firmware data chunk offset %u\n", offset);
++    #endif
++
++        val16 = be16_to_cpu(chunk_sz);
++        XMEMCPY(&cmd[0], &val16, sizeof(val16)); /* chunk size */
++
++        rc = TPM2_IFX_FieldUpgradeCommand(TPM_CC_FieldUpgradeDataVendor,
++            cmd, 2 + chunk_sz);
++        if (rc != TPM_RC_SUCCESS) {
++            break;
++        }
++    }
++
++    if (rc == TPM_RC_SUCCESS) {
++        /* Give the TPM time to start the new firmware */
++        XSLEEP_MS(300);
++
++    #if !defined(WOLFTPM_LINUX_DEV) && !defined(WOLFTPM_SWTPM) && \
++        !defined(WOLFTPM_WINAPI)
++        /* Do chip startup and request locality again */
++        rc = TPM2_ChipStartup(&dev->ctx, 10);
++    #endif
++    }
++#ifdef DEBUG_WOLFTPM
++    else {
++        printf("Firmware upgrade data failed 0x%x: %s\n",
++            rc, TPM2_GetRCString(rc));
++    }
++#endif
++    return rc;
++}
++
++static int tpm2_ifx_firmware_final(WOLFTPM2_DEV* dev)
++{
++    int rc;
++    uint8_t cmd[2];
++    uint16_t val16;
++
++    (void)dev;
++
++    val16 = 0;
++    XMEMCPY(&cmd[0], &val16, sizeof(val16)); /* data size */
++
++    rc = TPM2_IFX_FieldUpgradeCommand(TPM_CC_FieldUpgradeFinalizeVendor,
++        cmd, sizeof(cmd));
++#ifdef DEBUG_WOLFTPM
++    if (rc != TPM_RC_SUCCESS) {
++        printf("Firmware finalize failed 0x%x: %s\n",
++            rc, TPM2_GetRCString(rc));
++    }
++#endif
++    return rc;
++}
++
++int wolfTPM2_FirmwareUpgrade(WOLFTPM2_DEV* dev,
++    uint8_t* manifest, uint32_t manifest_sz,
++    wolfTPM2FwDataCb cb, void* cb_ctx)
++{
++    int rc;
++    WOLFTPM2_CAPS caps;
++    TPM_ALG_ID hashAlg;
++    uint8_t  manifest_hash[TPM_SHA384_DIGEST_SIZE];
++    uint32_t manifest_hash_sz = (uint32_t)sizeof(manifest_hash);
++
++    /* Can use SHA2-384 or SHA2-512 for manifest hash */
++    hashAlg = TPM_ALG_SHA384;
++
++    /* check the operational mode */
++    rc = wolfTPM2_GetCapabilities(dev, &caps);
++    if (rc == TPM_RC_SUCCESS) {
++        if (caps.opMode == 0x03) {
++            /* firmware update is done, just needs finalized and TPM reset */
++        #ifdef DEBUG_WOLFTPM
++            printf("Firmware update done, finalizing\n");
++        #endif
++            return tpm2_ifx_firmware_final(dev);
++        }
++    }
++
++    if (rc == TPM_RC_SUCCESS) {
++        /* hash the manifest */
++        rc = wc_Sha384Hash(manifest, manifest_sz, manifest_hash);
++    }
++    if (rc == TPM_RC_SUCCESS) {
++        rc = tpm2_ifx_firmware_enable_policy(dev);
++    }
++    if (rc == TPM_RC_SUCCESS) {
++        rc = tpm2_ifx_firmware_start(dev, hashAlg, manifest_hash, manifest_hash_sz);
++    }
++    if (rc == TPM_RC_SUCCESS) {
++        rc = tpm2_ifx_firmware_manifest(dev, manifest, manifest_sz);
++    }
++    if (rc == TPM_RC_SUCCESS) {
++        rc = tpm2_ifx_firmware_data(dev, cb, cb_ctx);
++    }
++    if (rc == TPM_RC_SUCCESS) {
++        rc = tpm2_ifx_firmware_final(dev);
++    }
++#ifdef DEBUG_WOLFTPM
++    if (rc != TPM_RC_SUCCESS) {
++        printf("Firmware update failed 0x%x: %s\n",
++            rc, TPM2_GetRCString(rc));
++    }
++#endif
++    return rc;
++}
++
++/* terminate a firmware update */
++int wolfTPM2_FirmwareUpgradeCancel(WOLFTPM2_DEV* dev)
++{
++    int rc;
++    uint8_t cmd[2];
++    uint16_t val16;
++
++    (void)dev;
++
++    val16 = 0; /* data size */
++    XMEMCPY(&cmd[0], &val16, sizeof(val16));
++
++    rc = TPM2_IFX_FieldUpgradeCommand(TPM_CC_FieldUpgradeAbandonVendor,
++        cmd, sizeof(cmd));
++#ifdef DEBUG_WOLFTPM
++    if (rc != TPM_RC_SUCCESS) {
++        printf("Firmware abandon failed 0x%x: %s\n",
++            rc, TPM2_GetRCString(rc));
++    }
++#endif
++    return rc;
++}
++
++#endif /* WOLFTPM_SLB9672 || WOLFTPM_SLB9673 */
++#endif /* WOLFTPM_FIRMWARE_UPGRADE */
++
++/******************************************************************************/
++/* --- END Firmware Upgrade Support -- */
++/******************************************************************************/
++
+ #endif /* !WOLFTPM2_NO_WRAPPER */
 diff --git a/tests/unit_tests.c b/tests/unit_tests.c
 index ab2fffe..301db1b 100644
 --- a/tests/unit_tests.c
@@ -3416,7 +5582,7 @@ index ab2fffe..301db1b 100644
  #include <wolftpm/tpm2.h>
  #include <wolftpm/tpm2_wrap.h>
 diff --git a/wolftpm/tpm2.h b/wolftpm/tpm2.h
-index 63288ae..2586461 100644
+index 63288ae..5dd01cd 100644
 --- a/wolftpm/tpm2.h
 +++ b/wolftpm/tpm2.h
 @@ -66,15 +66,13 @@ typedef UINT32 TPM_GENERATED;
@@ -3442,7 +5608,21 @@ index 63288ae..2586461 100644
  
  
  typedef enum {
-@@ -649,37 +647,38 @@ typedef enum {
+@@ -263,6 +261,13 @@ typedef enum {
+     TPM_CC_NTC2_PreConfig           = CC_VEND + 0x0211,
+     TPM_CC_NTC2_GetConfig           = CC_VEND + 0x0213,
+ #endif
++#if defined(WOLFTPM_SLB9672) || defined(WOLFTPM_SLB9673)
++    TPM_CC_FieldUpgradeStartVendor    = CC_VEND + 0x12F,
++    TPM_CC_FieldUpgradeAbandonVendor  = CC_VEND + 0x130,
++    TPM_CC_FieldUpgradeManifestVendor = CC_VEND + 0x131,
++    TPM_CC_FieldUpgradeDataVendor     = CC_VEND + 0x132,
++    TPM_CC_FieldUpgradeFinalizeVendor = CC_VEND + 0x133,
++#endif
+ } TPM_CC_T;
+ typedef UINT32 TPM_CC;
+ 
+@@ -649,37 +654,38 @@ typedef enum {
  typedef UINT32 TPM_RH;
  
  /* Handle Value Constants */
@@ -3512,7 +5692,7 @@ index 63288ae..2586461 100644
  typedef UINT32 TPM_HC;
  
  
-@@ -741,13 +740,14 @@ enum TPMA_PERMANENT_mask {
+@@ -741,13 +747,14 @@ enum TPMA_PERMANENT_mask {
  };
  
  typedef UINT32 TPMA_STARTUP_CLEAR;
@@ -3534,7 +5714,15 @@ index 63288ae..2586461 100644
  
  typedef UINT32 TPMA_MEMORY;
  enum TPMA_MEMORY_mask {
-@@ -1122,7 +1122,7 @@ typedef struct TPMT_SYM_DEF {
+@@ -1017,6 +1024,7 @@ typedef union TPMU_CAPABILITIES {
+     TPML_TAGGED_PCR_PROPERTY pcrProperties; /* TPM_CAP_PCR_PROPERTIES */
+     TPML_ECC_CURVE eccCurves; /* TPM_CAP_ECC_CURVES */
+     TPML_TAGGED_POLICY authPolicies; /* TPM_CAP_AUTH_POLICIES */
++    TPM2B_MAX_BUFFER vendor;
+ } TPMU_CAPABILITIES;
+ 
+ typedef struct TPMS_CAPABILITY_DATA {
+@@ -1122,7 +1130,7 @@ typedef struct TPMT_SYM_DEF {
      TPMI_ALG_SYM algorithm;
      TPMU_SYM_KEY_BITS keyBits;
      TPMU_SYM_MODE mode;
@@ -3543,7 +5731,7 @@ index 63288ae..2586461 100644
  } TPMT_SYM_DEF;
  
  typedef TPMT_SYM_DEF TPMT_SYM_DEF_OBJECT;
-@@ -1493,10 +1493,12 @@ typedef struct TPM2B_ID_OBJECT {
+@@ -1493,10 +1501,12 @@ typedef struct TPM2B_ID_OBJECT {
  /* NV Storage Structures */
  
  typedef UINT32 TPM_NV_INDEX;
@@ -3560,7 +5748,7 @@ index 63288ae..2586461 100644
  
  typedef enum TPM_NT {
      TPM_NT_ORDINARY = 0x0,
-@@ -1514,30 +1516,31 @@ typedef struct TPMS_NV_PIN_COUNTER_PARAMETERS {
+@@ -1514,30 +1524,31 @@ typedef struct TPMS_NV_PIN_COUNTER_PARAMETERS {
  } TPMS_NV_PIN_COUNTER_PARAMETERS;
  
  typedef UINT32 TPMA_NV;
@@ -3616,6 +5804,68 @@ index 63288ae..2586461 100644
  
  typedef struct TPMS_NV_PUBLIC {
      TPMI_RH_NV_INDEX nvIndex;
+@@ -2818,7 +2829,22 @@ WOLFTPM_API TPM_RC TPM2_NV_Certify(NV_Certify_In* in, NV_Certify_Out* out);
+      * error is returned, but the TPM returns as much data as a TPM2B_DATA
+      * buffer can contain. */
+     WOLFTPM_API TPM_RC TPM2_GetRandom2(GetRandom2_In* in, GetRandom2_Out* out);
+-#endif
++
++    WOLFTPM_API TPM_RC TPM2_GetProductInfo(uint8_t* info, uint16_t size);
++#endif /* ST33 Vendor Specific */
++
++
++#if defined(WOLFTPM_SLB9672) || defined(WOLFTPM_SLB9673) || \
++    defined(WOLFTPM_AUTODETECT)
++
++#ifdef WOLFTPM_FIRMWARE_UPGRADE
++WOLFTPM_API int TPM2_IFX_FieldUpgradeStart(TPM_HANDLE sessionHandle,
++    uint8_t* data, uint32_t size);
++WOLFTPM_API int TPM2_IFX_FieldUpgradeCommand(TPM_CC cc, uint8_t* data, uint32_t size);
++#endif /* WOLFTPM_FIRMWARE_UPGRADE */
++
++#endif /* Infineon SLB Vendor Specific */
++
+ 
+ /* Vendor Specific GPIO */
+ #ifdef WOLFTPM_ST33
+@@ -2954,8 +2980,7 @@ WOLFTPM_API TPM_RC TPM2_NV_Certify(NV_Certify_In* in, NV_Certify_Out* out);
+         CFG_STRUCT preConfig;
+     } NTC2_GetConfig_Out;
+     WOLFTPM_API int TPM2_NTC2_GetConfig(NTC2_GetConfig_Out* out);
+-
+-#endif /* WOLFTPM_ST33 || WOLFTPM_AUTODETECT */
++#endif /* Vendor GPIO Commands */
+ 
+ 
+ /* Non-standard API's */
+diff --git a/wolftpm/tpm2_packet.h b/wolftpm/tpm2_packet.h
+index 76ac00a..fa9da7f 100644
+--- a/wolftpm/tpm2_packet.h
++++ b/wolftpm/tpm2_packet.h
+@@ -30,6 +30,23 @@
+ 
+ #define TPM2_HEADER_SIZE 10 /* expected TPM2 header size */
+ 
++/* Endianess Helpers */
++#ifdef LITTLE_ENDIAN_ORDER
++    #define cpu_to_be16(d) ByteReverseWord16(d)
++    #define cpu_to_be32(d) ByteReverseWord32(d)
++    #define cpu_to_be64(d) ByteReverseWord64(d)
++    #define be16_to_cpu(d) ByteReverseWord16(d)
++    #define be32_to_cpu(d) ByteReverseWord32(d)
++    #define be64_to_cpu(d) ByteReverseWord64(d)
++#else
++    #define cpu_to_be16(d) (d)
++    #define cpu_to_be32(d) (d)
++    #define cpu_to_be64(d) (d)
++    #define be16_to_cpu(d) (d)
++    #define be32_to_cpu(d) (d)
++    #define be64_to_cpu(d) (d)
++#endif
++
+ /* For reference here is the TPM2 header (not used) */
+ typedef struct TPM2_HEADER {
+     UINT16 tag;
 diff --git a/wolftpm/tpm2_socket.h b/wolftpm/tpm2_socket.h
 index d011426..0515eab 100644
 --- a/wolftpm/tpm2_socket.h
@@ -3629,7 +5879,7 @@ index d011426..0515eab 100644
      #define SOCKET_T int
  #endif
 diff --git a/wolftpm/tpm2_types.h b/wolftpm/tpm2_types.h
-index 7f4b93d..aa81435 100644
+index 7f4b93d..82333dd 100644
 --- a/wolftpm/tpm2_types.h
 +++ b/wolftpm/tpm2_types.h
 @@ -22,10 +22,6 @@
@@ -3672,7 +5922,77 @@ index 7f4b93d..aa81435 100644
      #define XSTRTOL(s,e,b)    strtol((s),(e),(b))
      #define XATOI(s)          atoi((s))
  
-@@ -718,7 +699,7 @@ static inline word16 ByteReverseWord16(word16 value)
+@@ -327,13 +308,19 @@ typedef int64_t  INT64;
+         #define TPM2_SPI_MAX_HZ TPM2_SPI_MAX_HZ_NUVOTON
+     #endif
+ #else
+-    /* Infineon OPTIGA SLB9670/SLB9672 */
++    /* Infineon OPTIGA SLB9670/SLB9672/SLB9673 */
+     #ifdef WOLFTPM_SLB9670
+         /* Max: 43MHz */
+         #define TPM2_SPI_MAX_HZ_INFINEON 43000000
+-    #else
+-        #undef  WOLFTPM_SLB9672
+-        #define WOLFTPM_SLB9672
++    #elif !defined(WOLFTPM_AUTODETECT)
++        #ifdef WOLFTPM_I2C
++            #undef  WOLFTPM_SLB9673
++            #define WOLFTPM_SLB9673
++        #else
++            #undef  WOLFTPM_SLB9672
++            #define WOLFTPM_SLB9672
++        #endif
++
+         /* Max: 33MHz */
+         #define TPM2_SPI_MAX_HZ_INFINEON 33000000
+     #endif
+@@ -460,6 +447,29 @@ typedef int64_t  INT64;
+     #define XTPM_WAIT() /* just poll without delay by default */
+ #endif
+ 
++/* sleep helper, used in firmware update */
++#ifndef XSLEEP_MS
++    #ifdef WIN32
++        #include <windows.h>
++        #define XSLEEP_MS(ms) Sleep(ms)
++    #elif defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 199309L
++        #include <time.h>
++        #define XSLEEP_MS(ms) ({ \
++            struct timespec ts; \
++            ts.tv_sec = ms / 1000; \
++            ts.tv_nsec = (ms % 1000) * 1000000; \
++            nanosleep(&ts, NULL); \
++        })
++    #else
++        #include <unistd.h>
++        #define XSLEEP_MS(ms) ({ \
++            if (ms >= 1000) \
++                sleep(ms / 1000); \
++            usleep((ms % 1000) * 1000); \
++        })
++    #endif
++#endif
++
+ #ifndef BUFFER_ALIGNMENT
+ #define BUFFER_ALIGNMENT 4
+ #endif
+@@ -664,6 +674,15 @@ typedef int64_t  INT64;
+     #define WOLFTPM2_PEM_DECODE
+ #endif
+ 
++/* Firmware upgrade requires wolfCrypt for hash and supported
++ * only for Infineon SLB9672/SLB9673 */
++#if defined(WOLFTPM_FIRMWARE_UPGRADE) && \
++    (defined(WOLFTPM2_NO_WOLFCRYPT) || \
++     (!defined(WOLFTPM_SLB9672) && !defined(WOLFTPM_SLB9673)))
++    #undef WOLFTPM_FIRMWARE_UPGRADE
++#endif
++
++
+ /* ---------------------------------------------------------------------------*/
+ /* ENDIANESS HELPERS */
+ /* ---------------------------------------------------------------------------*/
+@@ -718,7 +737,7 @@ static inline word16 ByteReverseWord16(word16 value)
  
  static inline word32 ByteReverseWord32(word32 value)
  {
@@ -3681,7 +6001,7 @@ index 7f4b93d..aa81435 100644
      return (word32)__builtin_bswap32(value);
  #elif defined(PPC_INTRINSICS)
      /* PPC: load reverse indexed instruction */
-@@ -758,7 +739,7 @@ static inline word32 ByteReverseWord32(word32 value)
+@@ -758,7 +777,7 @@ static inline word32 ByteReverseWord32(word32 value)
  
  static inline word64 ByteReverseWord64(word64 value)
  {
@@ -3691,10 +6011,23 @@ index 7f4b93d..aa81435 100644
  #else
      return (word64)((word64)ByteReverseWord32((word32)value)) << 32 |
 diff --git a/wolftpm/tpm2_wrap.h b/wolftpm/tpm2_wrap.h
-index e2d43d4..1fb3cc9 100644
+index e2d43d4..4889a27 100644
 --- a/wolftpm/tpm2_wrap.h
 +++ b/wolftpm/tpm2_wrap.h
-@@ -323,7 +323,7 @@ WOLFTPM_API int wolfTPM2_SelfTest(WOLFTPM2_DEV* dev);
+@@ -118,6 +118,12 @@ typedef struct WOLFTPM2_CAPS {
+     word16 fwVerMajor;
+     word16 fwVerMinor;
+     word32 fwVerVendor;
++#if defined(WOLFTPM_SLB9672) || defined(WOLFTPM_SLB9673)
++    word32 keyGroupId;
++    word16 fwCounter;
++    word16 fwCounterSame;
++    byte   opMode;
++#endif
+ 
+     /* bits */
+     word16 fips140_2 : 1; /* using FIPS mode */
+@@ -323,7 +329,7 @@ WOLFTPM_API int wolfTPM2_SelfTest(WOLFTPM2_DEV* dev);
  
  /*!
      \ingroup wolfTPM2_Wrappers
@@ -3703,7 +6036,7 @@ index e2d43d4..1fb3cc9 100644
  
      \return TPM_RC_SUCCESS: successful
      \return TPM_RC_FAILURE: generic failure (check TPM IO communication and TPM return code)
-@@ -351,6 +351,31 @@ WOLFTPM_API int wolfTPM2_SelfTest(WOLFTPM2_DEV* dev);
+@@ -351,6 +357,31 @@ WOLFTPM_API int wolfTPM2_SelfTest(WOLFTPM2_DEV* dev);
  */
  WOLFTPM_API int wolfTPM2_GetCapabilities(WOLFTPM2_DEV* dev, WOLFTPM2_CAPS* caps);
  
@@ -3735,7 +6068,7 @@ index e2d43d4..1fb3cc9 100644
  /*!
      \ingroup wolfTPM2_Wrappers
      \brief Clears one of the TPM Authorization slots, pointed by its index number
-@@ -520,7 +545,7 @@ WOLFTPM_API int wolfTPM2_StartSession(WOLFTPM2_DEV* dev,
+@@ -520,7 +551,7 @@ WOLFTPM_API int wolfTPM2_StartSession(WOLFTPM2_DEV* dev,
      \return TPM_RC_FAILURE: check TPM return code, check available handles, check TPM IO
  
      \param dev pointer to a TPM2_DEV struct
@@ -3744,7 +6077,7 @@ index e2d43d4..1fb3cc9 100644
  
      \sa wolfTPM2_SetAuthSession
      \sa wolfTPM2_StartSession
-@@ -837,6 +862,7 @@ WOLFTPM_API int wolfTPM2_ImportRsaPrivateKey(WOLFTPM2_DEV* dev,
+@@ -837,6 +868,7 @@ WOLFTPM_API int wolfTPM2_ImportRsaPrivateKey(WOLFTPM2_DEV* dev,
      \param rsaPrivSz integer value of word32 type, specifying the private material buffer size
      \param scheme value of TPMI_ALG_RSA_SCHEME type, specifying the RSA scheme
      \param hashAlg integer value of TPMI_ALG_HASH type, specifying a supported TPM 2.0 hash algorithm
@@ -3752,7 +6085,7 @@ index e2d43d4..1fb3cc9 100644
      \param seedSz Optional (use NULL) or supply a custom seed for KDF
      \param seed Size of the seed (use 32 bytes for SHA2-256)
  
-@@ -983,6 +1009,7 @@ WOLFTPM_API int wolfTPM2_ImportEccPrivateKey(WOLFTPM2_DEV* dev,
+@@ -983,6 +1015,7 @@ WOLFTPM_API int wolfTPM2_ImportEccPrivateKey(WOLFTPM2_DEV* dev,
      \param eccPubYSz integer value of word32 type, specifying the point Y buffer size
      \param eccPriv pointer to a byte buffer containing the private material
      \param eccPrivSz integer value of word32 type, specifying the private material size
@@ -3760,7 +6093,7 @@ index e2d43d4..1fb3cc9 100644
      \param seedSz Optional (use NULL) or supply a custom seed for KDF
      \param seed Size of the seed (use 32 bytes for SHA2-256)
  
-@@ -1189,6 +1216,24 @@ WOLFTPM_API int wolfTPM2_ImportPublicKeyBuffer(WOLFTPM2_DEV* dev, int keyType,
+@@ -1189,6 +1222,24 @@ WOLFTPM_API int wolfTPM2_ImportPublicKeyBuffer(WOLFTPM2_DEV* dev, int keyType,
      WOLFTPM2_KEY* key, int encodingType, const char* input, word32 inSz,
      TPMA_OBJECT objectAttributes);
  
@@ -3785,7 +6118,7 @@ index e2d43d4..1fb3cc9 100644
  #ifndef NO_RSA
  /*!
      \ingroup wolfTPM2_Wrappers
-@@ -1252,8 +1297,8 @@ WOLFTPM_API int wolfTPM2_RsaKey_TpmToWolf(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKe
+@@ -1252,8 +1303,8 @@ WOLFTPM_API int wolfTPM2_RsaKey_TpmToWolf(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKe
  
  /*!
      \ingroup wolfTPM2_Wrappers
@@ -3796,7 +6129,7 @@ index e2d43d4..1fb3cc9 100644
  
      \return TPM_RC_SUCCESS: successful
      \return TPM_RC_FAILURE: generic failure (check TPM IO and TPM return code)
-@@ -1264,6 +1309,7 @@ WOLFTPM_API int wolfTPM2_RsaKey_TpmToWolf(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKe
+@@ -1264,6 +1315,7 @@ WOLFTPM_API int wolfTPM2_RsaKey_TpmToWolf(WOLFTPM2_DEV* dev, WOLFTPM2_KEY* tpmKe
      \param pem pointer to an array of byte type, used as temporary storage for PEM conversation
      \param pemSz pointer to integer variable, to store the used buffer size
  
@@ -3804,7 +6137,7 @@ index e2d43d4..1fb3cc9 100644
      \sa wolfTPM2_RsaKey_TpmToWolf
      \sa wolfTPM2_RsaKey_WolfToTpm
  */
-@@ -1335,7 +1381,6 @@ WOLFTPM_API int wolfTPM2_RsaKey_PubPemToTpm(WOLFTPM2_DEV* dev,
+@@ -1335,7 +1387,6 @@ WOLFTPM_API int wolfTPM2_RsaKey_PubPemToTpm(WOLFTPM2_DEV* dev,
      \return TPM_RC_SUCCESS: successful
      \return TPM_RC_FAILURE: generic failure (check TPM IO and TPM return code)
  
@@ -3812,7 +6145,7 @@ index e2d43d4..1fb3cc9 100644
      \param der The der encoding of the content of the extension.
      \param derSz The size in bytes of the der encoding.
      \param pub pointer to a populated structure of TPM2B_PUBLIC type
-@@ -1432,7 +1477,6 @@ WOLFTPM_API int wolfTPM2_EccKey_WolfToPubPoint(WOLFTPM2_DEV* dev, ecc_key* wolfK
+@@ -1432,7 +1483,6 @@ WOLFTPM_API int wolfTPM2_EccKey_WolfToPubPoint(WOLFTPM2_DEV* dev, ecc_key* wolfK
      \return TPM_RC_SUCCESS: successful
      \return TPM_RC_FAILURE: generic failure (check TPM IO and TPM return code)
  
@@ -3820,7 +6153,17 @@ index e2d43d4..1fb3cc9 100644
      \param der The der encoding of the content of the extension.
      \param derSz The size in bytes of the der encoding.
      \param pub pointer to a populated structure of TPM2B_PUBLIC type
-@@ -2354,6 +2398,7 @@ WOLFTPM_API int wolfTPM2_UnloadHandles_AllTransient(WOLFTPM2_DEV* dev);
+@@ -1867,6 +1917,9 @@ WOLFTPM_API int wolfTPM2_NVWriteAuth(WOLFTPM2_DEV* dev, WOLFTPM2_NV* nv,
+ WOLFTPM_API int wolfTPM2_NVReadAuth(WOLFTPM2_DEV* dev, WOLFTPM2_NV* nv,
+     word32 nvIndex, byte* dataBuf, word32* pDataSz, word32 offset);
+ 
++WOLFTPM_API int wolfTPM2_NVReadCert(WOLFTPM2_DEV* dev, TPM_HANDLE handle,
++    uint8_t* buffer, uint32_t* len);
++
+ /*!
+     \ingroup wolfTPM2_Wrappers
+     \brief Increments an NV one-way counter
+@@ -2354,6 +2407,7 @@ WOLFTPM_API int wolfTPM2_UnloadHandles_AllTransient(WOLFTPM2_DEV* dev);
      \param publicTemplate pointer to an empty structure of TPMT_PUBLIC type, to store the new RSA template
      \param objectAttributes integer value of TPMA_OBJECT type, can contain one or more attributes, e.g. TPMA_OBJECT_fixedTPM
  
@@ -3828,7 +6171,7 @@ index e2d43d4..1fb3cc9 100644
      \sa wolfTPM2_GetKeyTemplate_ECC
      \sa wolfTPM2_GetKeyTemplate_Symmetric
      \sa wolfTPM2_GetKeyTemplate_KeyedHash
-@@ -2362,6 +2407,32 @@ WOLFTPM_API int wolfTPM2_UnloadHandles_AllTransient(WOLFTPM2_DEV* dev);
+@@ -2362,6 +2416,32 @@ WOLFTPM_API int wolfTPM2_UnloadHandles_AllTransient(WOLFTPM2_DEV* dev);
  WOLFTPM_API int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
      TPMA_OBJECT objectAttributes);
  
@@ -3861,7 +6204,7 @@ index e2d43d4..1fb3cc9 100644
  /*!
      \ingroup wolfTPM2_Wrappers
      \brief Prepares a TPM public template for new ECC key based on user selected object attributes
-@@ -2374,6 +2445,7 @@ WOLFTPM_API int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
+@@ -2374,6 +2454,7 @@ WOLFTPM_API int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
      \param curve integer value of TPM_ECC_CURVE type, specifying a TPM supported ECC curve ID
      \param sigScheme integer value of TPM_ALG_ID type, specifying a TPM supported signature scheme
  
@@ -3869,7 +6212,7 @@ index e2d43d4..1fb3cc9 100644
      \sa wolfTPM2_GetKeyTemplate_RSA
      \sa wolfTPM2_GetKeyTemplate_Symmetric
      \sa wolfTPM2_GetKeyTemplate_KeyedHash
-@@ -2382,6 +2454,30 @@ WOLFTPM_API int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
+@@ -2382,6 +2463,30 @@ WOLFTPM_API int wolfTPM2_GetKeyTemplate_RSA(TPMT_PUBLIC* publicTemplate,
  WOLFTPM_API int wolfTPM2_GetKeyTemplate_ECC(TPMT_PUBLIC* publicTemplate,
      TPMA_OBJECT objectAttributes, TPM_ECC_CURVE curve, TPM_ALG_ID sigScheme);
  
@@ -3900,7 +6243,7 @@ index e2d43d4..1fb3cc9 100644
  /*!
      \ingroup wolfTPM2_Wrappers
      \brief Prepares a TPM public template for new Symmetric key
-@@ -3359,6 +3455,7 @@ WOLFTPM_API int wolfTPM2_PolicyAuthorize(WOLFTPM2_DEV* dev, TPM_HANDLE sessionHa
+@@ -3359,6 +3464,7 @@ WOLFTPM_API int wolfTPM2_PolicyAuthorize(WOLFTPM2_DEV* dev, TPM_HANDLE sessionHa
      \return INPUT_SIZE_E: policyDigestSz is too small to hold the returned digest
      \return BAD_FUNC_ARG: check the provided arguments
  
@@ -3908,3 +6251,46 @@ index e2d43d4..1fb3cc9 100644
      \param pcrAlg the hash algorithm to use with pcr policy
      \param pcrArray array of pcr Index to use when creating the policy
      \param pcrArraySz the number of Index in the pcrArray
+@@ -3442,6 +3548,23 @@ WOLFTPM_API int wolfTPM2_PolicyAuthorizeMake(TPM_ALG_ID pcrAlg,
+     const byte* policyRef, word32 policyRefSz);
+ 
+ 
++/* pre-provisioned IAK and IDevID key/cert from TPM vendor */
++#ifdef WOLFTPM_MFG_IDENTITY
++
++/* Initial attestation key (IAK) and an initial device ID (IDevID) */
++/* Default is: ECDSA SECP384P1, SHA2-384 */
++#define TPM2_IAK_KEY_HANDLE     0x81080000
++#define TPM2_IAK_CERT_HANDLE    0x1C20100
++
++#define TPM2_IDEVID_KEY_HANDLE  0x81080001
++#define TPM2_IDEVID_CERT_HANDLE 0x1C20101
++
++WOLFTPM_API int wolfTPM2_SetIdentityAuth(WOLFTPM2_DEV* dev, WOLFTPM2_HANDLE* handle,
++    uint8_t* masterPassword, uint16_t masterPasswordSz);
++
++#endif /* WOLFTPM_MFG_IDENTITY */
++
++
+ /* Internal API's */
+ WOLFTPM_LOCAL int GetKeyTemplateRSA(TPMT_PUBLIC* publicTemplate,
+     TPM_ALG_ID nameAlg, TPMA_OBJECT objectAttributes, int keyBits, long exponent,
+@@ -3450,6 +3573,18 @@ WOLFTPM_LOCAL int GetKeyTemplateECC(TPMT_PUBLIC* publicTemplate,
+     TPM_ALG_ID nameAlg, TPMA_OBJECT objectAttributes, TPM_ECC_CURVE curve,
+     TPM_ALG_ID sigScheme, TPM_ALG_ID sigHash);
+ 
++
++#ifdef WOLFTPM_FIRMWARE_UPGRADE
++typedef int (*wolfTPM2FwDataCb)(
++    uint8_t* data, uint32_t data_req_sz, uint32_t offset, void* cb_ctx);
++
++WOLFTPM_API int wolfTPM2_FirmwareUpgrade(WOLFTPM2_DEV* dev,
++    uint8_t* manifest, uint32_t manifest_sz,
++    wolfTPM2FwDataCb cb, void* cb_ctx);
++WOLFTPM_API int wolfTPM2_FirmwareUpgradeCancel(WOLFTPM2_DEV* dev);
++
++#endif /* WOLFTPM_FIRMWARE_UPGRADE */
++
+ #ifdef __cplusplus
+     }  /* extern "C" */
+ #endif
