@@ -101,42 +101,32 @@ update() {
 }
 
 
+check_and_update() {
 
-printf "Checking version of wolfSSL to use..."
-get_current "wolfssl"
-get_new "wolfssl"
-update "wolfssl"
+printf "Checking version of ${1} to use..."
+get_current "${1}"
+get_new "${1}"
+update "${1}"
 
-printf "Checking version of wolfMQTT to use..."
-get_current "wolfmqtt"
-get_new "wolfmqtt"
-update "wolfmqtt"
+}
 
-printf "Checking version of wolfSSH to use..."
-get_current "wolfssh"
-get_new "wolfssh"
-update "wolfssh"
+check_and_update "wolfssl"
 
-printf "Checking version of wolfTPM to use..."
-get_current "wolftpm"
-get_new "wolftpm"
-update "wolftpm"
+check_and_update "wolfmqtt"
 
-printf "Checking version of wolfCLU to use..."
-get_current "wolfclu"
-get_new "wolfclu"
-update "wolfclu"
+check_and_update "wolfssh"
 
-printf "Checking version of wolfssl-py to use..."
-get_current "wolfssl-py"
-get_new "wolfssl-py"
-update "wolfssl-py"
+check_and_update "wolftpm"
 
+check_and_update "wolfclu"
 
-printf "Checking version of wolfcrypt-py to use..."
-get_current "wolfcrypt-py"
-get_new "wolfcrypt-py"
-update "wolfcrypt-py"
+check_and_update "wolfssl-py"
+
+check_and_update "wolfcrypt-py"
+
+check_and_update "wolfengine"
+
+check_and_update "wolfprovider"
 
 
 
