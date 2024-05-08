@@ -17,7 +17,9 @@ This layer currently provides recipes for the following wolfSSL products:
 
 These recipes have been tested using these versions of yocto:
 
+- Scarthgap     (v5.0)
 - Nanbield      (v4.3)
+- Langdale      (v4.1)
 - Kirkstone     (v4.0)
 - Hardknott     (v3.3)
 - Gatesgarth    (v3.2)
@@ -69,58 +71,39 @@ After installing your build's Yocto/OpenEmbedded components:
 
 
     2.  If you want to run `bitbake wolf*` on a particular recipe then it needs 
-        uncommented in `local.conf` located in `meta-wolfssl/conf/`. 
-
-        As an example if wolfssh is desired the following needs to occur:
-        From "meta-wolfssl" directory
+        to be added to the IMAGE_INSTALL.
+        This can be done by adding the following line to `local.conf` located in 
+        `path/to/poky/build/conf`. 
+        - For Dunfell and newer versions of Yocto:
         ```
-        $ vim conf/layer.conf
+        IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm "
         ```
-        Then look for the text:
-        ```
-        # Uncomment if building wolfssh with wolfssl
-        #BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
-        #            ${LAYERDIR}/recipes-wolfssl/wolfssh/*.bbappend"
-        ```
-        Then uncomment by removing the #, it should look like this afterwards
-        ```
-        # Uncomment if building wolfssh with wolfssl
-        BBFILES += "${LAYERDIR}/recipes-wolfssl/wolfssh/*.bb \
-               ${LAYERDIR}/recipes-wolfssl/wolfssh/*.bbappend"
-        ```
-
-        This needs to be done in order to preform a bitbake operation on any of the 
-        recipes. 
         
-        You should make sure to comment out recipes you don't want to use to 
-        avoid uneeded --enable-options in your wolfSSL version. wolfSSL is 
-        uncommented by default.
+        - For versions of Yocto older than Dunfell:
 
-        Once the recipes that need to be compiled are uncommented,
-        you can build the individual product/test recipes to make sure they 
-        compile successfully:
+        ```
+        IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm "
+        ```
 
         ```
         $ bitbake wolfssl
         $ bitbake wolfssh
         $ bitbake wolfmqtt
         $ bitbake wolftpm
-        $ bitbake wolfclu
+        $ bitbake wolfclu - This command would result in an error
         ```
+
 
 3.  Edit your build's local.conf file to install the recipes you would like
     to include (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) 
     
     - For Dunfell and newer versions of Yocto
-    IMAGE_INSTALL:append line:
 
     ```
     IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
     ```
     
     - For versions of Yocto older than Dunfell
-    IMAGE_INSTALL_append line:
-
     ```
     IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
     ```
