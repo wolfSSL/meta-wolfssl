@@ -48,7 +48,7 @@ This supports using `OpenSSH` version: 8.5p1, which was shipped with Yocto Hardk
 Socat
 -----
 
-This supports using `Socat` version: 1.7.3.4, which was shipped with Yocto Dunfell
+This supports using `Socat` version: 1.8.0.0, which was shipped with Yocto Dunfell
 
 - Usage:
     Change the line in the `meta-wolfssl/conf/layer.conf` from:

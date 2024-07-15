@@ -1,1 +1,2 @@
-EXTRA_OECONF += "--enable-opensslextra --enable-opensslall"
+EXTRA_OECONF += "--enable-maxfragment --enable-opensslall --enable-opensslextra --enable-dtls"
+
