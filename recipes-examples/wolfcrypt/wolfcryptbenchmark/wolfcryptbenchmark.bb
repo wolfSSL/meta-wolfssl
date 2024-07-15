@@ -6,11 +6,11 @@ BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
 SECTION = "x11/applications"
 
 LICENSE = "GPL-2.0-only"
-LIC_FILES_CHKSUM = "file://benchmark.c;beginline=1;endline=20;md5=aca0c406899b7421c67598ba3f55d1a5"
+LIC_FILES_CHKSUM = "file://benchmark.c;beginline=1;endline=20;md5=9438b59b0b9c7832e6d42d0677cec5a6"
 S = "${WORKDIR}/git/wolfcrypt/benchmark"
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=8970ff4c34034dbb3594943d11f8c9d4c5512bd5"
+SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=00e42151ca061463ba6a95adb2290f678cbca472"
 
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
