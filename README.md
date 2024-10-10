@@ -290,7 +290,6 @@ looks as follows:
 Testing Wolfssl-py and Wolfcrypt-py
 -----------------------------------
 
-
 To test the python wrapper for wolfSSL and wolfcrypt in a yocto build it will
 require python3, python3-pytest, python3-cffi and wolfSSL are built on the target system.
 
@@ -341,6 +340,79 @@ to add a DNS server to /etc/resolv.conf like such with root perms
 ```
 echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 ```
+
+wolfTPM examples 
+----------------
+
+Several wolfTPM example application recipes are included in this layer. These
+include:
+- attestation
+- gpio
+- pcr
+- tls
+- bench
+- boot
+- keygen
+- csr
+- endorsement
+- firmware
+- nvram
+- management
+- native
+- pkcs7
+- seal
+- wrap
+
+The recipes for these applications are located at:
+
+```
+meta-wolfssl/recipes-examples/wolftpm/wolftpm-examples.bb
+```
+
+This can be compiled with bitbake:
+
+```
+$ bitbake wolftpm-examples
+```
+
+To install these applications into your image, you will need to edit your
+"build/conf/local.conf" file and add them to the "IMAGE_INSTALL"
+variable. You would need to do something like this for wolfssl, wolftpm, and wolftpm-examples: 
+
+- For Dunfell and newer versions of Yocto
+```
+IMAGE_INSTALL:append = " wolfssl wolftpm wolftpm-examples "
+```
+
+- For versions of Yocto older than Dunfell
+```
+IMAGE_INSTALL_append = " wolfssl wolftpm wolftpm-examples "
+```
+
+When your image builds, these will be installed to the '/usr/bin' system
+directory. When inside your executing image, you can run them from the
+terminal.
+
+additional information
+----------------------
+
+Use to re-source your build environment
+``` 
+source ../poky/oe-init-build-env
+```
+
+Check for active bitbake processes 
+```
+ps aux | grep bitbake
+```
+
+to kill any processes 
+```
+kill <PID>
+```
+
+Dependencies and More
+---------------------
 
 wolfProvider
 ------------
