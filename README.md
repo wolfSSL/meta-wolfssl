@@ -393,24 +393,6 @@ When your image builds, these will be installed to the '/usr/bin' system
 directory. When inside your executing image, you can run them from the
 terminal.
 
-additional information
-----------------------
-
-Use to re-source your build environment
-``` 
-source ../poky/oe-init-build-env
-```
-
-Check for active bitbake processes 
-```
-ps aux | grep bitbake
-```
-
-to kill any processes 
-```
-kill <PID>
-```
-
 Dependencies and More
 ---------------------
 

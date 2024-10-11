@@ -4,11 +4,11 @@ HOMEPAGE = "https://www.wolfssl.com/products/wolfssl"
 
 LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
-SRC_URI = "git://github.com/wolfSSL/wolfTPM/examples.git;nobranch=1;protocol=https;rev=a5f6c912ac6903872d9666238440a76bc9f92517"
+SRC_URI = "git://github.com/wolfSSL/wolfTPM.git;nobranch=1;protocol=https;rev=a5f6c912ac6903872d9666238440a76bc9f92517"
 
 DEPENDS += "wolfssl wolftpm"
 
-S = "${WORKDIR}/git/wolfTPM/examples"
+S = "${WORKDIR}/git"
 
 do_compile() {
     # Iterate through each directory and compile C files
