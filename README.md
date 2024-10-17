@@ -344,24 +344,9 @@ echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 wolfTPM Examples 
 ----------------
 
-Several wolfTPM example application recipes are included in this layer. These
-include:
-- attestation
-- gpio
-- pcr
-- tls
-- bench
-- boot
-- keygen
-- csr
-- endorsement
-- firmware
-- nvram
-- management
-- native
-- pkcs7
-- seal
-- wrap
+Several wolfTPM example application recipes are included in this layer. These include:
+
+TODO
 
 The recipes for these applications are located at:
 ```
