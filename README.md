@@ -341,51 +341,6 @@ to add a DNS server to /etc/resolv.conf like such with root perms
 echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 ```
 
-wolfTPM Examples 
-----------------
-
-Several wolfTPM example application recipes are included in this layer. These include:
-
-TODO
-
-The recipes for these applications are located at:
-```
-meta-wolfssl/recipes-wolfssl/wolftpm/wolftpm_%.bbappend
-```
-
-This can be compiled with bitbake using:
-
-```
-$ bitbake wolftpm
-```
-
-To install wolfTPM examples into your image, you will need to edit your
-"build/conf/local.conf" file with the neccesary options. There are two 
-steps needed in order to install wolfTPM's examples into your image.
-
-1. You need to first add wolfTPM to your "IMAGE_INSTALL" variable like so:
-
-- For Dunfell and newer versions of Yocto
-```
-IMAGE_INSTALL:append = " wolftpm "
-```
-
-- For versions of Yocto older than Dunfell
-```
-IMAGE_INSTALL_append = " wolftpm "
-```
-
-When your image builds, these will be installed to the '/usr/bin' system
-directory. When inside your executing image, you can run them from the
-terminal.
-
-2. You then need to enable the examples in your image by
-setting `ENABLE_WOLFTPM_EXAMPLES` to 1 in your local.conf like so:
-
-```
-ENABLE_WOLFTPM_EXAMPLES = "1"
-```
-
 wolfProvider
 ------------
 To build wolfProvider view the instructions in this [README](recipes-wolfssl/wolfprovider/README.md)
