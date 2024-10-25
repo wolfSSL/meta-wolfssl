@@ -1,8 +1,8 @@
 wolfTPM Examples 
 ================
 
-Several wolfTPM example applications are included
-in this layer, these include:
+Several wolfTPM example applications are included in this
+layer, these include:
 
 - attestation
 - endorsement
@@ -33,10 +33,9 @@ This can be compiled with bitbake using:
 $ bitbake wolftpm
 ```
 
-To install these applications into your image,
-you will need to edit your "build/conf/local.conf"
-file and add them to the "IMAGE_INSTALL" variable
-like so:
+To install these applications into your image, you will 
+need to edit your "build/conf/local.conf" file and add 
+them to the "IMAGE_INSTALL" variable like so:
 
 - For Dunfell and newer versions of Yocto
 ```
@@ -48,15 +47,20 @@ IMAGE_INSTALL:append = " wolftpm "
 IMAGE_INSTALL_append = " wolftpm "
 ```
 
-When your image builds, these will be installed
-to the `/usr/bin/examples` system directory. When
-inside your executing image, you can run them from
-the terminal. 
+When your image builds, these will be installed to the 
+`/usr/bin/examples` system directory. When inside your
+executing image, you can run them from the terminal. 
+For example, we can run the wrap test like so from the 
+examples directory:
 
-The examples can be excluded from your build by 
-deleting the recipe `wolftpm_%bbappend`.
+```
+$ cd wrap
+$ ./wrap_test
+```
 
-Refer to the [wolfTPM Examples README](https://github.com/wolfSSL/wolfTPM/blob/master/examples/README.md) 
-for more information on the examples directory. 
-Refer to the [meta-wolfssl README](https://github.com/wolfSSL/meta-wolfssl/blob/master/README.md)
-for more information on setting up your layer.
+The examples can be excluded from your build by deleting
+the recipe `wolftpm_%bbappend`.
+
+Refer to the [wolfTPM Examples README](https://github.com/wolfSSL/wolfTPM/blob/master/examples/README.md) for more information on the examples directory.
+
+Refer to the [meta-wolfssl README](https://github.com/wolfSSL/meta-wolfssl/blob/master/README.md) for more information on setting up your layer.

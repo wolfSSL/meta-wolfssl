@@ -341,6 +341,65 @@ to add a DNS server to /etc/resolv.conf like such with root perms
 echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 ```
 
+Running Image on the QEMU
+-------------------------
+
+To run meta-wolfssl image on the QEMU (Quick EMUlator) you can follow these
+general steps. For this example we will use the Yocto Project Poky.
+
+1. Initialize the Build
+This can be done by running these commands:
+
+```
+$ cd poky
+$ source oe-init-build-env
+```
+
+This will initialize the build environment and let you run
+bitbake in the build directory.
+
+2. Run bitbake
+Next you can run bitbake to build the OS image that you want. Make sure
+you have the correct variables added in the `local.conf` For this example 
+we will run `core-image-base`. Which can be built by running this comamnd 
+from the `build` directoy:
+
+```
+$ bitbake core-image-base
+```
+
+This will run bitbake and build the image with your added 
+meta-wolfssl recipes.
+
+3. Run the Image in QEMU
+You can now simulate your image with the QEMU This can be done by running
+the qemu that comes in your Yocto Project the default system is usually 
+`qemux86-64` but you can find what its set to by looking at your `local.conf`.
+We can run this command to start the emulator:
+
+```
+$ runqemu qemux86-64
+```
+
+4. Run Your Recipes
+Now that you are in the QEMU you can navigate your way to the `usr/bin`
+directory which contains the your wolfssl your applications. Lets say we 
+included these images in our `local.conf`
+
+```
+IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark "
+```
+
+In that case we can run wolfcrypttest and wolfcryptbenchmark examples from
+the `usr/bin` directory like so:
+
+```
+$ ./wolfcrypttest
+$ ./wolfcryptbenchmark
+```
+
+This will run the wolfcrypt test and benchmark examples from the QEMU. 
+
 wolfProvider
 ------------
 To build wolfProvider view the instructions in this [README](recipes-wolfssl/wolfprovider/README.md)
