@@ -24,42 +24,43 @@ layer, these include:
 
 The recipe for these applications is located at:
 ```
-meta-wolfssl/recipes-examples/wolftpm/wolftpm_%.bbappend
+meta-wolfssl/recipes-examples/wolftpm/wolftpm-examples.bb
 ```
 
-This can be compiled with bitbake using:
+You'll need to compile wolTPM and the examples directory. 
+This can be done with these commands in the build directory:
 
 ```
 $ bitbake wolftpm
+$ bitbake wolftpm-examples
 ```
 
 To install these applications into your image, you will 
 need to edit your "build/conf/local.conf" file and add 
-them to the "IMAGE_INSTALL" variable like so:
+`wolftpm` and `wolftpm-examples` to your "IMAGE_INSTALL"
+variable like so:
 
 - For Dunfell and newer versions of Yocto
 ```
-IMAGE_INSTALL:append = " wolftpm "
+IMAGE_INSTALL:append = " wolftpm wolftpm-examples"
 ```
 
 - For versions of Yocto older than Dunfell
 ```
-IMAGE_INSTALL_append = " wolftpm "
+IMAGE_INSTALL_append = " wolftpm wolftpm-examples"
 ```
 
 When your image builds, these will be installed to the 
 `/usr/bin/examples` system directory. When inside your
 executing image, you can run them from the terminal. 
-For example, we can run the wrap test like so from the 
-examples directory:
+
+For example, we can run the benchmark from the examples
+directory like so:
 
 ```
-$ cd wrap
-$ ./wrap_test
+$ cd bench
+$ ./bench
 ```
-
-The examples can be excluded from your build by deleting
-the recipe `wolftpm_%bbappend`.
 
 Refer to the [wolfTPM Examples README](https://github.com/wolfSSL/wolfTPM/blob/master/examples/README.md) for more information on the examples directory.
 
