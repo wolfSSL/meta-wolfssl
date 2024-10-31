@@ -13,7 +13,7 @@ SECTION = "libs"
 LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://LICENSING.rst;md5=e4abd0c56c3f6dc95a7a7eed4c77414b"
 
-SRC_URI = "git://github.com/wolfSSL/wolfcrypt-py.git;nobranch=1;protocol=https;rev=b74b0687a856237bc1b83b596c5c9a6991129d1b"
+SRC_URI = "git://github.com/wolfSSL/wolfcrypt-py.git;nobranch=1;protocol=https;rev=822e5654fd0ca8cfdddb374a9b7d1c7945ced2bb"
 
 
 DEPENDS += " wolfssl \
