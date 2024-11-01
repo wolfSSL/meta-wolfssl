@@ -10,7 +10,10 @@ DEPENDS += "util-linux-native"
 PROVIDES += "wolfprovider"
 RPROVIDES_${PN} = "wolfprovider"
 
-SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=4ca5086fd5fccefc6f65167523fd4babcf1b8f59"
+SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=4ca5086fd5fccefc6f65167523fd4babcf1b8f59 \
+           https://github.com/wolfSSL/wolfProvider/pull/54.patch;name=pr54"
+
+SRC_URI[pr54.sha256sum] = "07f4f2552274b8b9ea86e4cc6aefe6cbcbf35d4b7aed3f2bde8a767057dc6cd4"
 
 DEPENDS += " wolfssl \
             openssl \
@@ -18,6 +21,7 @@ DEPENDS += " wolfssl \
 
 inherit autotools pkgconfig
 
+S = "${WORKDIR}/git"
 OPENSSL_YOCTO_DIR = "${COMPONENTS_DIR}/${PACKAGE_ARCH}/openssl/usr"
 
 # Approach: Use Python to dynamically set function content based on Yocto version
