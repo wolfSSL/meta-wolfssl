@@ -1,23 +1,24 @@
-SUMMARY = "wolfSSH Lightweight SSH Library"
-DESCRIPTION = "wolfSSH is a lightweight SSHv2 library written in ANSI C and \
-               targeted for embedded, RTOS, and resource-constrained \
-               environments. wolfSSH supports client and server sides, and \
-               includes support for SCP and SFTP."
-HOMEPAGE = "https://www.wolfssl.com/products/wolfssh"
-BUGTRACKER = "https://github.com/wolfssl/wolfssh/issues"
+SUMMARY = "wolfTPM Portable TPM 2.0 Library"
+DESCRIPTION = "wolfTPM is a portable TPM 2.0 project, designed for embedded \
+               use. It is highly portable, due to having been written in \
+               native C, having a single IO callback for hardware interface, \
+               no external dependencies, and its compact code with low \
+               resource use."
+HOMEPAGE = "https://www.wolfssl.com/products/wolftpm"
+BUGTRACKER = "https://github.com/wolfssl/wolftpm/issues"
 SECTION = "libs"
-LICENSE = "GPL-3.0-only"
-LIC_FILES_CHKSUM = "file://LICENSING;md5=2c2d0ee3db6ceba278dd43212ed03733"
+LICENSE = "GPL-2.0-only"
+LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfssh.git;nobranch=1;protocol=https;rev=bbba8aef04cc090805d6ca5cfe0fed1120044378"
+SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=251ec1188e41fa9a11c22d8109963fddf7bbba72"
 
 S = "${WORKDIR}/git"
 
 inherit autotools pkgconfig
 
-EXTRA_OECONF = "--with-wolfssl=${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
+EXTRA_OECONF = "--with-wolfcrypt=${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
 
 python() {
     distro_version = d.getVar('DISTRO_VERSION', True)
