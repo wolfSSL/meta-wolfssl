@@ -11,7 +11,10 @@ LIC_FILES_CHKSUM = "file://LICENSING;md5=2c2d0ee3db6ceba278dd43212ed03733"
 
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfssh.git;nobranch=1;protocol=https;rev=5305170672071dace24462b60ca656dddac1de91"
+SRC_URI = "git://github.com/wolfssl/wolfssh.git;nobranch=1;protocol=https;rev=5305170672071dace24462b60ca656dddac1de91 \
+           https://github.com/wolfSSL/wolfssh/pull/766.patch;name=pr766"
+
+SRC_URI[pr766.sha256sum] = "38a4cc4242c4e67f0ac4efadb93c90fc3b8ccbfec887f1b95744c1add02f503a"
 
 S = "${WORKDIR}/git"
 
