@@ -1,3 +1,4 @@
+#wolftpm-wrap-test.bb
 SUMMARY = "wolfTPM Examples Directory"
 DESCRIPTION = "wolfTPM examples directory used to demonstrate \
                features of a TPM 2.0 module"
@@ -15,7 +16,7 @@ SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=1f
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
 
-WOLFTPM_EXAMPLES_DIR = "${datadir}/wolftpm-examples"
+WOLFTPM_EXAMPLES_DIR = "${datadir}/wolftpm-test"
 WOLFTPM_EXAMPLES_INSTALL_DIR = "${D}${WOLFTPM_EXAMPLES_DIR}"
 WOLFTPM_EXAMPLES_README = "README.txt"
 WOLFTPM_EXAMPLES_README_DIR = "${WOLFTPM_EXAMPLES_INSTALL_DIR}/${WOLFTPM_EXAMPLES_README}"
@@ -26,7 +27,7 @@ python () {
     wolftpm_examples_install_dir = d.getVar('WOLFTPM_EXAMPLES_INSTALL_DIR', True)
     wolftpm_examples_readme_dir = d.getVar('WOLFTPM_EXAMPLES_README_DIR', True)
 
-    bb.note("Installing dummy file for wolfTPM examples")
+    bb.note("Installing dummy file for wolfTPM test example")
     installDir = 'install -m 0755 -d "%s"\n' % wolftpm_examples_install_dir
     makeDummy = 'echo "This is a dummy package" > "%s"\n' % wolftpm_examples_readme_dir
 
