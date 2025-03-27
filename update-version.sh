@@ -37,7 +37,7 @@ update() {
     if [ "$CURRENT" != "$NEW" ]; then
         printf "Updating from %s to %s for %s...\n" "$CURRENT" "$NEW" "$1"
         TAG="v$NEW-stable"
-        if [ "$1" = "wolfmqtt" ] || [ "$1" == "wolftpm" ]; then
+        if [ "$1" = "wolfmqtt" ] || [ "$1" == "wolftpm" ] || [ "$1" == "wolfprovider" ]; then
             TAG="v$NEW"
         fi
 
