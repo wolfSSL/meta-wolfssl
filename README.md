@@ -242,46 +242,6 @@ When your image builds, these will be installed to the '/usr/bin' system
 directory. When inside your executing image, you can run them from the
 terminal.
 
-wolfTPM Example Application Recipes
------------------------------------
-
-wolfTPM example `wrap_test` is included in this layer.
-
-The recipes for this applications are located at:
-```
-meta-wolfssl/recipes-examples/wolftpm/wolftpm-wrap-test.bb
-```
-
-You'll need to compile wolTPM and the example wrap_test. This can be done
-with these commands in the build directory:
-
-```
-$ bitbake wolftpm
-$ bitbake wolftpm-wrap-test
-```
-
-To install this applications into your image, you will need to edit your
-`build/conf/local.conf` file and add `wolftpm` and `wolftpm-wrap-test` to
-your "IMAGE_INSTALL" variable like so:
-
-- For Dunfell and newer versions of Yocto
-```
-IMAGE_INSTALL:append = " wolftpm wolftpm-wrap-test"
-```
-
-- For versions of Yocto older than Dunfell
-```
-IMAGE_INSTALL_append = " wolftpm wolftpm-wrap-test"
-```
-
-When your image builds, this will be installed to the `/usr/bin` system
-directory. When inside your executing image, you can run them from the
-terminal like so:
-
-```
-./wolftpm-wrap-test
-```
-
 Excluding Recipe from Build
 ---------------------------
 
