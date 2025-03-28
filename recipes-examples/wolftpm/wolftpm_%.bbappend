@@ -4,12 +4,10 @@ WOLFTPM_TEST = "wrap_test"
 WOLFTPM_TEST_YOCTO = "wolftpm-wrap-test"
 WOLFTPM_INSTALL_DIR = "${D}${bindir}"
 
-# Configurations
+# Configurations (--enable-devtpm is required for the TPM simulator to work)
 EXTRA_OECONF += "--enable-devtpm"
 
 python () {
-    # Current Configurations
-    bb.note("Current EXTRA_OECONF: %s" % d.getVar('EXTRA_OECONF'))
     # Get the environment variables WOLFTPM_TEST_DIR, WOLFTPM_TEST,
     # WOLFTPM_TEST_YOCTO, and WOLFTPM_INSTALL_DIR
     wolftpm_test_dir = d.getVar('WOLFTPM_TEST_DIR', True)
