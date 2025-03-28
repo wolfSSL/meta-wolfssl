@@ -37,12 +37,12 @@ update() {
     if [ "$CURRENT" != "$NEW" ]; then
         printf "Updating from %s to %s for %s...\n" "$CURRENT" "$NEW" "$1"
         TAG="v$NEW-stable"
-        if [ "$1" = "wolfmqtt" ] || [ "$1" == "wolftpm" ]; then
+        if [ "$1" = "wolfmqtt" ] || [ "$1" == "wolftpm" ] || [ "$1" == "wolfprovider" ]; then
             TAG="v$NEW"
         fi
 
         # Clone the new version repository
-        if ! git clone -b "$TAG" "git@github.com:wolfssl/$1" &> /dev/null; then
+        if ! git clone --depth 1 -b "$TAG" "git@github.com:wolfssl/$1" &> /dev/null; then
             printf "Error cloning %s. Skipping.\n" "$1"
             return
         fi
