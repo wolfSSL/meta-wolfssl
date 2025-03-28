@@ -26,7 +26,7 @@ These recipes have been tested using these versions of yocto:
 - Dunfell       (v3.1)
 - Zeus          (v3.0)
 - Thud          (v2.6)
-- Sumo          (v2.5)    
+- Sumo          (v2.5)
 
 The wolfSSL library recipe is also included in the openembedded meta-networking
 layer, located [here](https://github.com/openembedded/meta-openembedded/tree/master/meta-networking/recipes-connectivity/wolfssl).
@@ -52,7 +52,8 @@ git clone https://github.com/wolfSSL/meta-wolfssl.git
 
 After installing your build's Yocto/OpenEmbedded components:
 
-1.  Insert the 'meta-wolfssl' layer location into your build's bblayers.conf
+1.  Insert the 'meta-wolfssl' layer in `build/conf/bblayers.conf` location
+    into your build's bblayers.conf
     file, in the BBLAYERS section:
 
     ```
@@ -65,20 +66,20 @@ After installing your build's Yocto/OpenEmbedded components:
 
 2.  Once the 'meta-wolfssl' layer has been added to your BBLAYERS collection,
     you have two options
-   
-    1.  If you want to directly add wolfSSL recipes to your image recipe 
+
+    1.  If you want to directly add wolfSSL recipes to your image recipe
         proceed to step 3.
 
 
-    2.  If you want to run `bitbake wolf*` on a particular recipe then it needs 
+    2.  If you want to run `bitbake wolf*` on a particular recipe then it needs
         to be added to the IMAGE_INSTALL.
-        This can be done by adding the following line to `local.conf` located in 
-        `path/to/poky/build/conf`. 
+        This can be done by adding the following line to `local.conf` located in
+        `path/to/poky/build/conf`.
         - For Dunfell and newer versions of Yocto:
         ```
         IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm "
         ```
-        
+
         - For versions of Yocto older than Dunfell:
 
         ```
@@ -95,14 +96,14 @@ After installing your build's Yocto/OpenEmbedded components:
 
 
 3.  Edit your build's local.conf file to install the recipes you would like
-    to include (ie: wolfssl, wolfssh, wolfmqtt, wolftpm) 
-    
+    to include (ie: wolfssl, wolfssh, wolfmqtt, wolftpm)
+
     - For Dunfell and newer versions of Yocto
 
     ```
     IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
     ```
-    
+
     - For versions of Yocto older than Dunfell
     ```
     IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
@@ -112,8 +113,8 @@ After installing your build's Yocto/OpenEmbedded components:
     specific combination of recipes.
 
     If you did step 2.2 make sure you comment out recipes that you don't desire
-    because leaving them uncommented may add unneed --enable-* options in your 
-    build, which could increase the size of the build and turn on uneeded 
+    because leaving them uncommented may add unneed --enable-* options in your
+    build, which could increase the size of the build and turn on uneeded
     features.
 
 Once your image has been built, the default location for the wolfSSL library
@@ -198,8 +199,8 @@ This layer offers wolfSSL support for the following open source projects:
 - [curl](https://layers.openembedded.org/layerindex/recipe/5765/)
 - [OpenSSH](https://layers.openembedded.org/layerindex/recipe/5083/)
 
-Example Application Recipes
----------------------------
+wolfSSL Example Application Recipes
+-----------------------------------
 
 Several wolfSSL example application recipes are included in this layer. These
 include:
@@ -253,10 +254,10 @@ Wolfssl-py and Wolfcrypt-py Installation Requirements
 To use the python wrapper for wolfSSL and wolfcrypt in a yocto build it will
 require python3, python3-cffi and wolfSSL are built on the target system.
 
-If you are using older version of yocto (2.x) or (3.x), you will need to download 
+If you are using older version of yocto (2.x) or (3.x), you will need to download
 and add the meta-oe and meta-python recipes from openembedded's [meta-openembedded](https://github.com/openembedded/meta-openembedded) to the image.
 
-It will be necassary then to make sure at minimum that the IMAGE_INSTALL:append 
+It will be necassary then to make sure at minimum that the IMAGE_INSTALL:append
 looks as follows:
 
 - For Dunfell and newer versions of Yocto
@@ -290,11 +291,10 @@ looks as follows:
 Testing Wolfssl-py and Wolfcrypt-py
 -----------------------------------
 
-
 To test the python wrapper for wolfSSL and wolfcrypt in a yocto build it will
 require python3, python3-pytest, python3-cffi and wolfSSL are built on the target system.
 
-It will be necassary then to make sure at minimum that the IMAGE_INSTALL:append 
+It will be necassary then to make sure at minimum that the IMAGE_INSTALL:append
 looks as follows:
 
 
@@ -335,12 +335,73 @@ $ pytest
 
 This should then result in a pass or fail for the desired suit.
 
-If you are testing this with the core-image-minimal yocto build, make sure 
+If you are testing this with the core-image-minimal yocto build, make sure
 to add a DNS server to /etc/resolv.conf like such with root perms
 
 ```
 echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 ```
+
+Running Image on the QEMU
+-------------------------
+
+To run meta-wolfssl image on the QEMU (Quick EMUlator) you can follow these
+general steps. For this example we will use the Yocto Project Poky.
+Refer to:
+[Yocto Project](https://docs.yoctoproject.org/brief-yoctoprojectqs/index.html) for a detailed guide.
+
+1. Initialize the Build
+This can be done by running these commands:
+
+```
+$ cd poky
+$ source oe-init-build-env
+```
+
+This will initialize the build environment and let you run
+bitbake in the build directory.
+
+2. Run bitbake
+Next you can run bitbake to build the OS image that you want. Make sure
+you have the correct variables added in the `local.conf` For this example
+we will run `core-image-base`. Which can be built by running this comamnd
+from the `build` directoy:
+
+```
+$ bitbake core-image-base
+```
+
+This will run bitbake and build the image with your added
+meta-wolfssl recipes.
+
+3. Run the Image in QEMU
+You can now simulate your image with the QEMU This can be done by running
+the qemu that comes in your Yocto Project the default system is usually
+`qemux86-64` but you can find what its set to by looking at your `local.conf`.
+We can run this command to start the emulator:
+
+```
+$ runqemu qemux86-64
+```
+
+4. Run Your Recipes
+Now that you are in the QEMU you can navigate your way to the `usr/bin`
+directory which contains the your wolfssl your applications. Lets say we
+included these images in our `local.conf`
+
+```
+IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark "
+```
+
+In that case we can run wolfcrypttest and wolfcryptbenchmark examples from
+the `usr/bin` directory like so:
+
+```
+$ ./wolfcrypttest
+$ ./wolfcryptbenchmark
+```
+
+This will run the wolfcrypt test and benchmark examples from the QEMU.
 
 wolfProvider
 ------------
