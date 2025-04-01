@@ -29,7 +29,7 @@ for all layers.)
 
 ```bash
 git clone https://github.com/openembedded/meta-openembedded.git -b <YOCTO-VERSION>
-git clone https://github.com/ni/meta-security.git -b <YOCTO-VERSION>
+git clone https://git.yoctoproject.org/meta-security -b <YOCTO-VERSION>
 ```
 
 Add the following layers to your bblayers.conf file:
@@ -39,7 +39,9 @@ BBLAYERS ?= " \
   /path/to/yocto/poky/meta-security \
   /path/to/yocto/poky/meta-security/meta-tpm \
   /path/to/yocto/poky/meta-openembedded/meta-oe \
-  /path/to/yocto/poky/meta-openembedded/meta-python \`
+  /path/to/yocto/poky/meta-openembedded/meta-python \
+  /path/to/yocto/poky/meta-openembedded/meta-networking \
+  /path/to/yocto/poky/meta-openembedded/meta-perl \
   "
 ```
 
@@ -98,6 +100,11 @@ EXTRA_OECONF += "--enable-devtpm --enable-debug"
 Testing with QEMU and TPM Simulator
 -----------------------------------
 
+### Setting up Software TPM on Host Computer
+
+Follow these steps to setup the Software TPM on your host computer. This
+will allow you to run the wolfTPM wrap test inside the QEMU.
+
 1. Compile your target image
 ```
 bitbake core-image-minimal
@@ -150,7 +157,11 @@ runqemu qemux86-64 nographic core-image-minimal \
     -device tpm-tis,tpmdev=tpm0"
 ```
 
-8. Run the wolfTPM wrap test
+### Running wolfTPM wrap test on QEMU using Software TPM
+
+Now that the TPM is setup, we can run the wolfTPM wrap test inside the QEMU.
+
+1. Run the wolfTPM wrap test
 ```
 cd /usr/bin
 ./wolftpm-wrap-test
