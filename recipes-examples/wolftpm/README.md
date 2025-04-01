@@ -6,7 +6,7 @@ the TPM wrapper API functionality.
 
 The recipes for these applications are located at:
 ```
-meta-wolfssl/recipes-examples/wolftpm/wolftpm-examples.bb
+meta-wolfssl/recipes-examples/wolftpm/wolftpm_%.bbappend
 meta-wolfssl/recipes-examples/wolftpm/wolftpm-wrap-test.bb
 meta-wolfssl/recipes-examples/wolftpm/wolfssl_%.bbappend
 ```
@@ -51,7 +51,7 @@ System Requirements
 For Ubuntu/Debian systems, install the following packages:
 ```bash
 sudo apt-get install python3-git python3-jinja2 python3-setuptools \
-    swtpm swtpm-tools tpm2-tools git socat build-essential
+     swtpm swtpm-tools tpm2-tools git socat build-essential
 ```
 
 Image Install Configuration
