@@ -12,7 +12,7 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=2c1c00f9d3ed9e24fa69b932b7e7aff2"
 
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;nobranch=1;protocol=https;rev=90790bace462d554fe35cd3d973bfe3d95d75d61"
+SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;nobranch=1;protocol=https;rev=320ed37633f896cf2485c9c5f8bed3400ae8b4d5"
 
 
 S = "${WORKDIR}/git"
