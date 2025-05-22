@@ -1,0 +1,27 @@
+From 6657602f504e49d27b5aa667a5ed04076ac2c4f6 Mon Sep 17 00:00:00 2001
+From: Rosen Penev <rosenp@gmail.com>
+Date: Tue, 19 Jul 2022 19:22:20 -0700
+Subject: [PATCH] curl-wolfssl.m4: add options header when building test code
+
+Needed for certain configurations of wolfSSL. Otherwise, missing header
+error may occur.
+
+Tested with OpenWrt.
+
+Closes #9187
+---
+ m4/curl-wolfssl.m4 | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/m4/curl-wolfssl.m4 b/m4/curl-wolfssl.m4
+index 1f732e348ac2..9d6f561d803a 100644
+--- a/m4/curl-wolfssl.m4
++++ b/m4/curl-wolfssl.m4
+@@ -95,6 +95,7 @@ if test "x$OPT_WOLFSSL" != xno; then
+    They are set up properly later if it is detected.  */
+ #undef SIZEOF_LONG
+ #undef SIZEOF_LONG_LONG
++#include <wolfssl/options.h>
+ #include <wolfssl/ssl.h>
+ 	]],[[
+ 	  return wolfSSL_Init();
