@@ -13,7 +13,7 @@ S = "${WORKDIR}/${WOLF_SRC}"
 do_unpack[depends] += "p7zip-native:do_populate_sysroot"
 
 do_unpack() {
-    cp -f "${FILE_DIRNAME}/commercial/files/${WOLF_SRC}.7z" "${WORKDIR}"
+    cp -f "${COMMERCIAL_CONFIG_DIR}/files/${WOLF_SRC}.7z" "${WORKDIR}"
     7za x "${WORKDIR}/${WOLF_SRC}.7z" -p"${WOLF_SRC_PASS}" -o"${WORKDIR}" -aoa
 }
 
