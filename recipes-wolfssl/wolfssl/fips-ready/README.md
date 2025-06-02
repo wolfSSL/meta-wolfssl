@@ -25,7 +25,7 @@
 
 3. **Update the IMAGE_INSTALL and WOLFSSL_TYPE Variable**
 
-   Add `wolfssl` and `wolfcrypttest` to the `IMAGE_INSTALL` then add `fips-ready` to the `WOLFSSL_TYPE` variables in your recipe or `poky/conf/local.conf`. If using `poky/conf/local.conf`, append as follows:
+   Add `wolfssl` and `wolfcrypttest` to the `IMAGE_INSTALL` then add `fips-ready` to the `WOLFSSL_TYPE` variables in your recipe or `poky/build/conf/local.conf`. If using `poky/build/conf/local.conf`, append as follows:
    ```bash
    IMAGE_INSTALL:append = " wolfssl wolfcrypttest "
    WOLFSSL_TYPE = "fips-ready"
@@ -42,12 +42,12 @@
    cp /path/to/wolfssl-x.x.x-gplv3-fips-ready.zip /path/to/meta-wolfssl/recipes-wolfssl/wolfssl/fips-ready/files
    ```
 
-6. **Edit fips-ready-details/wolfssl_%.bbappend**
+6. **Edit/Add Variables to poky/build/conf/local.conf**
 
-    Using a test editor update the file `/path/to/meta-wolfssl/recipes-wolfssl/wolfssl/fips-ready/fips-ready-details/wolfssl_%.bbappend`
-    Update the variables:
+    Using a test editor update the file `poky/build/conf/local.conf`
+    Update/Add the variables:
     `WOLFSSL_VERSION = "x.x.x"`: x.x.x should be the version of the fips-ready bundle you downloaded. 
-    `WOLF_SRC_SHA = "<SHA_HASH>"`: `<SHA_HASH>` should be the sha hash posted under the bundle on the wolfssl download page.
+    `WOLFSSL_SRC_SHA = "<SHA_HASH>"`: `<SHA_HASH>` should be the sha hash posted under the bundle on the wolfssl download page.
 
 7. **Clean and Build wolfSSL and wolfcrypttest**
 
