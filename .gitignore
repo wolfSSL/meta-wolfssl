@@ -1,2 +1,3 @@
 .vscode/
 .vscode/*
+recipes-wolfssl/wolfssl/commercial/files/wolfssl*
