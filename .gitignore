@@ -1,3 +1,5 @@
 .vscode/
 .vscode/*
 recipes-wolfssl/wolfssl/commercial/files/wolfssl*
+*.7z
+*.zip

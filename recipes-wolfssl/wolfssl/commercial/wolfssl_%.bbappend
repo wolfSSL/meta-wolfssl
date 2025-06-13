@@ -3,18 +3,18 @@ COMMERCIAL_CONFIG_DIR := "${@os.path.dirname(d.getVar('FILE', True))}"
 LICENSE="Proprietary"                                                           
 LIC_FILES_CHKSUM="file://${WOLF_LICENSE};md5=${WOLF_LICENSE_MD5}"
 
-SRC_URI="file://${COMMERCIAL_CONFIG_DIR}/files/${WOLF_SRC}.7z"
-SRC_URI[sha256sum]="${WOLF_SRC_SHA}"
+SRC_URI="file://${COMMERCIAL_CONFIG_DIR}/files/${WOLFSSL_SRC}.7z"
+SRC_URI[sha256sum]="${WOLFSSL_SRC_SHA}"
 
 DEPENDS += "p7zip-native"
 
-S = "${WORKDIR}/${WOLF_SRC}"
+S = "${WORKDIR}/${WOLFSSL_SRC}"
 
 do_unpack[depends] += "p7zip-native:do_populate_sysroot"
 
 do_unpack() {
-    cp -f "${FILE_DIRNAME}/commercial/files/${WOLF_SRC}.7z" "${WORKDIR}"
-    7za x "${WORKDIR}/${WOLF_SRC}.7z" -p"${WOLF_SRC_PASS}" -o"${WORKDIR}" -aoa
+    cp -f "${COMMERCIAL_CONFIG_DIR}/files/${WOLFSSL_SRC}.7z" "${WORKDIR}"
+    7za x "${WORKDIR}/${WOLFSSL_SRC}.7z" -p"${WOLFSSL_SRC_PASS}" -o"${WORKDIR}" -aoa
 }
 
 

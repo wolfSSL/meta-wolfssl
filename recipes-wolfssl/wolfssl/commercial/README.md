@@ -25,7 +25,7 @@
 
 3. **Update the IMAGE_INSTALL and WOLFSSL_TYPE Variable**
 
-   Add `wolfssl` and `wolfcrypttest` to the `IMAGE_INSTALL` then add `fips` or `commerical` to the `WOLFSSL_TYPE` variables in your recipe or `poky/conf/local.conf`. If using `poky/conf/local.conf`, append as follows:
+   Add `wolfssl` and `wolfcrypttest` to the `IMAGE_INSTALL` then add `fips` or `commerical` to the `WOLFSSL_TYPE` variables in your recipe or `poky/build/conf/local.conf`. If using `poky/build/conf/local.conf`, append as follows:
    ```
    IMAGE_INSTALL:append = " wolfssl wolfcrypttest "
    WOLFSSL_TYPE = "fips"
@@ -48,14 +48,13 @@
 
     Each product that has commerical support has their own respective directory structures to place their bundles.
 
-5. **Edit *-details/wolfssl_%.bbappend**
+5. **Edit poky/build/conf/local.conf**
 
-    Using a test editor update the file `/path/to/meta-wolfssl/recipes-wolfssl/wolfssl/commercial/*-details/wolfssl_%.bbappend`
-    Update the variables:
+    Update/Add the variables in your project's `poky/build/conf/local.conf`:
     `WOLFSSL_VERSION = "x.x.x"`: x.x.x should be the version of the fips/commercial bundle you downloaded. 
-    `WOLF_SRC_SHA = "<SHA_HASH>"`: `<SHA_HASH>` This is the sha hash given when you received the bundle.
-    `WOLF_SRC_PASS = "<PASSWORD>"`: `<PASSWORD>` This is the password given to unarchive the bundle.
-    `WOLF_SRC = "<BUNDLE_NAME>"`: `<BUNDLE_NAME>` This is the name of the bundle you wish to use without the .7z extension.  
+    `WOLFSSL_SRC_SHA = "<SHA_HASH>"`: `<SHA_HASH>` This is the sha hash given when you received the bundle.
+    `WOLFSSL_SRC_PASS = "<PASSWORD>"`: `<PASSWORD>` This is the password given to unarchive the bundle.
+    `WOLFSSL_SRC = "<BUNDLE_NAME>"`: `<BUNDLE_NAME>` This is the name of the bundle you wish to use without the .7z extension.  
 
 6. **Clean and Build wolfssl and wolfcrypttest**
 
@@ -93,11 +92,11 @@
 
     Copy or write down the resulting `<HASH_VALUE>`, then exit the qemu image
 
-9. **Edit the .bbappend File**
+9. ** Update/Add the variables in your project's `build/conf/local.conf`:**
 
-    Open  `/path/to/meta-wolfssl/recipes-wolfssl/wolfssl/commercial/fips-details/wolfssl_%.bbappend` file in a text editor and update the `<FIPS_HASH>` variable with the copied `<HASH_VALUE>`.
+    Open `build/conf/local.conf`: file in a text editor and add/update the `<FIPS_HASH>` variable with the copied `<HASH_VALUE>`.
 
-    `FIPS_HASH="<HASH_VALUE>"`
+    `FIPS_HASH = "<HASH_VALUE>"`
 
 10. **Rebuild and Test**
 

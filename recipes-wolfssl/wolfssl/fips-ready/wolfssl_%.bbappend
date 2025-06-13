@@ -3,10 +3,10 @@ BBFILE_PRIORITY='2'
 LICENSE = "GPL-3.0-only"
 FIPSREADY_CONFIG_DIR := "${@os.path.dirname(d.getVar('FILE', True))}"
 
-SRC_URI = "file://${FIPSREADY_CONFIG_DIR}/files/${WOLF_SRC}.zip"
-SRC_URI[sha256sum] = "${WOLF_SRC_SHA}"
+SRC_URI = "file://${FIPSREADY_CONFIG_DIR}/files/${WOLFSSL_SRC}.zip"
+SRC_URI[sha256sum] = "${WOLFSSL_SRC_SHA}"
 
-S = "${WORKDIR}/${WOLF_SRC}"
+S = "${WORKDIR}/${WOLFSSL_SRC}"
 
 python() {
     distro_version = d.getVar('DISTRO_VERSION', True)
