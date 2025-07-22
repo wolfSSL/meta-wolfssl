@@ -10,7 +10,7 @@ LIC_FILES_CHKSUM = "file://benchmark.c;beginline=1;endline=20;md5=9438b59b0b9c78
 S = "${WORKDIR}/git/wolfcrypt/benchmark"
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=239b85c80438bf60d9a5b9e0ebe9ff097a760d0d"
+SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=decea12e223869c8f8f3ab5a53dc90b69f436eb2"
 
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
