@@ -5,8 +5,8 @@ HOMEPAGE = "https://www.wolfssl.com"
 BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
 SECTION = "x11/applications"
 
-LICENSE = "GPL-2.0-only"
-LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=a642f031dcd2e60745009aa04912b817"
+LICENSE = "GPL-3.0-only"
+LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=928770bfaa2d2704ecffeb131cc7bfd8"
 S = "${WORKDIR}/git/wolfcrypt/test"
 DEPENDS += "wolfssl"
 
