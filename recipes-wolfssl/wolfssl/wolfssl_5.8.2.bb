@@ -3,14 +3,14 @@ DESCRIPTION = "wolfSSL is a lightweight SSL/TLS library written in C and optimiz
 HOMEPAGE = "https://www.wolfssl.com/products/wolfssl/"
 BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
 SECTION = "libs"
-LICENSE = "GPL-2.0-only"
-LIC_FILES_CHKSUM = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a4263"
+LICENSE = "GPL-3.0-only"
+LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
 DEPENDS += "util-linux-native"
 
 PROVIDES += "wolfssl"
 RPROVIDES_${PN} = "wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=b077c81eb635392e694ccedbab8b644297ec0285"
+SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=decea12e223869c8f8f3ab5a53dc90b69f436eb2"
 
 S = "${WORKDIR}/git"
 

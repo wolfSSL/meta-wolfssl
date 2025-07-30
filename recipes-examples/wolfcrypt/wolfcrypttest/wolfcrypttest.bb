@@ -5,12 +5,12 @@ HOMEPAGE = "https://www.wolfssl.com"
 BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
 SECTION = "x11/applications"
 
-LICENSE = "GPL-2.0-only"
-LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=a642f031dcd2e60745009aa04912b817"
+LICENSE = "GPL-3.0-only"
+LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=928770bfaa2d2704ecffeb131cc7bfd8"
 S = "${WORKDIR}/git/wolfcrypt/test"
 DEPENDS += "wolfssl"
 
-SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=239b85c80438bf60d9a5b9e0ebe9ff097a760d0d"
+SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=decea12e223869c8f8f3ab5a53dc90b69f436eb2"
 
 
 do_configure[noexec] = "1"
