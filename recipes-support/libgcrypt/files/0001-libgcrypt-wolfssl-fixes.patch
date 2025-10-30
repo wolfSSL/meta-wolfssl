@@ -1,0 +1,135 @@
+From: Yocto Builder <builder@yocto.org>
+Date: Wed, 29 Oct 2025 00:00:00 +0000
+Subject: [PATCH] Fix wolfSSL 5.8.2 FIPS compatibility
+
+Fix multiple issues for wolfSSL 5.8.2 FIPS compatibility:
+1. Update GCM H member access - wolfSSL 5.8.2 moved H into gcm struct
+2. Fix conditional guards for cipher check functions and helpers to match call sites
+3. Fix hex2buffer conditional to allow XTS cipher tests
+4. Enable NEED_SHOW_SEXP in t-ed448.c and t-ed25519.c to use function from t-common.h
+
+Upstream-Status: Pending
+Signed-off-by: Yocto Builder <builder@yocto.org>
+
+diff --git a/cipher/cipher-gcm.c b/cipher/cipher-gcm.c
+index 7744f078..c4c03b9e 100644
+--- a/cipher/cipher-gcm.c
++++ b/cipher/cipher-gcm.c
+@@ -1690,7 +1690,7 @@ void wc_ghash(Aes* aes, const byte* a, word32 aSz, const byte* c,
+         return;
+     }
+ 
+-    h = aes->H;
++    h = aes->gcm.H;
+     memset(x, 0, AES_BLOCK_SIZE);
+ 
+     /* Hash in A, the Additional Authentication Data */
+diff --git a/tests/basic.c b/tests/basic.c
+index d49cd17b..b3b4a952 100644
+--- a/tests/basic.c
++++ b/tests/basic.c
+@@ -100,7 +100,7 @@ mismatch (const void *expected, size_t expectedlen,
+    representation and return it as an allocated buffer. The valid
+    length of the buffer is returned at R_LENGTH.  The string is
+    delimited by end of string.  The function terminates on error.  */
+-#if !defined(ENABLED_WOLFSSL_FIPS)
++#if !defined(ENABLED_WOLFSSL_FIPS) || defined(WOLFSSL_AES_XTS)
+ static void *
+ hex2buffer (const char *string, size_t *r_length)
+ {
+@@ -4794,7 +4794,7 @@ check_gcm_cipher (void)
+ }
+ 
+ 
+-#if !defined(ENABLED_WOLFSSL_FIPS)
++#if !defined(ENABLED_WOLFSSL_FIPS) || defined(WOLFSSL_AES_EAX)
+ static void
+ _check_eax_cipher (unsigned int step)
+ {
+@@ -5313,7 +5313,7 @@ _check_eax_cipher (unsigned int step)
+ }
+ #endif
+ 
+-#if !defined(ENABLED_WOLFSSL_FIPS)
++#if !defined(ENABLED_WOLFSSL_FIPS) || defined(WOLFSSL_AES_EAX)
+ static void
+ check_eax_cipher (void)
+ {
+@@ -5329,7 +5329,7 @@ check_eax_cipher (void)
+ #endif
+ 
+ 
+-#if !defined(ENABLED_WOLFSSL_FIPS)
++#if !defined(ENABLED_WOLFSSL_FIPS) || defined(WOLFSSL_AES_SIV)
+ static void
+ check_siv_cipher (void)
+ {
+@@ -5749,7 +5749,7 @@ check_siv_cipher (void)
+ }
+ #endif
+ 
+-#if !defined(ENABLED_WOLFSSL_FIPS)
++#if !defined(ENABLED_WOLFSSL_FIPS) || defined(WOLFSSL_AES_SIV)
+ static void
+ check_gcm_siv_cipher (void)
+ {
+@@ -7226,7 +7226,7 @@ check_gcm_siv_cipher (void)
+ }
+ #endif
+ 
+-#if !defined(ENABLED_WOLFSSL_FIPS)
++#if !defined(ENABLED_WOLFSSL_FIPS) || defined(HAVE_POLY1305)
+ static void
+ _check_poly1305_cipher (unsigned int step)
+ {
+@@ -7730,7 +7730,7 @@ _check_poly1305_cipher (unsigned int step)
+ }
+ #endif
+ 
+-#if !defined(ENABLED_WOLFSSL_FIPS)
++#if !defined(ENABLED_WOLFSSL_FIPS) || defined(HAVE_POLY1305)
+ static void
+ check_poly1305_cipher (void)
+ {
+@@ -9792,7 +9792,7 @@ check_ocb_cipher (void)
+ #endif
+ 
+ 
+-#if !defined(ENABLED_WOLFSSL_FIPS)
++#if !defined(ENABLED_WOLFSSL_FIPS) || defined(WOLFSSL_AES_XTS)
+ static void
+ do_check_xts_cipher (int inplace)
+ {
+@@ -10117,7 +10117,7 @@ next_tv:
+ }
+ #endif
+ 
+-#if !defined(ENABLED_WOLFSSL_FIPS)
++#if !defined(ENABLED_WOLFSSL_FIPS) || defined(WOLFSSL_AES_XTS)
+ static void
+ check_xts_cipher (void)
+ {
+diff --git a/tests/t-ed25519.c b/tests/t-ed25519.c
+index 64edc3d7..ced4e4e6 100644
+--- a/tests/t-ed25519.c
++++ b/tests/t-ed25519.c
+@@ -30,6 +30,7 @@
+ #include "stopwatch.h"
+ 
+ #define PGM "t-ed25519"
++#define NEED_SHOW_SEXP
+ #include "t-common.h"
+ #define N_TESTS 1026
+ 
+diff --git a/tests/t-ed448.c b/tests/t-ed448.c
+index d7f8f4cf..cdf32221 100644
+--- a/tests/t-ed448.c
++++ b/tests/t-ed448.c
+@@ -30,6 +30,7 @@
+ #include "stopwatch.h"
+ 
+ #define PGM "t-ed448"
++#define NEED_SHOW_SEXP
+ #include "t-common.h"
+ #define N_TESTS 11
+ 
