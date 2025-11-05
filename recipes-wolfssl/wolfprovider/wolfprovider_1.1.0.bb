@@ -1,5 +1,5 @@
-SUMMARY = "wolfProvider is a Proivder designed for Openssl 3.X.X"
-DESCRIPTION = "wolfProvider is a library that can be used as an Provider in OpenSSL"
+SUMMARY = "wolfProvider is a Provider designed for Openssl 3.X.X"
+DESCRIPTION = "wolfProvider is a crypto backend interface for use as an OpenSSL Provider"
 HOMEPAGE = "https://github.com/wolfSSL/wolfProvider"
 BUGTRACKER = "https://github.com/wolfSSL/wolfProvider/issues"
 SECTION = "libs"
@@ -10,7 +10,7 @@ DEPENDS += "util-linux-native"
 PROVIDES += "wolfprovider"
 RPROVIDES_${PN} = "wolfprovider"
 
-SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=22f358498eadb4f91b2ce8d23045dafec6bcbb38"
+SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=v1.1.0"
 
 DEPENDS += " wolfssl \
             openssl \
@@ -37,3 +37,21 @@ CFLAGS += " -I${S}/include -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
 CXXFLAGS += " -I${S}/include  -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
 LDFLAGS += " -Wl,--build-id=none"
 EXTRA_OECONF += " --with-openssl=${OPENSSL_YOCTO_DIR}"
+
+# create the symlink inside the image staging area
+do_install:append() {
+    install -d ${D}${libdir}
+    ln -sf libwolfprov.so.0.0.0 ${D}${libdir}/libwolfprov.so
+}
+
+# keep unversioned .so in the runtime package for this recipe
+FILES_SOLIBSDEV = ""
+
+# explicitly list what goes to -dev instead (headers, pc)
+FILES:${PN}-dev = "${includedir} ${libdir}/pkgconfig/*.pc"
+
+# ensure the symlink is assigned to runtime
+FILES:${PN} += "${libdir}/libwolfprov.so"
+
+# you’re shipping an unversioned .so in runtime: suppress QA
+INSANE_SKIP:${PN} += "dev-so"
