@@ -1,5 +1,5 @@
-SUMMARY = "wolfProvider is a Proivder designed for Openssl 3.X.X"
-DESCRIPTION = "wolfProvider is a library that can be used as an Provider in OpenSSL"
+SUMMARY = "wolfProvider is a Provider designed for Openssl 3.X.X"
+DESCRIPTION = "wolfProvider is a crypto backend interface for use as an OpenSSL Provider"
 HOMEPAGE = "https://github.com/wolfSSL/wolfProvider"
 BUGTRACKER = "https://github.com/wolfSSL/wolfProvider/issues"
 SECTION = "libs"
@@ -10,7 +10,7 @@ DEPENDS += "util-linux-native"
 PROVIDES += "wolfprovider"
 RPROVIDES_${PN} = "wolfprovider"
 
-SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=22f358498eadb4f91b2ce8d23045dafec6bcbb38"
+SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=v1.1.0"
 
 DEPENDS += " wolfssl \
             openssl \
