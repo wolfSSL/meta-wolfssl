@@ -1,0 +1,32 @@
+From b729a356538d499fe25e82bfc78ea663bdaca0a8 Mon Sep 17 00:00:00 2001
+From: Reda Chouk <reda@wolfssl.com>
+Date: Wed, 12 Nov 2025 11:10:00 +0000
+Subject: [PATCH] Creating .hmac file should be executed in target environment
+
+Creating .hmac file should be executed in target environment during
+post-installation, not during the cross-compilation build process.
+This avoids the need to run target binaries during cross-compilation.
+
+Upstream-Status: Inappropriate [cross-compilation issue for Yocto/OE builds]
+
+Signed-off-by: Reda Chouk <reda@wolfssl.com>
+---
+ lib/Makefile.am | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/lib/Makefile.am b/lib/Makefile.am
+index 56576b65f..a90a74655 100644
+--- a/lib/Makefile.am
++++ b/lib/Makefile.am
+@@ -257,8 +257,7 @@ hmac_file = .libs/.$(gnutls_so).hmac
+ 
+ all-local: $(hmac_file)
+ 
+-$(hmac_file): libgnutls.la fipshmac
+-	$(AM_V_GEN) $(builddir)/fipshmac > $@-t && mv $@-t $@
++$(hmac_file):
+ 
+ CLEANFILES = $(hmac_file)
+ endif
+-- 
+2.25.1
