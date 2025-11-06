@@ -14,7 +14,6 @@ LIC_FILES_CHKSUM:class-target = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a
 
 # Override source to use your git repo
 SRC_URI:class-target = "git://github.com/wolfSSL/libgcrypt-wolfssl.git;protocol=https;branch=libgcrypt-1.11.0-wolfCrypt \
-                        file://0001-libgcrypt-wolfssl-fixes.patch \
                         file://run-ptest \
                         "
 
