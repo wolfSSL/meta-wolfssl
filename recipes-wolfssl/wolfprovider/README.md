@@ -44,16 +44,16 @@ the `wolfprovidercmd` yocto package provides the command line test suite for wol
 
 3. **Add wolfprovider to your image**:
 
-    Modify your image recipe or `local.conf` file to include `wolfprovider`, `wolfssl`, `openssl`, `openssl-bin`, and `wolfproviderenv`. You will only need `openssl-bin` and `wolfproviderenv` if you want to use and test with our included example and conf file. Add `wolfprovidertest` to test the unit test as well.
+    Modify your image recipe or `local.conf` file to include `wolfprovider`, `wolfssl`, `openssl`, `openssl-bin`, and `wolfproviderenv`. You will only need `openssl-bin` and `wolfproviderenv` if you want to test your application using the wolfProvider OpenSSL provider. Add `wolfprovidertest` and `wolfprovidercmd` to test the unit test and command line test suites as well.
 
     For yocto kirkstone or newer:
     ```
-    IMAGE_INSTALL:append = "wolfprovider wolfssl openssl openssl-bin wolfproviderenv wolfprovidertest"
+    IMAGE_INSTALL:append = "wolfprovider wolfssl openssl openssl-bin wolfproviderenv wolfprovidertest wolfprovidercmd"
     ```
 
     For yocto dunfell or earlier:
     ```
-    IMAGE_INSTALL_append = "wolfprovider wolfssl openssl openssl-bin wolfproviderenv wolfprovidertest"
+    IMAGE_INSTALL_append = "wolfprovider wolfssl openssl openssl-bin wolfproviderenv wolfprovidertest wolfprovidercmd"
     ```
 
 4. **Build Your Image**:
