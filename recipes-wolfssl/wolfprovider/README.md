@@ -2,7 +2,15 @@
 
 The `wolfprovider` recipe enables the integration of wolfSSL's cryptographic functionalities into OpenSSL through a custom provider mechanism. This integration allows applications using OpenSSL to leverage wolfSSL's advanced cryptographic algorithms, combining wolfSSL's lightweight and performance-optimized cryptography with OpenSSL's extensive API and capabilities. `wolfprovider` is designed for easy integration into Yocto-based systems, ensuring a seamless blend of security and performance ideal for embedded and constrained environments.
 
-The `wolfprovidertest` yocto package will provide two apps, `wolfproviderenv` and `wolfprovidertest`. Running `wolfproviderenv` will start up a child shell and run `wolfprovidertest`. Use `wolfproviderenv` to test that the `wolfprovider` package is succesfully installed. If you want to run `wolfprovidertest` directly you will need to directly source `wolfproviderenv` via `source /usr/bin/wolfproviderenv` or setup the env on your own, because `wolfprovidertest` will fail otherwise. Use `wolfprovidertest` to check that your shell env is correctly setup.
+The `wolfproviderenv` yocto package provides the base env setup wolfProvider.
+- **`wolfproviderenv`** - Environment setup for wolfProvider
+- **`wolfprovverify`** - Provider load verification test in `wolfproviderenv`
+
+the `wolfprovidertest` yocto package provides the unit test suite for wolfProvider.
+- **`wolfprovidertest`** - Unit test suite for wolfProvider
+
+the `wolfprovidercmd` yocto package provides the command line test suite for wolfProvider.
+- **`wolfprovidercmd`** - Command line test suite for wolfProvider
 
 ## Getting Started
 
@@ -36,17 +44,16 @@ The `wolfprovidertest` yocto package will provide two apps, `wolfproviderenv` an
 
 3. **Add wolfprovider to your image**:
 
-    Modify your image recipe or `local.conf` file to include `wolfprovider`, `wolfssl`, `openssl`, `openssl-bin`, and `wolfprovidertest`. You will only need `openssl-bin` and `wolfprovidertest` if you want to use and test with our included example and conf file.
-
+    Modify your image recipe or `local.conf` file to include `wolfprovider`, `wolfssl`, `openssl`, `openssl-bin`, and `wolfproviderenv`. You will only need `openssl-bin` and `wolfproviderenv` if you want to use and test with our included example and conf file. Add `wolfprovidertest` to test the unit test as well.
 
     For yocto kirkstone or newer:
     ```
-    IMAGE_INSTALL:append = "wolfprovider wolfssl openssl openssl-bin wolfprovidertest"
+    IMAGE_INSTALL:append = "wolfprovider wolfssl openssl openssl-bin wolfproviderenv wolfprovidertest"
     ```
 
     For yocto dunfell or earlier:
     ```
-    IMAGE_INSTALL_append = "wolfprovider wolfssl openssl openssl-bin wolfprovidertest"
+    IMAGE_INSTALL_append = "wolfprovider wolfssl openssl openssl-bin wolfproviderenv wolfprovidertest"
     ```
 
 4. **Build Your Image**:
@@ -59,21 +66,98 @@ The `wolfprovidertest` yocto package will provide two apps, `wolfproviderenv` an
 
 ### Testing wolfprovider
 
-After building and deploying your image to the target device, you can test `wolfprovider` functionality through the `wolfproviderenv` script.
+After building and deploying your image to the target device, you can test `wolfprovider` functionality using the provided test programs.
 
-1. **Execute the wolfproviderenv Script**:
+#### Quick Provider Verification
 
-    `wolfproviderenv` is located in `/usr/bin`, so just execute the script upon entering into your terminal.
+For a quick check that the provider loads correctly:
 
-    ```sh
-    wolfproviderenv
-    ```
+```sh
+wolfproviderverify
+```
 
-    The script performs necessary setup actions, executes `wolfprovidertest` to validate the integration, and lists available OpenSSL providers to confirm `wolfprovider` is active and correctly configured.
+#### Unit Test Suite
 
-2. **Expected Output**:
+To run just the comprehensive unit tests:
 
-    Look for messages indicating a successful environment setup, execution of `wolfprovidertest` with a custom provider loaded successfully, and `libwolfprovider` listed among active OpenSSL providers.
+```sh
+wolfprovidertest
+```
+
+This runs the actual wolfProvider unit test suite with full coverage of all cryptographic operations.
+
+Expected Output from `wolfprovidertest` should look something like this:
+```
+==========================================
+wolfProvider Test Environment Setup
+==========================================
+
+Environment Variables:
+  OPENSSL_MODULES: /usr/lib/ssl-3/modules
+  LD_LIBRARY_PATH: /usr/lib:/lib
+  OPENSSL_CONF: /opt/wolfprovider-configs/wolfprovider.conf
+
+==========================================
+Test 1: Provider Load Verification
+==========================================
+Custom provider 'libwolfprov' loaded successfully.
+Passed!
+
+==========================================
+Test 2: OpenSSL Provider List
+==========================================
+Providers:
+  libwolfprov
+    name: wolfSSL Provider
+    version: 1.1.0
+    status: active
+    build info: wolfSSL 5.8.2
+    ...
+
+==========================================
+Test 3: wolfProvider Unit Tests
+==========================================
+Running comprehensive unit test suite...
+[Unit test output...]
+Passed!
+
+Tests completed.
+==========================================
+```
+
+#### Command Line Test Suite
+
+To run the command line test suite:
+
+```sh
+wolfprovidercmd
+```
+
+This runs the actual wolfProvider command line test suite with full coverage of all cryptographic operations.
+
+Expected Output from `wolfprovidercmd` should look something like this:
+```
+==========================================
+wolfProvider Command-Line Tests
+==========================================
+Running command-line test suite...
+
+[Command line test output...]
+
+=== All Command-Line Tests Passed ===
+FIPS mode was enabled
+Hash Test Result: 0 (0=success)
+AES Test Result: 0 (0=success)
+RSA Test Result: 0 (0=success)
+ECC Test Result: 0 (0=success)
+REQ Test Result: 0 (0=success)
+
+Command-line tests passed!
+
+==========================================
+Command-line tests completed.
+==========================================
+```
 
 ### Documentation and Support
 
