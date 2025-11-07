@@ -5,7 +5,7 @@ BUGTRACKER = "https://github.com/wolfssl/wolfprovider/issues"
 SECTION = "x11/applications"
 
 LICENSE = "GPL-3.0-only"
-LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/GPL-3.0-only;md5=1c76c4cc354acaac30ed4d5eefea7245"
+LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/GPL-3.0-only;md5=c79ff39f19dfec6d293b95dea7b07891"
 DEPENDS += "wolfprovider"
 
 do_configure[noexec] = "1"
