@@ -12,6 +12,7 @@ do_configure[noexec] = "1"
 do_compile[noexec] = "1"
 do_fetch[noexec] = "1"
 do_unpack[noexec] = "1"
+do_patch[noexec] = "1"
 
 WOLFPROVIDER_TEST_DIR = "${datadir}/wolfprovider-test"
 WOLFPROVIDER_TEST_INSTALL_DIR = "${D}${WOLFPROVIDER_TEST_DIR}"
