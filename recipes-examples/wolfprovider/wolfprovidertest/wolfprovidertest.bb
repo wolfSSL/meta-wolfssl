@@ -5,15 +5,13 @@ BUGTRACKER = "https://github.com/wolfssl/wolfprovider/issues"
 SECTION = "x11/applications"
 
 LICENSE = "GPL-3.0-only"
-LIC_FILES_CHKSUM = "file://../COPYING;md5=d32239bcb673463ab874e80d47fae504"
-S = "${WORKDIR}/git/test"
+LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/GPL-3.0-only;md5=1c76c4cc354acaac30ed4d5eefea7245"
 DEPENDS += "wolfprovider"
-
-SRC_URI = "git://github.com/wolfSSL/wolfProvider.git;nobranch=1;protocol=https;rev=v1.1.0"
-
 
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
+do_fetch[noexec] = "1"
+do_unpack[noexec] = "1"
 
 WOLFPROVIDER_TEST_DIR = "${datadir}/wolfprovider-test"
 WOLFPROVIDER_TEST_INSTALL_DIR = "${D}${WOLFPROVIDER_TEST_DIR}"
