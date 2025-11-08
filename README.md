@@ -14,6 +14,7 @@ This layer currently provides recipes for the following wolfSSL products:
 - [wolfTPM portable TPM 2.0 library](https://www.wolfssl.com/products/wolftpm/)
 - [wolfSSL-py A Python wrapper for the wolfSSL library](https://github.com/wolfSSL/wolfssl-py)
 - [wolfCrypt-py A Python Wrapper for the wolfCrypt API](https://github.com/wolfSSL/wolfcrypt-py)
+- [wolfPKCS11 A PKCS#11 implementation using wolfSSL](https://github.com/wolfSSL/wolfpkcs11)
 
 These recipes have been tested using these versions of yocto:
 
@@ -77,13 +78,13 @@ After installing your build's Yocto/OpenEmbedded components:
         `path/to/poky/build/conf`.
         - For Dunfell and newer versions of Yocto:
         ```
-        IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm "
+        IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfpkcs11 "
         ```
 
         - For versions of Yocto older than Dunfell:
 
         ```
-        IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm "
+        IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm wolfpkcs11 "
         ```
 
         ```
@@ -92,6 +93,7 @@ After installing your build's Yocto/OpenEmbedded components:
         $ bitbake wolfmqtt
         $ bitbake wolftpm
         $ bitbake wolfclu - This command would result in an error
+        $ bitbake wolfpkcs11
         ```
 
 
@@ -101,12 +103,12 @@ After installing your build's Yocto/OpenEmbedded components:
     - For Dunfell and newer versions of Yocto
 
     ```
-    IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
+    IMAGE_INSTALL:append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu wolfpkcs11 "
     ```
 
     - For versions of Yocto older than Dunfell
     ```
-    IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu "
+    IMAGE_INSTALL_append = " wolfssl wolfssh wolfmqtt wolftpm wolfclu wolfpkcs11 "
     ```
 
     This will add the necassary --enable-* options necassary to use your
@@ -410,6 +412,23 @@ To build wolfProvider view the instructions in this [README](recipes-wolfssl/wol
 wolfEngine
 ------------
 To build wolfEngine view the instructions in this [README](recipes-wolfssl/wolfengine/README.md)
+
+wolfPKCS11
+-----------
+wolfPKCS11 is a PKCS#11 implementation provided by wolfSSL for cryptographic token interface support. This layer includes support for building wolfPKCS11 as a Yocto/OpenEmbedded recipe.
+
+To include wolfPKCS11 in your image, add it to your IMAGE_INSTALL variable in your `local.conf`:
+
+- For Dunfell and newer versions of Yocto:
+```
+IMAGE_INSTALL:append = " wolfpkcs11 "
+```
+- For versions of Yocto older than Dunfell:
+```
+IMAGE_INSTALL_append = " wolfpkcs11 "
+```
+
+After building, the wolfPKCS11 library and tools will be available in the standard locations (e.g., `/usr/lib`, `/usr/bin`). For more details on configuration and usage, see the wolfPKCS11 README.
 
 FIPS-READY
 ----------
