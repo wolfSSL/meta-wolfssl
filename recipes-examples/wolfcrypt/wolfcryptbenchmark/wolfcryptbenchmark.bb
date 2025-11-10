@@ -8,7 +8,8 @@ SECTION = "x11/applications"
 LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://benchmark.c;beginline=1;endline=20;md5=6a14f1f3bfbb40d2c3b7d0f3a1f98ffc"
 S = "${WORKDIR}/git/wolfcrypt/benchmark"
-DEPENDS += "wolfssl"
+DEPENDS += "virtual/wolfssl"
+RDEPENDS:${PN} += "wolfssl"
 
 SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=decea12e223869c8f8f3ab5a53dc90b69f436eb2"
 
@@ -26,10 +27,11 @@ python () {
     wolfcrypt_benchmark_install_dir = d.getVar('WOLFCRYPT_BENCHMARK_INSTALL_DIR', True)
     wolfcrypt_benchmark_readme_dir = d.getVar('WOLFCRYPT_BENCHMARK_README_DIR', True)
 
-    bb.note("Installing dummy file for wolfCrypt benchmark example")
+    bbnote = 'bbnote "Installing dummy file for wolfCrypt benchmark example"\n'
     installDir = 'install -m 0755 -d "%s"\n' % wolfcrypt_benchmark_install_dir
     makeDummy = 'echo "This is a dummy package" > "%s"\n' % wolfcrypt_benchmark_readme_dir
 
+    d.appendVar('do_install', bbnote)
     d.appendVar('do_install', installDir)
     d.appendVar('do_install', makeDummy)
 

@@ -12,28 +12,17 @@ RPROVIDES_${PN} = "wolfprovider"
 
 SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=f8f432408f2c6f446a9e5bd9330577d2c2e1ed4f"
 
-DEPENDS += " wolfssl \
+DEPENDS += " virtual/wolfssl \
             openssl \
             "
 
-inherit autotools pkgconfig
+RDEPENDS:${PN} += "wolfssl openssl"
+
+inherit autotools pkgconfig wolfssl-helper
 
 S = "${WORKDIR}/git"
-OPENSSL_YOCTO_DIR = "${COMPONENTS_DIR}/${PACKAGE_ARCH}/openssl/usr"
-
-# Approach: Use Python to dynamically set function content based on Yocto version
-python() {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    autogen_command = "cd ${S}; ./autogen.sh"
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        # For Dunfell and earlier
-        d.appendVar('do_configure_prepend', autogen_command)
-    else:
-        # For Kirkstone and later
-        d.appendVar('do_configure:prepend', autogen_command)
-}
 
 CFLAGS += " -I${S}/include -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
 CXXFLAGS += " -I${S}/include  -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
 LDFLAGS += " -Wl,--build-id=none"
-EXTRA_OECONF += " --with-openssl=${OPENSSL_YOCTO_DIR}"
+EXTRA_OECONF += " --with-openssl=${STAGING_EXECPREFIXDIR}"

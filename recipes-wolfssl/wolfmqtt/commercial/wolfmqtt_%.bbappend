@@ -1,7 +1,7 @@
 BBFILE_PRIORITY='2'
 COMMERCIAL_CONFIG_DIR := "${@os.path.dirname(d.getVar('FILE', True))}"
 LICENSE="Proprietary"                                                           
-LIC_FILES_CHKSUM="file://${WOLF_LICENSE};md5=${WOLF_LICENSE_MD5}"
+LIC_FILES_CHKSUM="file://${WOLFMQTT_LICENSE};md5=${WOLFMQTT_LICENSE_MD5}"
 
 SRC_URI="file://${COMMERCIAL_CONFIG_DIR}/files/${WOLFMQTT_SRC}.7z"
 SRC_URI[sha256sum]="${WOLFMQTT_SRC_SHA}"
