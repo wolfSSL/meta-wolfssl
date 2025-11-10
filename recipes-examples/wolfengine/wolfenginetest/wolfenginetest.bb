@@ -5,7 +5,7 @@ SECTION = "examples"
 LICENSE = "CLOSED"
 LIC_FILES_CHKSUM = ""
 
-DEPENDS = "openssl pkgconfig-native wolfssl wolfengine"
+DEPENDS = "openssl pkgconfig-native virtual/wolfssl wolfengine"
 PROVIDES += "wolfenginetest"
 
 WOLFENGINE_TEST = "${bindir}/wolfenginetest"

@@ -8,7 +8,8 @@ SECTION = "x11/applications"
 LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=928770bfaa2d2704ecffeb131cc7bfd8"
 S = "${WORKDIR}/git/wolfcrypt/test"
-DEPENDS += "wolfssl"
+DEPENDS += "virtual/wolfssl"
+RDEPENDS:${PN} += "wolfssl"
 
 SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=59f4fa568615396fbf381b073b220d1e8d61e4c2"
 
@@ -27,10 +28,11 @@ python () {
     wolfcrypt_test_install_dir = d.getVar('WOLFCRYPT_TEST_INSTALL_DIR', True)
     wolfcrypt_test_readme_dir = d.getVar('WOLFCRYPT_TEST_README_DIR', True)
 
-    bb.note("Installing dummy file for wolfCrypt test example")
+    bbnote = 'bbnote "Installing dummy file for wolfCrypt test example"\n'
     installDir = 'install -m 0755 -d "%s"\n' % wolfcrypt_test_install_dir
     makeDummy = 'echo "This is a dummy package" > "%s"\n' % wolfcrypt_test_readme_dir
 
+    d.appendVar('do_install', bbnote)
     d.appendVar('do_install', installDir)
     d.appendVar('do_install', makeDummy)
 

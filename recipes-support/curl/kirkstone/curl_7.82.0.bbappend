@@ -1,5 +1,5 @@
 PACKAGECONFIG:remove:class-target = "openssl"
-DEPENDS:class-target += "wolfssl"
+DEPENDS:class-target += "virtual/wolfssl"
 EXTRA_OECONF:class-target += "--with-wolfssl=${STAGING_DIR_HOST}${prefix} \
                                 --with-ca-bundle=${sysconfdir}/ssl/certs/ca-certificates.crt \
                                 "
