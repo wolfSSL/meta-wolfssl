@@ -8,7 +8,8 @@ SECTION = "x11/applications"
 LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=928770bfaa2d2704ecffeb131cc7bfd8"
 S = "${WORKDIR}/git/wolfcrypt/test"
-DEPENDS += "wolfssl"
+DEPENDS += "virtual/wolfssl"
+RDEPENDS:${PN} += "wolfssl"
 
 SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=decea12e223869c8f8f3ab5a53dc90b69f436eb2"
 

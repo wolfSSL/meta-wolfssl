@@ -21,13 +21,18 @@ SRC_URI[mlkem.sha256sum] = "eb4bc00b66d4844b6c3f3314fe1da657e232e377486ef23c9642
 
 
 
-DEPENDS += " wolfssl \
+DEPENDS += " virtual/wolfssl \
             python3-pip-native \
             python3-cffi-native \
             python3-cffi \
             python3-native \
             python3 \
             "
+
+RDEPENDS:${PN} += " wolfssl \
+                    python3 \
+                    python3-cffi \
+                  "
 
 inherit setuptools3  
 
@@ -45,3 +50,4 @@ LDFLAGS += " -Wl,--build-id=none"
 
 # Ensure consistent locale for build reproducibility
 export LC_ALL = "C"
+

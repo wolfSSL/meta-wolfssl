@@ -14,7 +14,7 @@ LIC_FILES_CHKSUM = "file://LICENSING.rst;md5=e4abd0c56c3f6dc95a7a7eed4c77414b"
 SRC_URI = "git://github.com/wolfSSL/wolfssl-py.git;nobranch=1;protocol=https;rev=3e4ec8484403ea16db79cf4ebde10b5b36d944b3"
 
 
-DEPENDS += " wolfssl \
+DEPENDS += " virtual/wolfssl \
              python3-pip-native \
              python3-cffi-native \
              python3-cffi \
@@ -22,7 +22,8 @@ DEPENDS += " wolfssl \
              python3 \ 
            "
 
-RDEPENDS_${PN} += " python3 \
+RDEPENDS_${PN} += " wolfssl \
+                    python3 \
                     python3-cffi \
                   "
 
@@ -41,3 +42,4 @@ LDFLAGS += " -Wl,--build-id=none"
 
 # Ensure consistent locale for build reproducibility
 export LC_ALL = "C"
+

@@ -14,27 +14,17 @@ SRC_URI = "git://github.com/wolfssl/wolfengine.git;nobranch=1;protocol=https;rev
 
 S = "${WORKDIR}/git"
 
-DEPENDS += " wolfssl \
+DEPENDS += " virtual/wolfssl \
             openssl \
             "
 
-inherit autotools pkgconfig
+RDEPENDS:${PN} += "wolfssl openssl"
+
+inherit autotools pkgconfig wolfssl-helper
 
 OPENSSL_YOCTO_DIR = "${COMPONENTS_DIR}/${PACKAGE_ARCH}/openssl/usr"
 WOLFSSL_YOCTO_DIR = "${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
 
-
-# Approach: Use Python to dynamically set function content based on Yocto version
-python() {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    autogen_command = "cd ${S}; ./autogen.sh"
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        # For Dunfell and earlier
-        d.appendVar('do_configure_prepend', autogen_command)
-    else:
-        # For Kirkstone and later
-        d.appendVar('do_configure:prepend', autogen_command)
-}
 
 CFLAGS += " -I${S}/include -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
 CXXFLAGS += " -I${S}/include  -g0 -O2 -ffile-prefix-map=${WORKDIR}=."

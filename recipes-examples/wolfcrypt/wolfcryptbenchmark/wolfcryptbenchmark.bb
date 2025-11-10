@@ -8,7 +8,8 @@ SECTION = "x11/applications"
 LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://benchmark.c;beginline=1;endline=20;md5=6a14f1f3bfbb40d2c3b7d0f3a1f98ffc"
 S = "${WORKDIR}/git/wolfcrypt/benchmark"
-DEPENDS += "wolfssl"
+DEPENDS += "virtual/wolfssl"
+RDEPENDS:${PN} += "wolfssl"
 
 SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=decea12e223869c8f8f3ab5a53dc90b69f436eb2"
 

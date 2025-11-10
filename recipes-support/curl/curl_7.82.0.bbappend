@@ -1,5 +1,5 @@
 PACKAGECONFIG_remove = "openssl"
-DEPENDS += "wolfssl"
+DEPENDS += "virtual/wolfssl"
 EXTRA_OECONF += "--with-wolfssl=${STAGING_DIR_HOST}${prefix}"
 CPPFLAGS += "-I${STAGING_DIR_HOST}${prefix}/include/wolfssl"
 
