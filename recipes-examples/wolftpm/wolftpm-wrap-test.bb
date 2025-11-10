@@ -9,7 +9,8 @@ SECTION = "libs"
 LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 S = "${WORKDIR}/git"
-DEPENDS += "wolfssl"
+DEPENDS += "virtual/wolfssl"
+RDEPENDS:${PN} += "wolftpm wolfssl"
 
 SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=bcf2647ebcf76e76a75cefc46f7187d213eb1fcd"
 
@@ -27,10 +28,11 @@ python () {
     wolftpm_examples_install_dir = d.getVar('WOLFTPM_EXAMPLES_INSTALL_DIR', True)
     wolftpm_examples_readme_dir = d.getVar('WOLFTPM_EXAMPLES_README_DIR', True)
 
-    bb.note("Installing dummy file for wolfTPM test example")
+    bbnote = 'bbnote "Installing dummy file for wolfTPM test example"\n'
     installDir = 'install -m 0755 -d "%s"\n' % wolftpm_examples_install_dir
     makeDummy = 'echo "This is a dummy package" > "%s"\n' % wolftpm_examples_readme_dir
 
+    d.appendVar('do_install', bbnote)
     d.appendVar('do_install', installDir)
     d.appendVar('do_install', makeDummy)
 

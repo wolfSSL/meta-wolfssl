@@ -10,28 +10,18 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 PROVIDES += "wolfclu"
 RPROVIDES_${PN} = "wolfclu"
 
-DEPENDS += "wolfssl"
+DEPENDS += "virtual/wolfssl"
+RDEPENDS:${PN} += "wolfssl"
 
 SRC_URI = "git://github.com/wolfssl/wolfclu.git;nobranch=1;protocol=https;rev=439a801afb3b9050af7906479300afb29f7b72ff"
 
 S = "${WORKDIR}/git"
 
-inherit autotools pkgconfig
+inherit autotools pkgconfig wolfssl-helper
 
-EXTRA_OECONF = "--with-wolfssl=${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
+EXTRA_OECONF = "--with-wolfssl=${STAGING_EXECPREFIXDIR}"
 
 BBCLASSEXTEND += "native nativesdk"
-
-python() {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    autogen_command = 'cd ${S}; ./autogen.sh'
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        # For Dunfell and earlier
-        d.appendVar('do_configure_prepend', autogen_command)
-    else:
-        # For Kirkstone and later
-        d.appendVar('do_configure:prepend', autogen_command)
-}
 
 # Add reproducible build flags
 export CFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'

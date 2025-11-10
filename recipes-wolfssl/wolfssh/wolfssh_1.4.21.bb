@@ -9,26 +9,16 @@ SECTION = "libs"
 LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://LICENSING;md5=2c2d0ee3db6ceba278dd43212ed03733"
 
-DEPENDS += "wolfssl"
+DEPENDS += "virtual/wolfssl"
+RDEPENDS:${PN} += "wolfssl"
 
 SRC_URI = "git://github.com/wolfssl/wolfssh.git;nobranch=1;protocol=https;rev=c10896cae99ecf2b5c1ae170d0eb001f18008809"
 
 S = "${WORKDIR}/git"
 
-inherit autotools pkgconfig
+inherit autotools pkgconfig wolfssl-helper
 
-EXTRA_OECONF = "--with-wolfssl=${COMPONENTS_DIR}/${PACKAGE_ARCH}/wolfssl/usr"
-
-python() {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    autogen_command = 'cd ${S}; ./autogen.sh'
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        # For Dunfell and earlier
-        d.appendVar('do_configure_prepend', autogen_command)
-    else:
-        # For Kirkstone and later
-        d.appendVar('do_configure:prepend', autogen_command)
-}
+EXTRA_OECONF = "--with-wolfssl=${STAGING_EXECPREFIXDIR}"
 
 # Add reproducible build flags
 export CFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'
@@ -36,4 +26,4 @@ export CXXFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'
 export LDFLAGS += ' -Wl,--build-id=none'
 
 # Ensure consistent locale                                                      
-export LC_ALL = "C" 
+export LC_ALL = "C"

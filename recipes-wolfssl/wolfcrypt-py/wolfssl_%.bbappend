@@ -1,2 +1,9 @@
-EXTRA_OECONF += " --enable-aes --enable-aesctr --enable-des3 --enable-chacha --enable-aesgcm-stream --enable-aesgcm --enable-sha --enable-sha384 --enable-sha512 --enable-sha3 --enable-hkdf --enable-rsa --enable-rsapss --enable-ecc --enable-ed25519 --enable-ed448 --enable-curve25519 --enable-keygen --enable-pwdbased --enable-pkcs7 --enable-dtls --enable-tls13 --enable-tlsx"
+# Conditionally configure wolfssl with wolfcrypt-py support
+# This bbappend checks the WOLFSSL_FEATURES and IMAGE_INSTALL variables
 
+inherit wolfssl-helper
+deltask do_wolfssl_check_package
+
+python __anonymous() {
+    wolfssl_conditional_require(d, 'wolfcrypt-py', 'inc/wolfcrypt-py/wolfssl-enable-wolfcrypt-py.inc')
+}
