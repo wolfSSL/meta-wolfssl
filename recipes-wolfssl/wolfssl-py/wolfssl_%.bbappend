@@ -1,3 +1,9 @@
-EXTRA_OECONF += "--enable-sni --enable-opensslextra --enable-opensslall --enable-dtls13 --enable-dtls --enable-crl --enable-tlsx --enable-secure-renegotiation"
+# Conditionally configure wolfssl with wolfssl-py support
+# This bbappend checks the WOLFSSL_FEATURES and IMAGE_INSTALL variables
 
-TARGET_CFLAGS += "-DKEEP_PEER_CERT -DFP_MAX_BITS=8192 -DHAVE_EX_DATA -DOPENSSL_COMPATIBLE_DEFAULTS"
+inherit wolfssl-helper
+deltask do_wolfssl_check_package
+
+python __anonymous() {
+    wolfssl_conditional_require(d, 'wolfssl-py', 'inc/wolfssl-py/wolfssl-enable-wolfssl-py.inc')
+}

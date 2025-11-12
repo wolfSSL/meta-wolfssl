@@ -3,3 +3,6 @@
 recipes-wolfssl/wolfssl/commercial/files/wolfssl*
 *.7z
 *.zip
+
+# User-specific FIPS configuration (created from conf/wolfssl-fips.conf.sample)
+conf/wolfssl-fips.conf

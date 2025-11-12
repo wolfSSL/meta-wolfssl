@@ -7,28 +7,17 @@ LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
 DEPENDS += "util-linux-native"
 
-PROVIDES += "wolfssl"
+PROVIDES += "wolfssl virtual/wolfssl"
 RPROVIDES_${PN} = "wolfssl"
 
 SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=decea12e223869c8f8f3ab5a53dc90b69f436eb2"
 
 S = "${WORKDIR}/git"
 
+inherit autotools pkgconfig wolfssl-helper
 
-inherit autotools pkgconfig
-
-# Approach: Use Python to dynamically set function content based on Yocto version
-python() {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    autogen_command = 'cd ${S}; ./autogen.sh'
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        # For Dunfell and earlier
-        d.appendVar('do_configure_prepend', autogen_command)
-    else:
-        # For Kirkstone and later
-        d.appendVar('do_configure:prepend', autogen_command)
-}
-
+# Skip the package check for wolfssl itself (it's the base library)
+deltask do_wolfssl_check_package
 
 BBCLASSEXTEND = "native nativesdk"
 EXTRA_OECONF += "--enable-reproducible-build"

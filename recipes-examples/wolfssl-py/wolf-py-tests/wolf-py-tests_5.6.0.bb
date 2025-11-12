@@ -33,10 +33,11 @@ python () {
     wolfcrypt_test_py_install_dir = d.getVar('WOLFCRYPT_TEST_PY_INSTALL_DIR', True)
     wolfcrypt_test_py_readme_dir = d.getVar('WOLFCRYPT_TEST_PY_README_DIR', True)
 
-    bb.note("Installing dummy file for wolfCrypt test example")
+    bbnote = 'bbnote "Installing dummy file for wolfCrypt test example"\n'
     installDir = 'install -m 0755 -d "%s"\n' % wolfcrypt_test_py_install_dir
     makeDummy = 'echo "This is a dummy package" > "%s"\n' % wolfcrypt_test_py_readme_dir
 
+    d.appendVar('do_install', bbnote)
     d.appendVar('do_install', installDir)
     d.appendVar('do_install', makeDummy)
 
