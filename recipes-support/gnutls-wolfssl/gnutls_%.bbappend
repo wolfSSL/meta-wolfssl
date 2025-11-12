@@ -36,6 +36,7 @@ EXTRA_OECONF:class-target = "\
     --disable-valgrind-tests \
     --disable-dependency-tracking \
     --enable-srp-authentication \
+    --enable-fips140-mode \
 "
 
 TARGET_CFLAGS:append:class-target = " -DGNUTLS_WOLFSSL"
