@@ -74,6 +74,7 @@ COMMERCIAL_BUNDLE_TARGET ?= "${WORKDIR}"
 python do_commercial_extract() {
     import os
     import bb
+    import bb.process
     
     bundle_dir = d.getVar('COMMERCIAL_BUNDLE_DIR')
     bundle_name = d.getVar('COMMERCIAL_BUNDLE_NAME')
@@ -102,13 +103,23 @@ python do_commercial_extract() {
     if ret != 0:
         bb.fatal(f"Failed to copy bundle to {target_dir}")
     
+    # Locate 7zip binary from native sysroot or host
+    path = d.getVar('PATH')
+    seven_zip = bb.utils.which(path, '7za') or bb.utils.which(path, '7z')
+
+    if not seven_zip:
+        bb.fatal("Failed to find either '7za' or '7z' in PATH.\n"
+                 "Ensure p7zip-native is available or install p7zip on the build host.")
+
     # Extract with password
-    cmd = f'7za x "{target_dir}/{bundle_name}.7z" -p"{bundle_pass}" -o"{target_dir}" -aoa'
-    ret = os.system(cmd)
-    
-    if ret != 0:
-        bb.fatal(f"Failed to extract bundle. Check password and bundle integrity.")
-    
+    cmd = [seven_zip, 'x', f"{target_dir}/{bundle_name}.7z", f"-p{bundle_pass}",
+           f"-o{target_dir}", '-aoa']
+
+    try:
+        bb.process.run(cmd)
+    except bb.process.ExecutionError as exc:
+        bb.fatal("Failed to extract bundle. Check password and bundle integrity.\n" + str(exc))
+
     bb.plain("Commercial bundle extracted successfully")
 }
 
@@ -120,6 +131,30 @@ python __anonymous() {
     enabled = d.getVar('COMMERCIAL_BUNDLE_ENABLED')
     if enabled == "1":
         d.appendVar('DEPENDS', ' p7zip-native')
+        d.appendVarFlag('do_commercial_extract', 'depends', ' p7zip-native:do_populate_sysroot')
+        opts = d.getVar('CONFIGUREOPTS') or ''
+        import shlex
+        tokens = shlex.split(opts)
+        tokens = [t for t in tokens if not t.startswith('--with-libtool-sysroot=')]
+        d.setVar('CONFIGUREOPTS', ' '.join(tokens))
+}
+
+# Skip autoreconf for commercial bundles and rely on bundled configure script
+do_configure() {
+    if [ "${COMMERCIAL_BUNDLE_ENABLED}" = "1" ]; then
+        bbnote "Commercial bundle detected, skipping autoreconf and running bundled configure"
+        if [ ! -f "${S}/stamp-h.in" ] && grep -q "AC_CONFIG_FILES(\\[stamp-h\\]" "${S}/configure.ac"; then
+            bbnote "stamp-h.in missing; generating stub for preconfigured commercial source"
+            echo "timestamp" > "${S}/stamp-h.in"
+        fi
+        if [ -e "${CONFIGURE_SCRIPT}" ]; then
+            oe_runconf
+        else
+            bbfatal "configure script not found at ${CONFIGURE_SCRIPT}"
+        fi
+    else
+        autotools_do_configure
+    fi
 }
 
 # Task to create stub autogen.sh for commercial bundles
