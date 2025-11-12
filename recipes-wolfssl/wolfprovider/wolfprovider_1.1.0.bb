@@ -22,16 +22,8 @@ inherit autotools pkgconfig wolfssl-helper
 
 S = "${WORKDIR}/git"
 
-# Pass replace-default mode to runtime
+# Core build configuration
 do_install:append() {
-    install -d ${D}${sysconfdir}/wolfprovider
-    if [ "${WOLFPROVIDER_REPLACE_DEFAULT}" = "1" ]; then
-        echo "1" > ${D}${sysconfdir}/wolfprovider/replace-default-mode
-    else
-        echo "0" > ${D}${sysconfdir}/wolfprovider/replace-default-mode
-    fi
-    
-    # Create symlink for unversioned .so
     install -d ${D}${libdir}
     ln -sf libwolfprov.so.0.0.0 ${D}${libdir}/libwolfprov.so
 }
@@ -47,8 +39,9 @@ FILES_SOLIBSDEV = ""
 # Explicitly list what goes to -dev instead (headers, pc)
 FILES:${PN}-dev = "${includedir} ${libdir}/pkgconfig/*.pc"
 
-# Ensure the symlink and config are assigned to runtime
-FILES:${PN} += "${libdir}/libwolfprov.so ${sysconfdir}/wolfprovider/replace-default-mode"
+# Ensure the symlink is assigned to runtime
+FILES:${PN} += "${libdir}/libwolfprov.so"
 
 # Shipping an unversioned .so in runtime: suppress QA warning
 INSANE_SKIP:${PN} += "dev-so"
+
