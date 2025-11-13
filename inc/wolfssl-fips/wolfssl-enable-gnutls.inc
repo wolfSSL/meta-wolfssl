@@ -1,5 +1,3 @@
-# configure wolfssl for gnutls integration
-
 EXTRA_OECONF += " \
     --enable-cmac \
     --enable-aesccm \

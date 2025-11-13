@@ -7,7 +7,7 @@ LIC_FILES_CHKSUM:class-target = "file://COPYING;md5=1ebbd3e34237af26da5dc08a4e44
                     file://COPYING.LESSERv2;md5=4bf661c1e3793e55c8d1051bc5e0ae21"
 
 # Add gnutls-wolfssl specific dependencies
-DEPENDS:append:class-target = " wolfssl libunistring gmp nettle libtasn1 p11-kit zlib \
+DEPENDS:append:class-target = " virtual/wolfssl libunistring gmp nettle libtasn1 p11-kit zlib \
            bison-native libtasn1-native gperf-native gtk-doc-native gettext-native \
            autoconf-native automake-native libtool-native"
 
