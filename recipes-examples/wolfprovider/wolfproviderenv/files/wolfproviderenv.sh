@@ -33,11 +33,48 @@ fi
 export OPENSSL_MODULES=/usr/lib/ssl-3/modules
 export LD_LIBRARY_PATH=/usr/lib:/lib:$LD_LIBRARY_PATH
 
+# Detect if wolfSSL was built with FIPS support
+WOLFSSL_FIPS_MODE=0
+if [ -f /etc/wolfssl/fips-enabled ]; then
+    FIPS_VALUE=$(cat /etc/wolfssl/fips-enabled)
+    if [ "$FIPS_VALUE" = "1" ]; then
+        WOLFSSL_FIPS_MODE=1
+        echo "Detected wolfSSL FIPS build"
+    else
+        echo "Detected wolfSSL non-FIPS build"
+    fi
+else
+    echo "WARNING: FIPS marker file not found, assuming non-FIPS build"
+    echo "Detected wolfSSL non-FIPS build"
+fi
+
 # Only create explicit provider config if NOT in replace-default mode
 if [ "$REPLACE_DEFAULT_MODE" -eq 0 ]; then
     # Configuration for wolfprovider
     mkdir -p /opt/wolfprovider-configs
-    cat > /opt/wolfprovider-configs/wolfprovider.conf <<EOF
+    
+    if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
+        # FIPS mode configuration
+        cat > /opt/wolfprovider-configs/wolfprovider.conf <<EOF
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+alg_section = algorithm_sect
+
+[provider_sect]
+libwolfprov = libwolfprov_sect
+
+[libwolfprov_sect]
+activate = 1
+
+[algorithm_sect]
+default_properties = fips=yes
+EOF
+        echo "Using FIPS configuration"
+    else
+        # Non-FIPS mode configuration
+        cat > /opt/wolfprovider-configs/wolfprovider.conf <<EOF
 openssl_conf = openssl_init
 
 [openssl_init]
@@ -49,6 +86,8 @@ libwolfprov = libwolfprov_sect
 [libwolfprov_sect]
 activate = 1
 EOF
+        echo "Using non-FIPS configuration"
+    fi
 
     export OPENSSL_CONF="/opt/wolfprovider-configs/wolfprovider.conf"
 else
@@ -63,6 +102,12 @@ if [ "$REPLACE_DEFAULT_MODE" -eq 1 ]; then
     echo "Mode: Replace-Default (wolfProvider is the default provider)"
 else
     echo "Mode: Explicit Load (using OPENSSL_CONF)"
+fi
+echo ""
+if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
+    echo "FIPS Mode: Enabled (wolfSSL FIPS)"
+else
+    echo "FIPS Mode: Disabled (wolfSSL non-FIPS)"
 fi
 echo ""
 echo "Environment Variables:"

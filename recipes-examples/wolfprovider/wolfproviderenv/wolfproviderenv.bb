@@ -5,7 +5,7 @@ SECTION = "examples"
 LICENSE = "CLOSED"
 LIC_FILES_CHKSUM = ""
 
-DEPENDS = "openssl pkgconfig-native wolfssl wolfprovider"
+DEPENDS = "openssl pkgconfig-native virtual/wolfssl wolfprovider"
 PROVIDES += "wolfproviderenv"
 RPROVIDES_${PN} = "wolfproviderenv"
 
