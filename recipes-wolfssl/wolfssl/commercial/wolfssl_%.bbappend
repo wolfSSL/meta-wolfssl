@@ -27,20 +27,4 @@ python() {
     else:
         # For Kirkstone and later
         d.appendVar('do_configure:prepend', autogen_create)
-
-    # Install wolfcrypttest binary
-    wolfcrypt_test_dir = '${B}/wolfcrypt/test/.libs'
-    wolfcrypt_test = 'testwolfcrypt'
-    wolfcrypt_test_yocto = 'wolfcrypttest'
-    wolfcrypt_install_dir = '${D}${bindir}'
-
-    bbnote = 'bbnote "Installing wolfCrypt Tests"\n'
-    installDir = 'install -m 0755 -d "%s"\n' % (wolfcrypt_install_dir)
-    cpTest = 'if [ -f "%s/%s" ]; then cp "%s/%s" "%s/%s"; fi\n' % (wolfcrypt_test_dir, wolfcrypt_test, wolfcrypt_test_dir, wolfcrypt_test, wolfcrypt_install_dir, wolfcrypt_test_yocto)
-
-    d.appendVar('do_install', bbnote)
-    d.appendVar('do_install', installDir)
-    d.appendVar('do_install', cpTest)
 }
-
-TARGET_CFLAGS += "-DUSE_CERT_BUFFERS_2048 -DUSE_CERT_BUFFERS_256 -DWOLFSSL_RSA_KEY_CHECK -DNO_WRITE_TEMP_FILES"
