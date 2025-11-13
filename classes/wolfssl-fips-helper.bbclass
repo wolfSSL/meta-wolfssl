@@ -60,7 +60,10 @@ get_wolfssl_fips_hash() {
 # QEMU wrapper command for running target binaries
 # This uses the qemu_target_binary function from qemu.bbclass
 WOLFSSL_QEMU_BINARY = "${RECIPE_SYSROOT_NATIVE}/usr/bin/${@qemu_target_binary(d)}"
-WOLFSSL_QEMU_WRAPPER = "PSEUDO_UNLOAD=1 ${WOLFSSL_QEMU_BINARY} ${QEMU_OPTIONS} -L ${RECIPE_SYSROOT} -E LD_LIBRARY_PATH=${B}/src/.libs:${B}/wolfcrypt/src/.libs"
+# QEMU wrapper needs a real command as the first token; wrap the
+# PSEUDO_UNLOAD override with `env` so it isn't mis-parsed as an executable
+# when the command string is expanded via ${run_cmd}.
+WOLFSSL_QEMU_WRAPPER = "env PSEUDO_UNLOAD=1 ${WOLFSSL_QEMU_BINARY} ${QEMU_OPTIONS} -L ${RECIPE_SYSROOT} -E LD_LIBRARY_PATH=${B}/src/.libs:${B}/wolfcrypt/src/.libs"
 
 # Clean function to prepend to do_configure
 wolfssl_fips_clean_config() {
@@ -266,4 +269,3 @@ do_wolfssl_fips_capture_hash_manual() {
 do_wolfssl_fips_capture_hash[doc] = "Capture FIPS hash from test binary"
 do_wolfssl_fips_capture_hash[dirs] = "${B} ${S}"
 do_wolfssl_fips_capture_hash[nostamp] = "1"
-
