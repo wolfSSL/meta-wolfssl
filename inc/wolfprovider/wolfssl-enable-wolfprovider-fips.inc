@@ -1,5 +1,16 @@
 # Configuration to enable wolfprovider FIPS support in wolfssl
 
-EXTRA_OECONF += " --enable-opensslcoexist --enable-cmac --enable-keygen --enable-sha --enable-des3 --enable-aesctr --enable-aesccm --enable-x963kdf --enable-compkey --enable-certgen --enable-aeskeywrap --enable-enckeys --enable-base16 "
-TARGET_CFLAGS += " -DHAVE_AES_ECB -DWOLFSSL_AES_DIRECT -DWC_RSA_NO_PADDING -DWOLFSSL_PUBLIC_MP -DECC_MIN_KEY_SZ=192 -DHAVE_PUBLIC_FFDHE -DWOLFSSL_DH_EXTRA -DRSA_MIN_SIZE=1024 -DWOLFSSL_PSS_LONG_SALT -DWOLFSSL_PSS_SALT_LEN_DISCOVER"
+EXTRA_OECONF += " --enable-fips=v5 --enable-opensslcoexist"
+TARGET_CFLAGS += " -DWOLFSSL_OLD_OID_SUM -DWOLFSSL_DH_EXTRA"
+
+# Use a marker file to signal we are a FIPS build
+WOLFSSL_ISFIPS = "1"
+
+do_install:append() {
+    install -d ${D}${sysconfdir}/wolfssl
+    echo "1" > ${D}${sysconfdir}/wolfssl/fips-enabled
+}
+
+FILES:${PN} += "${sysconfdir}/wolfssl/fips-enabled"
+
 

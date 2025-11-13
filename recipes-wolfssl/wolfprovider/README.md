@@ -112,6 +112,17 @@ WOLFSSL_DEMOS = "wolfprovider-image-minimal"
 bitbake wolfprovider-image-minimal
 ```
 
+### FIPS Mode
+
+To build with fips refer to the `conf/wolfssl-fips.conf.sample` file. Once you have the fips bundle and have extracted the hash you can set the hash in the `conf/wolfssl-fips.conf` file. Then rebuild the image with the following command:
+```bash
+bitbake -c cleanall wolfprovider wolfprovider-image-minimal wolfssl-image-minimal
+bitbake wolfprovider-image-minimal wolfssl-image-minimal
+```
+
+Building with the wolfssl-image-minimal will build the wolfcrypttest which can be used to correctly update the fips hash value.
+once you have ran the wolfcrypttest you can update the fips hash value in the `conf/wolfssl-fips.conf` file. Then rebuild the image again and verify FIPS by looking at the `wolfproviderenv` output.
+
 ### Documentation and Support
 
 For further information about `wolfprovider` and `wolfssl`, visit the [wolfSSL Documentation](https://www.wolfssl.com/docs/) and the [wolfProvider Github](https://www.github.com/wolfSSL/wolfprovider). If you encounter issues or require support regarding the integration of `wolfprovider` with Yocto, feel free to reach out through [wolfSSL Support](support@wolfssl.com).
