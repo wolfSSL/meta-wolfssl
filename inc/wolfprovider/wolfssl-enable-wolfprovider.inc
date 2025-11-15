@@ -11,6 +11,4 @@ do_install:append() {
     echo "0" > ${D}${sysconfdir}/wolfssl/fips-enabled
 }
 
-FILES:${PN} += "${sysconfdir}/wolfssl/fips-enabled"
-
 
