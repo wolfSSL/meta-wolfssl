@@ -36,44 +36,138 @@ The `wolfprovidertest` yocto package will provide two apps, `wolfproviderenv` an
 
 3. **Add wolfprovider to your image**:
 
-    Modify your image recipe or `local.conf` file to include `wolfprovider`, `wolfssl`, `openssl`, `openssl-bin`, and `wolfprovidertest`. You will only need `openssl-bin` and `wolfprovidertest` if you want to use and test with our included example and conf file.
-
-
-    For yocto kirkstone or newer:
-    ```
-    IMAGE_INSTALL:append = "wolfprovider wolfssl openssl openssl-bin wolfprovidertest"
+    Enable the wolfprovider demo image in your `local.conf` file:
+    ```bitbake
+    WOLFSSL_DEMOS = "wolfprovider-image-minimal"
     ```
 
-    For yocto dunfell or earlier:
-    ```
-    IMAGE_INSTALL_append = "wolfprovider wolfssl openssl openssl-bin wolfprovidertest"
+4. **Configure wolfProvider Mode (Optional)**:
+
+    wolfProvider can operate in two modes:
+    
+    **Normal Mode (Default)**: wolfProvider acts as a supplementary provider alongside OpenSSL's default provider. No configuration needed.
+    
+    **Replace-Default Mode**: wolfProvider replaces OpenSSL's default provider by patching OpenSSL, making wolfSSL the primary crypto backend.
+    
+    To enable and disable modes like FIPS, replace default, etc. for testing you can use these files:
+    `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/wolfssl_%.bbappend`
+    `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/openssl_%.bbappend`
+
+    to rebuild with replace default we need to run a clean on the wolfprovider and openssl then rebuild: 
+
+    ```sh
+    bitbake -c cleanall openssl wolfprovider
+    bitbake wolfprovider-image-minimal
     ```
 
-4. **Build Your Image**:
+5. **Build Your Image**:
 
     With the `meta-wolfssl` layer added and the necessary packages included in your image configuration, proceed to build your Yocto image as usual.
 
     ```sh
-    bitbake <your_image_recipe_name>
+    bitbake wolfprovider-image-minimal
     ```
 
 ### Testing wolfprovider
 
-After building and deploying your image to the target device, you can test `wolfprovider` functionality through the `wolfproviderenv` script.
+After building and deploying your image to the target device, you can test `wolfprovider` functionality with three test suites:
 
-1. **Execute the wolfproviderenv Script**:
-
-    `wolfproviderenv` is located in `/usr/bin`, so just execute the script upon entering into your terminal.
+1. **Environment Setup and Verification**:
 
     ```sh
     wolfproviderenv
     ```
+    
+    This sets up the environment and verifies wolfProvider is correctly installed and loaded. It automatically detects the mode you are in and does the neccesary things to prepare the env for testing.
 
-    The script performs necessary setup actions, executes `wolfprovidertest` to validate the integration, and lists available OpenSSL providers to confirm `wolfprovider` is active and correctly configured.
+2. **Unit Tests**:
 
-2. **Expected Output**:
+    ```sh
+    wolfprovidertest
+    ```
+    
+    Runs the comprehensive wolfProvider unit test suite from the upstream wolfProvider repository. Tests cover all cryptographic operations.
 
-    Look for messages indicating a successful environment setup, execution of `wolfprovidertest` with a custom provider loaded successfully, and `libwolfprovider` listed among active OpenSSL providers.
+3. **Command-Line Tests**:
+
+    ```sh
+    wolfprovidercmd
+    ```
+    
+    Runs OpenSSL command-line tests including:
+    - Hash operations (SHA, MD5, etc.)
+    - AES encryption/decryption
+    - RSA operations
+    - ECC operations
+    - Certificate operations
+
+### Demo Image
+
+A demo image is provided to verify wolfProvider works:
+
+**wolfprovider-image-minimal**: Demonstrates wolfProvider with all test suites
+```bash
+# In local.conf
+WOLFSSL_DEMOS = "wolfprovider-image-minimal"
+
+# Build
+bitbake wolfprovider-image-minimal
+```
+
+### Replace Default Mode
+
+Enable the wolfprovider demo image in your `local.conf` file:
+```bitbake
+WOLFSSL_DEMOS = "wolfprovider-image-minimal"
+```
+
+To enable replace default mode uncomment the following line in the `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/openssl_%.bbappend` file:
+```bitbake
+require ${WOLFSSL_LAYERDIR}/inc/wolfprovider/openssl/openssl-enable-wolfprovider-replace-default.inc
+```
+
+Add `WOLFSSL_FEATURES = "wolfprovider"` to the local.conf file or include your bbappend directly to your image recipe.
+
+run the following commands to build the image:
+```bash
+bitbake -c cleansstate openssl
+bitbake -c cleanall wolfprovider wolfprovider-image-minimal
+bitbake wolfprovider-image-minimal
+bitbake <your_target_image_recipe_name>
+```
+Note: Make sure to clean openssl if rebuilding openssl or wolfprovider or the image with replace default mode.
+
+once in qemu or target image verify with `openssl list -providers` that the default provider is `wolfSSL Provider` or just run `wolfproviderenv`.
+
+### FIPS Mode
+
+To build with fips refer to the `conf/wolfssl-fips.conf.sample` file. Once you have the fips bundle and have extracted the hash you can set the hash in the `conf/wolfssl-fips.conf` file. Then rebuild the image with the following command:
+
+Enable the wolfprovider demo image in your `local.conf` file so you can veridy FIPS with the wolfcrypttest:
+```bitbake
+WOLFSSL_DEMOS = "wolfprovider-image-minimal wolfssl-image-minimal"
+```
+
+To enable fips uncomment the following line in the `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/wolfssl_%.bbappend` file:
+```bitbake
+require ${WOLFSSL_LAYERDIR}/inc/wolfprovider/wolfssl-enable-wolfprovider-fips.inc
+```
+
+Add `WOLFSSL_FEATURES = "wolfprovider"` to the local.conf file or include your bbappend directly to your image recipe.
+
+run the following commands to build the image:
+```bash
+bitbake -c cleansstate openssl
+bitbake wolfssl-fips
+bitbake -c cleanall wolfprovider wolfprovider-image-minimal wolfssl-image-minimal
+bitbake wolfprovider-image-minimal wolfssl-image-minimal
+bitbake <your_image_recipe_name>
+```
+
+Building with the wolfssl-image-minimal will build the wolfcrypttest which can be used to correctly update the fips hash value.
+once you have ran the wolfcrypttest you can update the fips hash value in the `conf/wolfssl-fips.conf` file. Then rebuild the image again and verify FIPS by looking at the `wolfproviderenv` output. Or simply add the `auto` HASH version in the wolfssl conf.
+
+once in qemu or target image run `wolfproviderenv` to load wolfprovider if replace default isnt enabled.
 
 ### Documentation and Support
 

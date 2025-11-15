@@ -9,6 +9,8 @@ IMAGE_INSTALL:append = " \
     openssl \
     openssl-bin \
     wolfprovidertest \
+    wolfprovidercmd \
+    wolfproviderenv \
     bash \
 "
 
