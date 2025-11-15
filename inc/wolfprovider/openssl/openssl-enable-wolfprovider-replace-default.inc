@@ -43,7 +43,19 @@ python do_patch:append:class-target () {
     import os, subprocess
     s = d.getVar("S")
     patch_path = os.path.join(d.getVar("WORKDIR"), "git/wolfProvider/patches/openssl3-replace-default.patch")
-    bb.note("REPLACE-DEFAULT MODE: Applying replace-default patch")
-    subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path], check=True)
+    bb.note("REPLACE-DEFAULT MODE: Checking if patch needs to be applied")
+    # Try to apply patch; if it fails with "already applied", log it and continue
+    try:
+        # First check with --dry-run to see if patch can be applied
+        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"], 
+                              capture_output=True, text=True, check=False)
+        if result.returncode == 0:
+            bb.note("REPLACE-DEFAULT MODE: Patch can be applied, applying now...")
+            subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path], check=True)
+        else:
+            bb.note("REPLACE-DEFAULT MODE: Patch already applied or cannot apply, skipping")
+            bb.debug(1, f"Patch check output: {result.stderr}")
+    except Exception as e:
+        bb.warn(f"REPLACE-DEFAULT MODE: Error applying patch: {e}")
 }
 

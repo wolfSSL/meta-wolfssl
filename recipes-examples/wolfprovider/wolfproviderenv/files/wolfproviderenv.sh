@@ -4,8 +4,8 @@
 # When sourced: Sets up environment variables for other scripts to use
 # When executed: Also runs verification tests
 
-# Detect if wolfProvider is in replace-default mode
 REPLACE_DEFAULT_MODE=0
+WOLFSSL_FIPS_MODE=0
 
 # Method 1: Check build-time configuration file
 if [ -f /etc/wolfprovider/replace-default-mode ]; then
@@ -13,6 +13,8 @@ if [ -f /etc/wolfprovider/replace-default-mode ]; then
     if [ "$MODE" = "1" ]; then
         REPLACE_DEFAULT_MODE=1
         echo "Detected replace-default mode (from config file)"
+    else
+        echo "Detected normal wolfprovider mode (from config file)"
     fi
 else
     # Method 2: Runtime detection by checking default provider
@@ -20,6 +22,8 @@ else
     if [ -n "$DEFAULT_PROVIDER" ]; then
         REPLACE_DEFAULT_MODE=1
         echo "Detected replace-default mode (runtime detection)"
+    else
+        echo "Detected normal wolfprovider mode (runtime detection)"
     fi
 fi
 
@@ -33,19 +37,24 @@ fi
 export OPENSSL_MODULES=/usr/lib/ssl-3/modules
 export LD_LIBRARY_PATH=/usr/lib:/lib:$LD_LIBRARY_PATH
 
-# Detect if wolfSSL was built with FIPS support
-WOLFSSL_FIPS_MODE=0
+# Method 1: Check build-time configuration file
 if [ -f /etc/wolfssl/fips-enabled ]; then
     FIPS_VALUE=$(cat /etc/wolfssl/fips-enabled)
     if [ "$FIPS_VALUE" = "1" ]; then
         WOLFSSL_FIPS_MODE=1
-        echo "Detected wolfSSL FIPS build"
+        echo "Detected wolfSSL FIPS build (from config file)"
     else
-        echo "Detected wolfSSL non-FIPS build"
+        echo "Detected wolfSSL non-FIPS build (from config file)"
     fi
 else
-    echo "WARNING: FIPS marker file not found, assuming non-FIPS build"
-    echo "Detected wolfSSL non-FIPS build"
+    # Method 2: Runtime detection (Replace default and FIPS mode)
+    DEFAULT_PROVIDER=$(openssl list -providers 2>/dev/null | grep -A1 "^  default$" | grep "name:" | grep -i "wolfSSL Provider FIPS")
+    if [ -n "$DEFAULT_PROVIDER" ]; then
+        WOLFSSL_FIPS_MODE=1
+        echo "Detected wolfSSL FIPS build (runtime detection)"
+    else
+        echo "Detected wolfSSL non-FIPS build (runtime detection)"
+    fi
 fi
 
 # Only create explicit provider config if NOT in replace-default mode
