@@ -49,7 +49,9 @@ The `wolfprovidertest` yocto package will provide two apps, `wolfproviderenv` an
     
     **Replace-Default Mode**: wolfProvider replaces OpenSSL's default provider by patching OpenSSL, making wolfSSL the primary crypto backend.
     
-    To enable replace-default mode, simply uncomment the mode you want in the `.inc` files here `recipes-core/images/wolfprovider-image-minimal/openssl_%.bbappend`
+    To enable and disable modes like FIPS, replace default, etc. for testing you can use these files:
+    `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/wolfssl_%.bbappend`
+    `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/openssl_%.bbappend`
 
     to rebuild with replace default we need to run a clean on the wolfprovider and openssl then rebuild: 
 
@@ -76,7 +78,7 @@ After building and deploying your image to the target device, you can test `wolf
     wolfproviderenv
     ```
     
-    This sets up the environment and verifies wolfProvider is correctly installed and loaded. It automatically detects replace-default mode.
+    This sets up the environment and verifies wolfProvider is correctly installed and loaded. It automatically detects the mode you are in and does the neccesary things to prepare the env for testing.
 
 2. **Unit Tests**:
 
@@ -112,16 +114,60 @@ WOLFSSL_DEMOS = "wolfprovider-image-minimal"
 bitbake wolfprovider-image-minimal
 ```
 
+### Replace Default Mode
+
+Enable the wolfprovider demo image in your `local.conf` file:
+```bitbake
+WOLFSSL_DEMOS = "wolfprovider-image-minimal"
+```
+
+To enable replace default mode uncomment the following line in the `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/openssl_%.bbappend` file:
+```bitbake
+require ${WOLFSSL_LAYERDIR}/inc/wolfprovider/openssl/openssl-enable-wolfprovider-replace-default.inc
+```
+
+Add `WOLFSSL_FEATURES = "wolfprovider"` to the local.conf file or include your bbappend directly to your image recipe.
+
+run the following commands to build the image:
+```bash
+bitbake -c cleansstate openssl
+bitbake -c cleanall wolfprovider wolfprovider-image-minimal
+bitbake wolfprovider-image-minimal
+bitbake <your_target_image_recipe_name>
+```
+Note: Make sure to clean openssl if rebuilding openssl or wolfprovider or the image with replace default mode.
+
+once in qemu or target image verify with `openssl list -providers` that the default provider is `wolfSSL Provider` or just run `wolfproviderenv`.
+
 ### FIPS Mode
 
 To build with fips refer to the `conf/wolfssl-fips.conf.sample` file. Once you have the fips bundle and have extracted the hash you can set the hash in the `conf/wolfssl-fips.conf` file. Then rebuild the image with the following command:
+
+Enable the wolfprovider demo image in your `local.conf` file so you can veridy FIPS with the wolfcrypttest:
+```bitbake
+WOLFSSL_DEMOS = "wolfprovider-image-minimal wolfssl-image-minimal"
+```
+
+To enable fips uncomment the following line in the `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/wolfssl_%.bbappend` file:
+```bitbake
+require ${WOLFSSL_LAYERDIR}/inc/wolfprovider/wolfssl-enable-wolfprovider-fips.inc
+```
+
+Add `WOLFSSL_FEATURES = "wolfprovider"` to the local.conf file or include your bbappend directly to your image recipe.
+
+run the following commands to build the image:
 ```bash
+bitbake -c cleansstate openssl
+bitbake wolfssl-fips
 bitbake -c cleanall wolfprovider wolfprovider-image-minimal wolfssl-image-minimal
 bitbake wolfprovider-image-minimal wolfssl-image-minimal
+bitbake <your_image_recipe_name>
 ```
 
 Building with the wolfssl-image-minimal will build the wolfcrypttest which can be used to correctly update the fips hash value.
-once you have ran the wolfcrypttest you can update the fips hash value in the `conf/wolfssl-fips.conf` file. Then rebuild the image again and verify FIPS by looking at the `wolfproviderenv` output.
+once you have ran the wolfcrypttest you can update the fips hash value in the `conf/wolfssl-fips.conf` file. Then rebuild the image again and verify FIPS by looking at the `wolfproviderenv` output. Or simply add the `auto` HASH version in the wolfssl conf.
+
+once in qemu or target image run `wolfproviderenv` to load wolfprovider if replace default isnt enabled.
 
 ### Documentation and Support
 
