@@ -121,12 +121,11 @@ Enable the wolfprovider demo image in your `local.conf` file:
 WOLFSSL_DEMOS = "wolfprovider-image-minimal"
 ```
 
-To enable replace default mode uncomment the following line in the `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/openssl_%.bbappend` file:
+To enable replace default mode add these to your `local.conf` file:
 ```bitbake
-require ${WOLFSSL_LAYERDIR}/inc/wolfprovider/openssl/openssl-enable-wolfprovider-replace-default.inc
+WOLFSSL_FEATURES = "wolfprovider"
+WOLFPROVIDER_MODE = "replace-default"
 ```
-
-Add `WOLFSSL_FEATURES = "wolfprovider"` to the local.conf file or include your bbappend directly to your image recipe.
 
 run the following commands to build the image:
 ```bash
@@ -136,6 +135,7 @@ bitbake wolfprovider-image-minimal
 bitbake <your_target_image_recipe_name>
 ```
 Note: Make sure to clean openssl if rebuilding openssl or wolfprovider or the image with replace default mode.
+Note: If switching between normal and replace default mode you will need to `cleanll openssl` and rebuild the image again.
 
 once in qemu or target image verify with `openssl list -providers` that the default provider is `wolfSSL Provider` or just run `wolfproviderenv`.
 
@@ -148,12 +148,11 @@ Enable the wolfprovider demo image in your `local.conf` file so you can veridy F
 WOLFSSL_DEMOS = "wolfprovider-image-minimal wolfssl-image-minimal"
 ```
 
-To enable fips uncomment the following line in the `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/wolfssl_%.bbappend` file:
+To enable fips add these to your `local.conf` file:
 ```bitbake
-require ${WOLFSSL_LAYERDIR}/inc/wolfprovider/wolfssl-enable-wolfprovider-fips.inc
+WOLFSSL_FEATURES = "wolfprovider"
+require /path/to/meta-wolfssl/conf/wolfssl-fips.conf
 ```
-
-Add `WOLFSSL_FEATURES = "wolfprovider"` to the local.conf file or include your bbappend directly to your image recipe.
 
 run the following commands to build the image:
 ```bash
