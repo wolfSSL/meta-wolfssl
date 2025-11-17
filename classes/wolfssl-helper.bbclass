@@ -26,6 +26,61 @@ def wolfssl_conditional_require(d, package_name, inc_path):
         bb.parse.mark_dependency(d, inc_file)
         bb.parse.handle(inc_file, d, True)
 
+
+def wolfssl_conditional_require_mode(d, package_name, mode, inc_file):
+    """
+    Conditionally include an .inc file based on a mode variable and WOLFSSL_FEATURES.
+    
+    Args:
+        d: BitBake datastore
+        package_name: Name of the package to check for (e.g., 'wolfprovider')
+        mode: The expected mode (e.g., 'standalone' or 'replace-default')
+        inc_file: Relative path from layer root to the .inc file
+    
+    Returns:
+        True if configuration was included, False otherwise
+    
+    Example:
+        wolfssl_conditional_require_mode(
+            d,
+            package_name='wolfprovider',
+            mode='standalone',
+            inc_file='inc/wolfprovider/openssl/openssl-enable-wolfprovider.inc'
+        )
+    """
+    import os
+    import bb.parse
+    
+    # Check if package is enabled
+    if not (bb.utils.contains('WOLFSSL_FEATURES', package_name, True, False, d) or \
+            bb.utils.contains('IMAGE_INSTALL', package_name, True, False, d)):
+        bb.debug(2, f"{package_name} not in WOLFSSL_FEATURES or IMAGE_INSTALL - skipping")
+        return False
+    
+    # Build the mode variable name from package name (e.g., 'wolfprovider' -> 'WOLFPROVIDER_MODE')
+    mode_var_name = f"{package_name.upper()}_MODE"
+    current_mode = d.getVar(mode_var_name) or 'standalone'  # Default to standalone
+    
+    # Check if current mode matches expected mode
+    if current_mode != mode:
+        bb.debug(2, f"{mode_var_name}='{current_mode}' does not match '{mode}' - skipping")
+        return False
+    
+    # Mode matches - include the configuration
+    bb.note(f"{package_name}: {mode_var_name}='{current_mode}' - including {inc_file}")
+    
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if not layerdir:
+        bb.fatal("WOLFSSL_LAYERDIR not set - ensure meta-wolfssl layer is properly configured")
+    
+    full_inc_file = os.path.join(layerdir, inc_file)
+    bb.parse.mark_dependency(d, full_inc_file)
+    try:
+        bb.parse.handle(full_inc_file, d, True)
+        return True
+    except Exception as e:
+        bb.fatal(f"Failed to include {full_inc_file}: {e}")
+
 python do_wolfssl_check_package() {
     """
     Task to check if package is enabled via IMAGE_INSTALL or WOLFSSL_FEATURES
