@@ -25,13 +25,16 @@ WOLFSSL_FIPS_HASH_MODE ?= "manual"
 # Bundle version
 WOLFSSL_VERSION = ""
 
-# Bundle filename (without .7z extension)
+# Bundle filename (without extension, used as extracted directory)
 WOLFSSL_SRC = ""
+
+# Optional: override archive filename (e.g., .tar.gz instead of .7z)
+#WOLFSSL_BUNDLE_FILE = ""
 
 # Bundle SHA256 checksum
 WOLFSSL_SRC_SHA = ""
 
-# Bundle password
+# Bundle password (required for .7z archives, leave empty for tarballs)
 WOLFSSL_SRC_PASS = ""
 
 # License file location and MD5
@@ -48,4 +51,3 @@ WOLFSSL_SRC_DIR = ""
 # Contact support@wolfssl.com for commercial FIPS bundles
 # See recipes-wolfssl/wolfssl/commercial/README.md for detailed instructions
 # ============================================================================
-
