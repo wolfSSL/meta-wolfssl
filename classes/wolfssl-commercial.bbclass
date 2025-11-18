@@ -7,9 +7,9 @@
 #   inherit wolfssl-commercial
 #
 # Required variables:
-#   COMMERCIAL_BUNDLE_DIR - Directory containing the .7z file
-#   COMMERCIAL_BUNDLE_NAME - Bundle filename without .7z extension
-#   COMMERCIAL_BUNDLE_PASS - Password for the bundle
+#   COMMERCIAL_BUNDLE_DIR - Directory containing the commercial archive
+#   COMMERCIAL_BUNDLE_NAME - Logical bundle name (used as extracted directory)
+#   COMMERCIAL_BUNDLE_PASS - Password for .7z bundles (optional for .tar.gz)
 #   COMMERCIAL_BUNDLE_SHA - SHA256 checksum of the bundle
 #   COMMERCIAL_BUNDLE_TARGET - Target directory for extraction (usually WORKDIR)
 #
@@ -24,24 +24,58 @@
 #   get_commercial_src_uri(d) - Generates conditional SRC_URI
 #   get_commercial_source_dir(d) - Generates conditional source directory
 #   get_commercial_bbclassextend(d) - Returns BBCLASSEXTEND only if bundle configured
+#   get_commercial_bundle_archive(d) - Resolves bundle filename (supports .7z and .tar.gz)
+#
+# Optional format variables:
+#   COMMERCIAL_BUNDLE_FILE - Bundle filename including extension (defaults to <NAME>.7z)
+#   COMMERCIAL_BUNDLE_GCS_URI - gs:// path to the protected bundle
 
 # Commercial bundles already ship generated configure scripts, so skip autoreconf
 AUTOTOOLS_AUTORECONF = "no"
 
 # Helper functions for conditional commercial bundle configuration
+def append_libtool_sysroot(d):
+    """Override the default autotools helper to drop --with-libtool-sysroot for commercial bundles."""
+    if d.getVar('COMMERCIAL_BUNDLE_ENABLED') == "1":
+        return ''
+    import bb
+    if not bb.data.inherits_class('native', d):
+        return '--with-libtool-sysroot=${STAGING_DIR_HOST}'
+    return ''
+
+def get_commercial_bundle_archive(d):
+    """Resolve the bundle filename with extension."""
+    bundle_file = d.getVar('COMMERCIAL_BUNDLE_FILE')
+    if bundle_file and bundle_file.strip() and not bundle_file.startswith('${'):
+        return bundle_file
+    bundle_name = d.getVar('COMMERCIAL_BUNDLE_NAME')
+    if bundle_name and bundle_name.strip() and not bundle_name.startswith('${'):
+        return f'{bundle_name}.7z'
+    return ''
+
 def get_commercial_src_uri(d):
     """Generate SRC_URI for commercial bundle if configured, dummy file otherwise"""
-    bundle_dir = d.getVar('COMMERCIAL_BUNDLE_DIR')
-    bundle_name = d.getVar('COMMERCIAL_BUNDLE_NAME')
+    bundle_archive = d.getVar('COMMERCIAL_BUNDLE_ARCHIVE')
     bundle_sha = d.getVar('COMMERCIAL_BUNDLE_SHA')
-    
-    # Check if bundle_name is actually set (not empty, None, or unexpanded variable)
-    if bundle_name and bundle_name.strip() and not bundle_name.startswith('${'):
-        return f'file://{bundle_dir}/{bundle_name}.7z;unpack=false;sha256sum={bundle_sha}'
-    
+    gcs_uri = d.getVar('COMMERCIAL_BUNDLE_GCS_URI')
+    placeholder = d.getVar('COMMERCIAL_BUNDLE_PLACEHOLDER') or ''
+
+    if gcs_uri and bundle_archive:
+        unpack_flag = ';unpack=false' if bundle_archive.endswith('.7z') else ''
+        sha_flag = f';sha256sum={bundle_sha}' if bundle_sha else ''
+        filename_flag = f';downloadfilename={bundle_archive}'
+        return f'{gcs_uri}{filename_flag}{unpack_flag}{sha_flag}'
+
+    bundle_dir = d.getVar('COMMERCIAL_BUNDLE_DIR')
+
+    if bundle_archive and not gcs_uri:
+        unpack_flag = ';unpack=false' if bundle_archive.endswith('.7z') else ''
+        return f'file://{bundle_dir}/{bundle_archive}{unpack_flag};sha256sum={bundle_sha}'
+
     # Return dummy placeholder file when not configured
-    # Use the existing commercial/files/README.md
-    return f'file://{bundle_dir}/README.md'
+    if placeholder:
+        return f'file://{placeholder}'
+    return ""
 
 def get_commercial_source_dir(d):
     """Get source directory for commercial bundle if configured, WORKDIR otherwise"""
@@ -66,99 +100,153 @@ def get_commercial_bbclassextend(d):
 COMMERCIAL_BUNDLE_ENABLED ?= "0"
 COMMERCIAL_BUNDLE_DIR ?= ""
 COMMERCIAL_BUNDLE_NAME ?= ""
+COMMERCIAL_BUNDLE_FILE ?= ""
 COMMERCIAL_BUNDLE_PASS ?= ""
 COMMERCIAL_BUNDLE_SHA ?= ""
 COMMERCIAL_BUNDLE_TARGET ?= "${WORKDIR}"
+COMMERCIAL_BUNDLE_PLACEHOLDER ?= "${WOLFSSL_LAYERDIR}/recipes-wolfssl/wolfssl/commercial/files/README.md"
+COMMERCIAL_BUNDLE_GCS_URI ?= ""
+COMMERCIAL_BUNDLE_ARCHIVE = "${@get_commercial_bundle_archive(d)}"
 
 # Task to extract commercial bundle
 python do_commercial_extract() {
     import os
     import bb
     import bb.process
+    import bb.build
     
+    enabled = d.getVar('COMMERCIAL_BUNDLE_ENABLED')
     bundle_dir = d.getVar('COMMERCIAL_BUNDLE_DIR')
-    bundle_name = d.getVar('COMMERCIAL_BUNDLE_NAME')
+    bundle_archive = d.getVar('COMMERCIAL_BUNDLE_ARCHIVE')
     bundle_pass = d.getVar('COMMERCIAL_BUNDLE_PASS')
     target_dir = d.getVar('COMMERCIAL_BUNDLE_TARGET')
-    
+    bundle_sha = d.getVar('COMMERCIAL_BUNDLE_SHA') or ''
+
+    if enabled != "1":
+        bb.note("COMMERCIAL_BUNDLE_ENABLED=0; skipping commercial extraction (standard fetch/unpack will run).")
+        return
+
     if not bundle_dir:
-        bb.fatal("COMMERCIAL_BUNDLE_DIR not set. Please set the directory containing the .7z bundle.")
+        bb.fatal("COMMERCIAL_BUNDLE_DIR not set. Please set the directory containing the commercial bundle.")
     
-    if not bundle_name:
-        bb.fatal("COMMERCIAL_BUNDLE_NAME not set. Please set bundle filename (without .7z extension).")
+    if not bundle_archive:
+        bb.fatal("COMMERCIAL_BUNDLE_NAME/FILE not set. Please provide the bundle filename.")
     
-    if not bundle_pass:
-        bb.fatal("COMMERCIAL_BUNDLE_PASS not set. Please set bundle password.")
+    is_seven_zip = bundle_archive.endswith('.7z')
+    is_tarball = bundle_archive.endswith('.tar.gz') or bundle_archive.endswith('.tgz')
     
-    bundle_path = os.path.join(bundle_dir, bundle_name + '.7z')
+    if is_seven_zip and not bundle_pass:
+        bb.fatal("COMMERCIAL_BUNDLE_PASS not set. Please set bundle password for .7z archives.")
+
+    if not is_seven_zip:
+        bb.note("Non-7z commercial bundle detected; letting BitBake unpack the archive.")
+        return
     
+    bundle_path = os.path.join(bundle_dir, bundle_archive)
+
     if not os.path.exists(bundle_path):
         bb.fatal(f"Commercial bundle not found: {bundle_path}\n" +
                  "Please download the commercial bundle and place it in the appropriate directory.\n" +
                  "Contact support@wolfssl.com for access to commercial bundles.")
-    
+
+    # Verify checksum locally (BitBake's file:// fetcher may skip it)
+    if bundle_sha:
+        import hashlib
+        h = hashlib.sha256()
+        with open(bundle_path, 'rb') as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                h.update(chunk)
+        digest = h.hexdigest()
+        if digest != bundle_sha:
+            bb.fatal(f"SHA256 mismatch for {bundle_archive}:\n"
+                     f"  expected: {bundle_sha}\n"
+                     f"  actual:   {digest}\n"
+                     "Update WOLFSSL_SRC_SHA/COMMERCIAL_BUNDLE_SHA to the correct value.")
+
     # Copy bundle to target directory
-    bb.plain(f"Extracting commercial bundle: {bundle_name}.7z")
+    bb.plain(f"Extracting commercial bundle: {bundle_archive}")
     ret = os.system(f'cp -f "{bundle_path}" "{target_dir}"')
     if ret != 0:
         bb.fatal(f"Failed to copy bundle to {target_dir}")
     
-    # Locate 7zip binary from native sysroot or host
-    path = d.getVar('PATH')
-    seven_zip = bb.utils.which(path, '7za') or bb.utils.which(path, '7z')
+    archive_in_target = os.path.join(target_dir, bundle_archive)
+    
+    if is_seven_zip:
+        # Locate 7zip binary from native sysroot or host
+        path = d.getVar('PATH')
+        seven_zip = bb.utils.which(path, '7za') or bb.utils.which(path, '7z')
 
-    if not seven_zip:
-        bb.fatal("Failed to find either '7za' or '7z' in PATH.\n"
-                 "Ensure p7zip-native is available or install p7zip on the build host.")
+        if not seven_zip:
+            bb.fatal("Failed to find either '7za' or '7z' in PATH.\n"
+                     "Ensure p7zip-native is available or install p7zip on the build host.")
 
-    # Extract with password
-    cmd = [seven_zip, 'x', f"{target_dir}/{bundle_name}.7z", f"-p{bundle_pass}",
-           f"-o{target_dir}", '-aoa']
+        cmd = [seven_zip, 'x', archive_in_target, f"-p{bundle_pass}",
+               f"-o{target_dir}", '-aoa']
+    else:
+        bb.fatal(f"Unsupported commercial bundle format: {bundle_archive}. Expected .7z.")
 
     try:
         bb.process.run(cmd)
     except bb.process.ExecutionError as exc:
-        bb.fatal("Failed to extract bundle. Check password and bundle integrity.\n" + str(exc))
+        bb.fatal("Failed to extract bundle. Check credentials and bundle integrity.\n" + str(exc))
 
     bb.plain("Commercial bundle extracted successfully")
 }
 
-# Add task after fetch, before patch
+# Add task after fetch, before patch (place before do_patch so it still runs even if do_unpack is skipped)
 addtask commercial_extract after do_fetch before do_patch
 
 # Conditionally add p7zip-native dependency only when commercial bundle variables are set
 python __anonymous() {
     enabled = d.getVar('COMMERCIAL_BUNDLE_ENABLED')
-    if enabled == "1":
+    archive = d.getVar('COMMERCIAL_BUNDLE_ARCHIVE')
+    if enabled == "1" and archive and archive.endswith('.7z'):
         d.appendVar('DEPENDS', ' p7zip-native')
         d.appendVarFlag('do_commercial_extract', 'depends', ' p7zip-native:do_populate_sysroot')
-        opts = d.getVar('CONFIGUREOPTS') or ''
-        import shlex
-        tokens = shlex.split(opts)
-        tokens = [t for t in tokens if not t.startswith('--with-libtool-sysroot=')]
-        d.setVar('CONFIGUREOPTS', ' '.join(tokens))
+        # Older BitBake releases sometimes ignore 'unpack=false' on file:// URLs,
+        # causing do_unpack to run with no password and wipe the extracted tree.
+        # When we manage a passworded .7z ourselves, skip do_unpack entirely.
+        bb.build.deltask('do_unpack', d)
+
+    # Commercial bundles ship preconfigured scripts; drop libtool sysroot flag
+    opts = d.getVar('CONFIGUREOPTS') or ''
+    import shlex
+    tokens = shlex.split(opts)
+    tokens = [t for t in tokens if not t.startswith('--with-libtool-sysroot=')]
+    d.setVar('CONFIGUREOPTS', ' '.join(tokens))
+    d.setVar('CONFIGUREOPT_SYSROOT', '')
 }
 
 # Skip autoreconf for commercial bundles and rely on bundled configure script
 do_configure() {
-    if [ "${COMMERCIAL_BUNDLE_ENABLED}" = "1" ]; then
-        bbnote "Commercial bundle detected, skipping autoreconf and running bundled configure"
-        if [ ! -f "${S}/stamp-h.in" ] && grep -q "AC_CONFIG_FILES(\\[stamp-h\\]" "${S}/configure.ac"; then
-            bbnote "stamp-h.in missing; generating stub for preconfigured commercial source"
-            echo "timestamp" > "${S}/stamp-h.in"
-        fi
-        if [ -e "${CONFIGURE_SCRIPT}" ]; then
-            oe_runconf
-        else
-            bbfatal "configure script not found at ${CONFIGURE_SCRIPT}"
-        fi
+    bbnote "Commercial bundle detected, skipping autoreconf and running bundled configure"
+    # Ensure libtool sysroot option is stripped (not accepted by commercial bundles)
+    unset CONFIGUREOPT_SYSROOT
+    CONFIGUREOPTS="$(echo ${CONFIGUREOPTS} | sed 's/--with-libtool-sysroot=[^ ]*//g')"
+    if [ -e "${S}/configure.ac" ] && [ ! -f "${S}/stamp-h.in" ] && \
+       grep -q "AC_CONFIG_FILES(\\[stamp-h\\]" "${S}/configure.ac"; then
+        bbnote "stamp-h.in missing; generating stub for preconfigured commercial source"
+        echo "timestamp" > "${S}/stamp-h.in"
+    fi
+    if [ -e "${CONFIGURE_SCRIPT}" ]; then
+        oe_runconf
     else
-        autotools_do_configure
+        bbfatal "configure script not found at ${CONFIGURE_SCRIPT}"
     fi
 }
 
 # Task to create stub autogen.sh for commercial bundles
 do_commercial_stub_autogen() {
+    if [ "${COMMERCIAL_BUNDLE_ENABLED}" != "1" ]; then
+        bbnote "Commercial bundle disabled; skipping autogen stub."
+        exit 0
+    fi
+
+    if [ ! -d "${S}" ]; then
+        bbwarn "Source directory ${S} missing before autogen stub; skipping."
+        exit 0
+    fi
+
     # Commercial bundles are pre-configured and don't need autogen.sh
     # Create a no-op autogen.sh to prevent automatic execution
     if [ ! -f ${S}/autogen.sh ]; then
@@ -176,5 +264,5 @@ do_commercial_stub_autogen() {
     fi
 }
 
-# Add task after commercial_extract, before configure
-addtask commercial_stub_autogen after do_commercial_extract before do_configure
+# Add task after unpack (or commercial_extract for 7z), before configure
+addtask commercial_stub_autogen after do_unpack before do_configure
