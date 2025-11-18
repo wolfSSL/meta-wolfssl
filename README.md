@@ -200,6 +200,39 @@ Or point to the meta-wolfssl layer directly:
 require ${COREBASE}/../meta-wolfssl/inc/wolfssl-manual-config.inc
 ```
 
+Commercial Bundles from Google Cloud Storage
+--------------------------------------------
+
+BitBake ships with a GCS fetcher. To use it with `wolfssl-fips`:
+
+1. Upload the commercial tarball to a private bucket (for example
+   `gs://wolfssl-commercial-artifacts/releases/5.8.2/wolfssl-5.8.2-commercial-fips-linux.tar.gz`).
+2. Set the commercial variables plus the GCS URI in `conf/local.conf` (or your
+   distro .conf):
+
+   ```
+   WOLFSSL_SRC = "wolfssl-5.8.2-commercial-fips-linux"
+   WOLFSSL_SRC_SHA = "<sha256 from wolfSSL portal>"
+   WOLFSSL_BUNDLE_FILE = "${WOLFSSL_SRC}.tar.gz"
+   WOLFSSL_BUNDLE_GCS_URI = "gs://wolfssl-commercial-artifacts/releases/5.8.2/${WOLFSSL_BUNDLE_FILE}"
+   ```
+
+3. The recipe pulls in `${WOLFSSL_LAYERDIR}/inc/wolfssl-fips/wolfssl-commercial-gcs.inc`, which:
+   - Points `SRC_URI` at the `gs://` location (with the checksum);
+   - Disables the custom 7zip extraction task;
+   - Lets BitBake handle download and unpack for tarballs.
+
+4. Host requirements for the BitBake GCS fetcher:
+   - Install the Google Cloud SDK (which provides the GCS client libraries) by following https://docs.cloud.google.com/sdk/docs/install.
+   - Ensure the Python `google` namespace is present; on RPM-based installs the `google-cloud-cli` package does **not** ship the Python libraries, so also install `python3-google-cloud-core` (or `pip install --user google-cloud-core`) before running BitBake.
+   - For private buckets, authenticate with `gcloud auth application-default login` or set `GOOGLE_APPLICATION_CREDENTIALS` to a service-account JSON before running BitBake.
+
+For password-protected `.7z` bundles, keep `WOLFSSL_BUNDLE_FILE` unset (the
+class will assume `<NAME>.7z`), provide `COMMERCIAL_BUNDLE_PASS`, and place the
+archive where `COMMERCIAL_BUNDLE_DIR` points (or supply a `gs://…` URI plus
+checksum). In that case the 7zip helper remains enabled and requires
+`p7zip-native`.
+
 The `inc/wolfssl-manual-config.inc` file can be used for any wolfSSL package. It 
 disables the automatic validation check that looks for `IMAGE_INSTALL` or 
 `WOLFSSL_FEATURES`. Remember to also include the corresponding `wolfssl-enable-*.inc` 
@@ -673,9 +706,10 @@ When you set `PREFERRED_PROVIDER_virtual/wolfssl = "wolfssl-fips"`, all recipes 
    ```
 
 2. **Edit `conf/wolfssl-fips.conf` with your FIPS bundle details:**
-   - `WOLFSSL_SRC_DIR` - Directory containing your .7z bundle
-   - `WOLFSSL_SRC` - Bundle filename (without .7z extension)
-   - `WOLFSSL_SRC_PASS` - Bundle password
+   - `WOLFSSL_SRC_DIR` - Directory containing your commercial archive
+   - `WOLFSSL_SRC` - Logical bundle name (without extension)
+   - `WOLFSSL_BUNDLE_FILE` - Optional, set to `${WOLFSSL_SRC}.tar.gz` for tarballs
+   - `WOLFSSL_SRC_PASS` - Bundle password (only needed for `.7z`)
    - `WOLFSSL_LICENSE` - License file name (typically in bundle)
    - `WOLFSSL_LICENSE_MD5` - MD5 checksum of license file
    - `FIPS_HASH` - FIPS integrity hash (auto-generated on first build if using auto mode)
