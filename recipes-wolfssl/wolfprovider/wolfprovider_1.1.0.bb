@@ -23,28 +23,18 @@ inherit autotools pkgconfig wolfssl-helper
 S = "${WORKDIR}/git"
 
 # Install provider module symlink (autotools already creates libwolfprov.so symlinks)
-# Use Python function to avoid pseudo inode tracking issues with shell symlink creation
-python install_provider_module() {
-    import os
-    libdir = d.getVar('libdir')
-    destdir = d.getVar('D')
-    
-    # Construct paths properly: libdir is absolute like /usr/lib, D is absolute like /path/to/image
-    # Strip leading / from libdir for proper join
-    libdir_rel = libdir.lstrip('/')
-    target_lib = os.path.join(destdir, libdir_rel, 'libwolfprov.so.0.0.0')
-    modules_dir = os.path.join(destdir, libdir_rel, 'ssl-3', 'modules')
-    symlink_path = os.path.join(modules_dir, 'libwolfprov.so')
-    
+install_provider_module() {
     # Ensure target library exists
-    if not os.path.exists(target_lib):
-        bb.fatal('libwolfprov.so.0.0.0 not found in %s' % os.path.dirname(target_lib))
+    if [ ! -f ${D}${libdir}/libwolfprov.so.0.0.0 ]; then
+        echo "libwolfprov.so.0.0.0 not found in ${D}${libdir}/" >&2
+        exit 1
+    fi
     
-    # Create module directory and symlink using Python os.symlink (pseudo-friendly)
-    os.makedirs(modules_dir, exist_ok=True)
-    if not os.path.exists(symlink_path):
-        # Use relative path: from ssl-3/modules to libdir (../../libwolfprov.so.0.0.0)
-        os.symlink('../../libwolfprov.so.0.0.0', symlink_path)
+    # Create the OpenSSL module directory symlink
+    install -d ${D}${libdir}/ssl-3/modules
+    if [ ! -e ${D}${libdir}/ssl-3/modules/libwolfprov.so ]; then
+        ln -sf ${libdir}/libwolfprov.so.0.0.0 ${D}${libdir}/ssl-3/modules/libwolfprov.so
+    fi
 }
 
 do_install[postfuncs] += "install_provider_module"
