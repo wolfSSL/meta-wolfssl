@@ -22,8 +22,8 @@ inherit autotools pkgconfig wolfssl-helper
 
 S = "${WORKDIR}/git"
 
-# Core build configuration
-do_install:append() {
+# Install symlinks after main installation
+do_install_symlinks() {
     install -d ${D}${libdir}
     ln -sf libwolfprov.so.0.0.0 ${D}${libdir}/libwolfprov.so
     
@@ -31,6 +31,8 @@ do_install:append() {
     install -d ${D}${libdir}/ssl-3/modules
     ln -sf ../../libwolfprov.so.0.0.0 ${D}${libdir}/ssl-3/modules/libwolfprov.so
 }
+
+addtask install_symlinks after do_install before do_package
 
 CFLAGS += " -I${S}/include -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
 CXXFLAGS += " -I${S}/include  -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
