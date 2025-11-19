@@ -4,8 +4,7 @@
 
 # Build OpenSSL as plain, non-FIPS OpenSSL
 # wolfProvider will provide FIPS functionality using wolfSSL FIPS
-PACKAGECONFIG:class-target:pn-openssl = ""
-EXTRA_OECONF:append:class-target = " no-fips"
+EXTRA_OECONF:append:class-target = " no-fips shared "
 
 # OpenSSL target-only tweaks for replace-default mode
 do_configure:prepend:class-target () {
@@ -28,6 +27,25 @@ do_configure:prepend:class-target () {
     # Optional FIPS tag based on image features
     if echo "${IMAGE_FEATURES}" | grep -qw "fips"; then
         sed -i 's/^BUILD_METADATA=.*/BUILD_METADATA=wolfProvider-fips/' $vfile
+    fi
+    
+}
+
+# Override do_configure to filter enable-fips from the actual configure command
+do_configure:append:class-target () {
+    # The base do_configure uses ${PACKAGECONFIG_CONFARGS} which still has enable-fips
+    # We need to regenerate it without enable-fips
+    # Re-run configure with enable-fips explicitly removed
+    if [ -f "${B}/configdata.pm" ] && grep -q "enable-fips" "${B}/configdata.pm" 2>/dev/null; then
+        bbwarn "REPLACE-DEFAULT MODE: FIPS detected in config, forcing reconfigure without FIPS"
+        cd "${B}"
+        # Get the target from the original config
+        target=$(grep "our \$config{target}" "${B}/configdata.pm" 2>/dev/null | sed "s/.*'\(.*\)'.*/\1/" || echo "linux-x86_64")
+        # Reconfigure without enable-fips
+        HASHBANGPERL="/usr/bin/env perl" PERL=perl PERL5LIB="${S}/external/perl/Text-Template-1.46/lib/" \
+        perl "${S}/Configure" no-fips shared ${EXTRA_OECONF} ${DEPRECATED_CRYPTO_FLAGS} \
+            --prefix=${prefix} --openssldir=${libdir}/ssl-3 --libdir=${libdir} "$target"
+        perl "${B}/configdata.pm" --dump
     fi
 }
 
@@ -58,4 +76,5 @@ python do_patch:append:class-target () {
     except Exception as e:
         bb.warn(f"REPLACE-DEFAULT MODE: Error applying patch: {e}")
 }
+
 
