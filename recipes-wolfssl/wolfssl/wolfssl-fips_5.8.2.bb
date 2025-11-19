@@ -65,9 +65,3 @@ EXTRA_OECONF += " \
     --enable-reproducible-build \
 "
 
-# CRITICAL: Do not strip FIPS libraries!
-# Stripping modifies the binary and breaks FIPS integrity verification
-# The embedded hash must match the deployed binary exactly
-INHIBIT_PACKAGE_STRIP = "1"
-INHIBIT_SYSROOT_STRIP = "1"
-
