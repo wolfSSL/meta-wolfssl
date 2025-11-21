@@ -56,3 +56,5 @@ do_configure:class-target() {
     bbnote "Running configure..."
     oe_runconf
 }
+
+do_configure[network] = "1"
