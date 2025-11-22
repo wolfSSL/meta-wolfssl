@@ -10,9 +10,6 @@ DEPENDS += "wolfprovider"
 
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
-do_fetch[noexec] = "1"
-do_unpack[noexec] = "1"
-do_patch[noexec] = "1"
 
 WOLFPROVIDER_TEST_DIR = "${datadir}/wolfprovider-test"
 WOLFPROVIDER_TEST_INSTALL_DIR = "${D}${WOLFPROVIDER_TEST_DIR}"
@@ -25,10 +22,11 @@ python () {
     wolfprovider_test_install_dir = d.getVar('WOLFPROVIDER_TEST_INSTALL_DIR', True)
     wolfprovider_test_readme_dir = d.getVar('WOLFPROVIDER_TEST_README_DIR', True)
 
-    bb.note("Installing dummy file for wolfProvider test example")
+    bbnote = 'bbnote "Installing dummy file for wolfProvider test example"\n'
     installDir = 'install -m 0755 -d "%s"\n' % wolfprovider_test_install_dir
     makeDummy = 'echo "This is a dummy package" > "%s"\n' % wolfprovider_test_readme_dir
 
+    d.appendVar('do_install', bbnote)
     d.appendVar('do_install', installDir)
     d.appendVar('do_install', makeDummy)
 
@@ -37,7 +35,7 @@ python () {
         files_var_name = 'FILES_' + pn
     else:
         files_var_name = 'FILES:' + pn
-
+    
     current_files = d.getVar(files_var_name, True) or ""
     new_files = current_files + ' ' + wolfprovider_test_dir + '/*'
     d.setVar(files_var_name, new_files)

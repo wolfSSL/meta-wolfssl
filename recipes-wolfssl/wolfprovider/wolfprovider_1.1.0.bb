@@ -44,8 +44,12 @@ CXXFLAGS += " -I${S}/include  -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
 LDFLAGS += " -Wl,--build-id=none"
 EXTRA_OECONF += " --with-openssl=${STAGING_EXECPREFIXDIR}"
 
-# wolfProvider unit tests fail to compile with fips mode disabling test for now
-EXTRA_OEMAKE += "${@'check_PROGRAMS= noinst_PROGRAMS=' if d.getVar('PREFERRED_PROVIDER_virtual/wolfssl') == 'wolfssl-fips' else ''}"
+# Allow unit tests to compile by handling header conflicts between OpenSSL and wolfSSL
+CFLAGS:append = " -Wno-error"
+CXXFLAGS:append = " -Wno-error"
+
+# Enable quick test mode
+CPPFLAGS:append = " -DWOLFPROV_QUICKTEST"
 
 # Keep unversioned .so in the runtime package
 FILES_SOLIBSDEV = ""
