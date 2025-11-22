@@ -14,6 +14,6 @@ IMAGE_INSTALL:append = " \
     bash \
 "
 
-require ${WOLFSSL_LAYERDIR}/recipes-core/images/wolfssl-minimal-image/wolfssl-image-minimal.bb
+require recipes-core/images/wolfssl-minimal-image/wolfssl-image-minimal.bb
 
 

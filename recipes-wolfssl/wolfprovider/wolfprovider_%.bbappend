@@ -16,7 +16,7 @@ python __anonymous() {
         d,
         package_name='wolfprovider',
         flag_name='enable-tests',
-        inc_file='inc/wolfprovider/wolfprovider-enable-unit-test.inc'
+        inc_file='inc/wolfprovider/wolfssl-enable-wolfprovidertest.inc'
     )
 }
 
