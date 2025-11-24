@@ -4,6 +4,8 @@
 
 # Build OpenSSL as plain, non-FIPS OpenSSL
 # wolfProvider will provide FIPS functionality using wolfSSL FIPS
+
+PACKAGECONFIG:class-target = ""
 EXTRA_OECONF:append:class-target = " no-fips shared "
 
 # OpenSSL target-only tweaks for replace-default mode

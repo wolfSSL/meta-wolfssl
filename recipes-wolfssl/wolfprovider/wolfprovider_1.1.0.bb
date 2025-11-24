@@ -39,17 +39,11 @@ install_provider_module() {
 
 do_install[postfuncs] += "install_provider_module"
 
-CFLAGS += " -I${S}/include -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
-CXXFLAGS += " -I${S}/include  -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
-LDFLAGS += " -Wl,--build-id=none"
+CFLAGS:append = " -I${S}/include"
+CXXFLAGS:append = " -I${S}/include"
+CPPFLAGS:append = " -I${S}/include"
+
 EXTRA_OECONF += " --with-openssl=${STAGING_EXECPREFIXDIR}"
-
-# Allow unit tests to compile by handling header conflicts between OpenSSL and wolfSSL
-CFLAGS:append = " -Wno-error"
-CXXFLAGS:append = " -Wno-error"
-
-# Enable quick test mode
-CPPFLAGS:append = " -DWOLFPROV_QUICKTEST"
 
 # Keep unversioned .so in the runtime package
 FILES_SOLIBSDEV = ""
