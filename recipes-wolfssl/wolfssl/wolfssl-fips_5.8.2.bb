@@ -73,7 +73,6 @@ EXTRA_OECONF += " \
     --enable-fips=v5 \
     --enable-reproducible-build \
 "
-<<<<<<< HEAD
 
 # Fix for commercial bundle missing stamp-h.in required by automake with 5.2.1
 do_configure:prepend() {
@@ -81,6 +80,3 @@ do_configure:prepend() {
         touch ${S}/stamp-h.in
     fi
 }
-
-=======
->>>>>>> d4d666c (Add support for GCP and tarballs)
