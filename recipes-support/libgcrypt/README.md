@@ -15,7 +15,7 @@ Conditionally enables wolfSSL backend when:
 
 Uses the `wolfssl-osp-support` class for conditional configuration.
 
-### `wolfssl-fips_%.bbappend`
+### `wolfssl-fips.bbappend`
 Configures wolfssl-fips with additional features needed by libgcrypt when `libgcrypt` is in `WOLFSSL_FEATURES`.
 
 ## Configuration Files
@@ -97,4 +97,3 @@ This runs the libgcrypt test suite to verify the wolfSSL backend is working corr
 - Demo Image: [recipes-core/images/libgcrypt-image-minimal/README.md](../../recipes-core/images/libgcrypt-image-minimal/README.md)
 - Main Layer README: [../../README.md](../../README.md)
 - libgcrypt-wolfssl: https://github.com/wolfSSL/libgcrypt-wolfssl
-
