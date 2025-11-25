@@ -39,10 +39,12 @@
     WOLFCLU_TYPE = "commercial"
     ```
 
-4. **Move the Downloaded FIPS/Commerical Bundle**
+4. **Move the Downloaded FIPS/Commercial Bundle**
 
-   Move or copy the downloaded `wolfssl-x.x.x-*.7z` file to the appropriate directory within the meta-wolfssl repository:
+   Move or copy the downloaded `wolfssl-x.x.x-*.(7z|tar.gz)` file to the appropriate directory within the meta-wolfssl repository:
    ```
+   cp /path/to/wolfssl-x.x.x-*.tar.gz /path/to/meta-wolfssl/recipes-wolfssl/wolfssl/commerical/files
+   # or
    cp /path/to/wolfssl-x.x.x-*.7z /path/to/meta-wolfssl/recipes-wolfssl/wolfssl/commerical/files
    ```
 
@@ -53,8 +55,9 @@
     Update/Add the variables in your project's `poky/build/conf/local.conf`:
     `WOLFSSL_VERSION = "x.x.x"`: x.x.x should be the version of the fips/commercial bundle you downloaded. 
     `WOLFSSL_SRC_SHA = "<SHA_HASH>"`: `<SHA_HASH>` This is the sha hash given when you received the bundle.
-    `WOLFSSL_SRC_PASS = "<PASSWORD>"`: `<PASSWORD>` This is the password given to unarchive the bundle.
-    `WOLFSSL_SRC = "<BUNDLE_NAME>"`: `<BUNDLE_NAME>` This is the name of the bundle you wish to use without the .7z extension.  
+    `WOLFSSL_SRC_PASS = "<PASSWORD>"`: `<PASSWORD>` This is the password given to unarchive the bundle (leave empty for `.tar.gz` archives).
+    `WOLFSSL_SRC = "<BUNDLE_NAME>"`: `<BUNDLE_NAME>` This is the logical name of the bundle without the extension.
+    `WOLFSSL_BUNDLE_FILE = "<FILENAME>"`: Optional override when the archive uses `.tar.gz` (for `.7z`, omit and it will default to `<BUNDLE_NAME>.7z`).
 
 6. **Clean and Build wolfssl and wolfcrypttest**
 
@@ -101,4 +104,3 @@
 10. **Rebuild and Test**
 
     Perform bitbake on wolfssl and wolfcrypttest again to ensure they compile correctly. Rebuild your image and test with QEMU as before. The command `wolfcrypttest` should result in no errors.
-
