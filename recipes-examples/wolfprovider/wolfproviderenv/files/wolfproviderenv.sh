@@ -57,50 +57,16 @@ else
     fi
 fi
 
-# Only create explicit provider config if NOT in replace-default mode
-if [ "$REPLACE_DEFAULT_MODE" -eq 0 ]; then
-    # Configuration for wolfprovider
-    mkdir -p /opt/wolfprovider-configs
-    
-    if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
-        # FIPS mode configuration
-        cat > /opt/wolfprovider-configs/wolfprovider.conf <<EOF
-openssl_conf = openssl_init
-
-[openssl_init]
-providers = provider_sect
-alg_section = algorithm_sect
-
-[provider_sect]
-libwolfprov = libwolfprov_sect
-
-[libwolfprov_sect]
-activate = 1
-
-[algorithm_sect]
-default_properties = fips=yes
-EOF
-        echo "Using FIPS configuration"
-    else
-        # Non-FIPS mode configuration
-        cat > /opt/wolfprovider-configs/wolfprovider.conf <<EOF
-openssl_conf = openssl_init
-
-[openssl_init]
-providers = provider_sect
-
-[provider_sect]
-libwolfprov = libwolfprov_sect
-
-[libwolfprov_sect]
-activate = 1
-EOF
-        echo "Using non-FIPS configuration"
+if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
+    if [ -f /etc/wolfprovider-configs/wolfprovider-fips.conf ]; then
+        export OPENSSL_CONF="/etc/wolfprovider-configs/wolfprovider-fips.conf"
+        echo "Using FIPS configuration from /etc/wolfprovider-configs/wolfprovider-fips.conf"
     fi
-
-    export OPENSSL_CONF="/opt/wolfprovider-configs/wolfprovider.conf"
 else
-    echo "Skipping explicit provider load (replace-default mode active)"
+    if [ -f /etc/wolfprovider-configs/wolfprovider.conf ]; then
+        export OPENSSL_CONF="/etc/wolfprovider-configs/wolfprovider.conf"
+        echo "Using non-FIPS configuration from /etc/wolfprovider-configs/wolfprovider.conf"
+    fi
 fi
 
 echo "=========================================="
