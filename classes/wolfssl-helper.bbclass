@@ -68,10 +68,6 @@ def wolfssl_conditional_require_mode(d, package_name, mode, inc_file):
     # Support space-separated modes: split into list and check if expected mode is in the list
     current_modes = [m.strip() for m in current_mode_str.split() if m.strip()]
     
-    # If no modes specified (empty string), default to standalone for backward compatibility
-    if not current_modes:
-        current_modes = ['standalone']
-    
     # Check if expected mode is in the current modes list
     if mode not in current_modes:
         bb.debug(2, f"{package_name}: {mode_var_name}='{current_mode_str}' does not contain '{mode}' - skipping")
