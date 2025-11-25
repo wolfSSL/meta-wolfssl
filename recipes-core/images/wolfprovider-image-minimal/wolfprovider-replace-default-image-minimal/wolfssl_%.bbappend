@@ -13,3 +13,11 @@ python __anonymous() {
     )
 }
 
+# Fix for commercial bundle missing stamp-h.in required by automake
+do_configure:prepend() {
+    if [ ! -f ${S}/stamp-h.in ]; then
+        touch ${S}/stamp-h.in
+    fi
+}
+
+
