@@ -17,6 +17,7 @@ LIC_FILES_CHKSUM:class-target = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a
 # Override source to use wolfSSL-enabled git repo
 SRC_URI:class-target = "git://github.com/wolfSSL/libgcrypt-wolfssl.git;protocol=https;branch=libgcrypt-1.11.0-wolfCrypt \
                         file://run-ptest \
+                        file://wc_ptest-fixes.patch \
                         "
 
 # Set to specific commit hash or use "${AUTOREV}" for latest
@@ -24,6 +25,10 @@ SRCREV:class-target = "${AUTOREV}"
 
 # Source directory for git checkouts
 S:class-target = "${WORKDIR}/git"
+
+# Add patch directory to file search path
+# Patches are in files/ subdirectory relative to this .inc file
+FILESEXTRAPATHS:prepend:class-target := "${WOLFSSL_LAYERDIR}/inc/libgcrypt/files:"
 
 # Add wolfssl as dependency
 DEPENDS:append:class-target = " virtual/wolfssl"
@@ -34,7 +39,7 @@ EXTRA_OECONF:append:class-target = " --enable-wolfssl-fips --with-wolfssl=${STAG
 
 # In FIPS mode, some tests are excluded - install only tests that were actually built
 do_install_ptest:class-target() {
-    cd tests
+    cd ${B}/tests
     oe_runmake testdrv-build testdrv
     for f in testdrv $(srcdir=${S}/tests ./testdrv-build --files | sort | uniq); do
         if [ -f "$f" ]; then
