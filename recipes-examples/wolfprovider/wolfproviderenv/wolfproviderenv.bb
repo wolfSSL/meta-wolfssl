@@ -33,13 +33,13 @@ do_install() {
     install -m 0755 ${WORKDIR}/wolfproviderverify ${D}${bindir}/wolfproviderverify
     install -m 0755 ${WORKDIR}/wolfproviderenv.sh ${D}${bindir}/wolfproviderenv
 
-    # Install config files to sysconfdir instead of /opt
-    install -d ${D}${sysconfdir}/wolfprovider-configs
-    install -m 0644 ${WORKDIR}/provider.conf ${D}${sysconfdir}/wolfprovider-configs/wolfprovider.conf
-    install -m 0644 ${WORKDIR}/provider-fips.conf ${D}${sysconfdir}/wolfprovider-configs/wolfprovider-fips.conf
+    # Install config files to openssl.cnf.d/ (following Debian convention)
+    install -d ${D}${sysconfdir}/ssl/openssl.cnf.d
+    install -m 0644 ${WORKDIR}/provider.conf ${D}${sysconfdir}/ssl/openssl.cnf.d/wolfprovider.conf
+    install -m 0644 ${WORKDIR}/provider-fips.conf ${D}${sysconfdir}/ssl/openssl.cnf.d/wolfprovider-fips.conf
 }
 
-FILES_${PN} = "${bindir}/wolfproviderverify ${bindir}/wolfproviderenv ${sysconfdir}/wolfprovider-configs/*"
+FILES_${PN} = "${bindir}/wolfproviderverify ${bindir}/wolfproviderenv ${sysconfdir}/ssl/openssl.cnf.d/wolfprovider*.conf"
 
 # Dynamic RDEPENDS adjustment for bash
 python() {
