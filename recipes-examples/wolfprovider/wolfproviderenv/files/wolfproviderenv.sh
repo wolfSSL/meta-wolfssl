@@ -57,15 +57,25 @@ else
     fi
 fi
 
-if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
-    if [ -f /etc/wolfprovider-configs/wolfprovider-fips.conf ]; then
-        export OPENSSL_CONF="/etc/wolfprovider-configs/wolfprovider-fips.conf"
-        echo "Using FIPS configuration from /etc/wolfprovider-configs/wolfprovider-fips.conf"
+# Add provider config to openssl.cnf (following Debian convention)
+# This allows OpenSSL to automatically load the wolfProvider configuration
+if [ "$REPLACE_DEFAULT_MODE" -eq 0 ]; then
+    # Only needed in explicit load mode
+    OPENSSL_CNF="/etc/ssl/openssl.cnf"
+    PROVIDER_INCLUDE=""
+    
+    if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
+        PROVIDER_INCLUDE="/etc/ssl/openssl.cnf.d/wolfprovider-fips.conf"
+    else
+        PROVIDER_INCLUDE="/etc/ssl/openssl.cnf.d/wolfprovider.conf"
     fi
-else
-    if [ -f /etc/wolfprovider-configs/wolfprovider.conf ]; then
-        export OPENSSL_CONF="/etc/wolfprovider-configs/wolfprovider.conf"
-        echo "Using non-FIPS configuration from /etc/wolfprovider-configs/wolfprovider.conf"
+    
+    if [ -f "$OPENSSL_CNF" ] && [ -f "$PROVIDER_INCLUDE" ]; then
+        # Check if the include is already present
+        if ! grep -q ".include $PROVIDER_INCLUDE" "$OPENSSL_CNF"; then
+            echo ".include $PROVIDER_INCLUDE" >> "$OPENSSL_CNF"
+            echo "Added provider configuration to $OPENSSL_CNF"
+        fi
     fi
 fi
 
@@ -76,7 +86,7 @@ echo ""
 if [ "$REPLACE_DEFAULT_MODE" -eq 1 ]; then
     echo "Mode: Replace-Default (wolfProvider is the default provider)"
 else
-    echo "Mode: Explicit Load (using OPENSSL_CONF)"
+    echo "Mode: Explicit Load (provider config included in openssl.cnf)"
 fi
 echo ""
 if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
@@ -88,7 +98,6 @@ echo ""
 echo "Environment Variables:"
 echo "  OPENSSL_MODULES: $OPENSSL_MODULES"
 echo "  LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
-echo "  OPENSSL_CONF: ${OPENSSL_CONF:-(unset - using system default)}"
 echo ""
 
 # Test 1: Provider Verification
