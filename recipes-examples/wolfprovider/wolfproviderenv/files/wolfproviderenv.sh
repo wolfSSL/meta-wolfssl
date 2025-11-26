@@ -57,25 +57,20 @@ else
     fi
 fi
 
-# Add provider config to openssl.cnf (following Debian convention)
-# This allows OpenSSL to automatically load the wolfProvider configuration
-if [ "$REPLACE_DEFAULT_MODE" -eq 0 ]; then
-    # Only needed in explicit load mode
-    OPENSSL_CNF="/etc/ssl/openssl.cnf"
-    PROVIDER_INCLUDE=""
-    
-    if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
-        PROVIDER_INCLUDE="/etc/ssl/openssl.cnf.d/wolfprovider-fips.conf"
-    else
-        PROVIDER_INCLUDE="/etc/ssl/openssl.cnf.d/wolfprovider.conf"
-    fi
-    
-    if [ -f "$OPENSSL_CNF" ] && [ -f "$PROVIDER_INCLUDE" ]; then
-        # Check if the include is already present
-        if ! grep -q ".include $PROVIDER_INCLUDE" "$OPENSSL_CNF"; then
-            echo ".include $PROVIDER_INCLUDE" >> "$OPENSSL_CNF"
-            echo "Added provider configuration to $OPENSSL_CNF"
-        fi
+OPENSSL_CNF="/etc/ssl/openssl.cnf"
+PROVIDER_CONF=""
+
+if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
+    PROVIDER_CONF="/etc/ssl/openssl.cnf.d/wolfprovider-fips.conf"
+else
+    PROVIDER_CONF="/etc/ssl/openssl.cnf.d/wolfprovider.conf"
+fi
+
+if [ -f "$OPENSSL_CNF" ] && [ -f "$PROVIDER_CONF" ]; then
+    # Replace the OpenSSL configuration with the wolfProvider configuration
+    if ! cmp -s "$PROVIDER_CONF" "$OPENSSL_CNF"; then
+        cp "$PROVIDER_CONF" "$OPENSSL_CNF"
+        echo "Replaced $OPENSSL_CNF with wolfProvider configuration ($PROVIDER_CONF)"
     fi
 fi
 
