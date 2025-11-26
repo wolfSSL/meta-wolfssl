@@ -1,0 +1,39 @@
+From 1234567890abcdef1234567890abcdef12345678 Mon Sep 17 00:00:00 2001
+From: Yocto User <yocto@example.com>
+Date: Wed, 26 Nov 2025 12:00:00 +0000
+Subject: [PATCH] configure.ac: use pkgconfig for libgcrypt detection
+
+Replace AM_PATH_LIBGCRYPT with PKG_CHECK_MODULES to use pkg-config
+instead of libgcrypt-config for detection.
+
+Upstream-Status: Inappropriate [OE-specific]
+Signed-off-by: Yocto User <yocto@example.com>
+---
+ configure.ac | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 1234567..abcdefg 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -812,12 +812,12 @@ fi
+ #
+ # Libgcrypt is our generic crypto library
+ #
+-AM_PATH_LIBGCRYPT("$NEED_LIBGCRYPT_API:$NEED_LIBGCRYPT_VERSION",
+-        have_libgcrypt=yes,have_libgcrypt=no)
+-# And, then, check if it's newer than 1.9.0 so that we can
+-# conditionally build some programs.
+-# Note: This is not anymore needed but keep the code commented in case
+-# we need it again with some future libgcrypt.
++PKG_CHECK_MODULES([LIBGCRYPT], [libgcrypt >= $NEED_LIBGCRYPT_VERSION], [
++    have_libgcrypt=yes
++    LIBGCRYPT_VERSION=`$PKG_CONFIG --modversion libgcrypt`
++], [have_libgcrypt=no])
++AC_SUBST(LIBGCRYPT_CFLAGS)
++AC_SUBST(LIBGCRYPT_LIBS)
+ #have_libgcrypt_newer=no
+ #if test $ok = yes; then
+ #    if test "$major" -gt 1; then
+--
+2.34.1

@@ -1,12 +1,13 @@
-Disable gpg-error.h include and both benchmark tests (benchmark and bench-slope) in ptest.
+Disable gpg-error.h include and problematic tests in ptest.
 The gpg-error.h include is optional and not needed for building testdrv.
+The fips186-dsa and dsa-rfc6979 tests are not installed on the system.
 The benchmark tests will hang due to GCM implementation in wolfSSL/libgcrypt port.
 
 Upstream-Status: Inappropriate
 Signed-off-by: wolfSSL
 
 diff --git a/tests/testdrv.c b/tests/testdrv.c
-index bfca4c23..d9258d39 100644
+index bfca4c23..88fae58f 100644
 --- a/tests/testdrv.c
 +++ b/tests/testdrv.c
 @@ -32,7 +32,6 @@
@@ -17,7 +18,16 @@ index bfca4c23..d9258d39 100644
 
  #include "stopwatch.h"
 
-@@ -76,8 +75,6 @@ static struct {
+@@ -67,17 +66,13 @@ static struct {
+    { "hashtest"    },
+    { "t-kdf"       },
+    { "keygrip"     },
+-   { "fips186-dsa" },
+    { "aeswrap"     },
+    { "pkcs1v2"     },
+    { "random"      },
+-   { "dsa-rfc6979" },
+    { "t-ed25519"   },
     { "t-cv25519"   },
     { "t-x448"      },
     { "t-ed448"     },
@@ -26,4 +36,3 @@ index bfca4c23..d9258d39 100644
     { "hashtest-6g", "hashtest", "--hugeblock --gigs 6 SHA1 SHA256 SHA512 "
                                                       "SHA3-512 SM3 BLAKE2S_256 "
                                                       "BLAKE2B_512 CRC32 "
-
