@@ -57,7 +57,7 @@ in an application is called.
 
 ### wolfssl-fips Configuration
 
-The `wolfssl-fips_%.bbappend` in this directory automatically configures wolfssl-fips with features needed by gnutls:
+The `wolfssl-fips.bbappend` in this directory automatically configures wolfssl-fips with features needed by gnutls:
 
 ```bitbake
 require ${WOLFSSL_LAYERDIR}/inc/wolfssl-fips/wolfssl-enable-gnutls.inc

@@ -1,5 +1,9 @@
 SUMMARY = "wolfSSL FIPS 140-3 Validated Cryptography"
 DESCRIPTION = "wolfSSL is a lightweight SSL/TLS library with FIPS 140-3 validated cryptography module. This recipe provides the FIPS-validated version of wolfSSL."
+
+# Default to a placeholder; users should set WOLFSSL_VERSION to their bundle version
+WOLFSSL_VERSION ?= "0.0.0"
+PV = "${WOLFSSL_VERSION}"
 HOMEPAGE = "https://www.wolfssl.com/products/wolfssl-fips/"
 BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
 SECTION = "libs"

@@ -71,7 +71,7 @@ STOP: ptest-runner
 
 ### wolfssl-fips Configuration
 
-The `wolfssl-fips_%.bbappend` in this directory automatically configures wolfssl-fips with features needed by libgcrypt:
+The `wolfssl-fips.bbappend` in this directory automatically configures wolfssl-fips with features needed by libgcrypt:
 
 ```bitbake
 require ${WOLFSSL_LAYERDIR}/inc/wolfssl-fips/wolfssl-enable-libgcrypt.inc
@@ -142,4 +142,3 @@ If build fails, ensure:
 - Main README: [../../../README.md](../../../README.md)
 - libgcrypt-wolfssl: https://github.com/wolfSSL/libgcrypt-wolfssl
 - wolfSSL FIPS: https://www.wolfssl.com/products/wolfssl-fips/
-
