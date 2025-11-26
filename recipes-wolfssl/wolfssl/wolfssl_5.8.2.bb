@@ -29,6 +29,6 @@ python() {
         d.appendVar('do_configure:prepend', autogen_command)
 }
 
-
+dkldkdkdk
 BBCLASSEXTEND = "native nativesdk"
 EXTRA_OECONF += "--enable-reproducible-build"
