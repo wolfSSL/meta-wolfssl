@@ -203,7 +203,7 @@ The following existing files will automatically handle configuration:
 - `wolfssl-enable-wolfprovider-fips.inc` - Configure wolfSSL for wolfProvider (FIPS)
 - `openssl/openssl-enable-wolfprovider.inc` - Configure OpenSSL for standalone mode
 - `openssl/openssl-enable-wolfprovider-replace-default.inc` - Configure OpenSSL for replace-default mode
-- `wolfssl-enable-wolfprovidertest.inc` - Enable unit tests (optional only for standalone mode)
+- `wolfprovider-enable-unittest.inc` - Enable unit tests (optional only for standalone mode)
 
 **Existing `bbappend` files in `recipes-wolfssl/wolfprovider/`:**
 - `wolfssl_%.bbappend` - Automatically configures wolfSSL based on `WOLFSSL_FEATURES`
