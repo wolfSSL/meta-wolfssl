@@ -67,12 +67,8 @@ inherit autotools pkgconfig wolfssl-helper wolfssl-commercial wolfssl-fips-helpe
 # Skip the package check for wolfssl-fips itself (it's the base library)
 deltask do_wolfssl_check_package
 
-# Conditionally enable native/nativesdk variants only when FIPS is configured
-python __anonymous() {
-    wolfssl_src = d.getVar('WOLFSSL_SRC')
-    if wolfssl_src and wolfssl_src.strip():
-        d.setVar('BBCLASSEXTEND', 'native nativesdk')
-}
+# Enable native/nativesdk variants when FIPS is configured
+BBCLASSEXTEND = "${@'native nativesdk' if (d.getVar('WOLFSSL_SRC') or '').strip() else ''}"
 
 # FIPS-specific configuration
 # Note: FIPS hash is handled by wolfssl-fips-helper.bbclass
