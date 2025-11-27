@@ -1,4 +1,4 @@
-# Configure OpenSSL (non-FIPS standalone mode) for wolfprovider-image-minimal
+# Configure OpenSSL (tandalone mode) for wolfprovider-image-minimal
 #
 # This bbappend directly configures OpenSSL to use wolfProvider
 # when wolfssl is the preferred provider.

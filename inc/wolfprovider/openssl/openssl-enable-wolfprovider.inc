@@ -3,4 +3,9 @@
 
 EXTRA_OECONF += " no-fips shared "
 
+do_install:append() {
+    install -d ${D}${sysconfdir}/openssl
+    echo "0" > ${D}${sysconfdir}/openssl/replace-default-enabled
+}
+
 

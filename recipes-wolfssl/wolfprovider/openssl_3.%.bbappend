@@ -11,19 +11,13 @@
 inherit wolfssl-helper
 
 python __anonymous() {
-    # wolfProvider standalone mode (default)
     wolfssl_conditional_require_mode(
         d,
         package_name='wolfprovider',
-        mode='standalone',
-        inc_file='inc/wolfprovider/openssl/openssl-enable-wolfprovider.inc'
-    )
-    # wolfProvider replace-default mode
-    wolfssl_conditional_require_mode(
-        d,
-        package_name='wolfprovider',
-        mode='replace-default',
-        inc_file='inc/wolfprovider/openssl/openssl-enable-wolfprovider-replace-default.inc'
+        mode={
+            'standalone': 'inc/wolfprovider/openssl/openssl-enable-wolfprovider.inc',
+            'replace-default': 'inc/wolfprovider/openssl/openssl-enable-wolfprovider-replace-default.inc',
+        },
     )
 }
 

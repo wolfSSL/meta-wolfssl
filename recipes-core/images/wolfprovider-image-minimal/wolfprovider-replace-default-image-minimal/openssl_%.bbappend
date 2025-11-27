@@ -1,4 +1,4 @@
-# Configure OpenSSL (non-FIPS replace-default mode) for wolfprovider-replace-default-image-minimal
+# Configure OpenSSL (replace-default mode) for wolfprovider-replace-default-image-minimal
 #
 # This bbappend directly configures OpenSSL to use wolfProvider in replace-default mode
 # when wolfssl is the preferred provider.
