@@ -2,7 +2,7 @@
 
 The `wolfengine` recipe enables the integration of wolfSSL's cryptographic functionalities into OpenSSL through a custom engine mechanism. This integration allows applications using OpenSSL to leverage wolfSSL's advanced cryptographic algorithms, combining wolfSSL's lightweight and performance-optimized cryptography with OpenSSL's extensive API and capabilities. `wolfengine` is designed for easy integration into Yocto-based systems, ensuring a seamless blend of security and performance ideal for embedded and constrained environments.
 
-The `wolfenginetest` yocto package will provide two apps, `wolfengineenv` and `wolfenginetest`. Running `wolfengineenv` will start up a child shell and run `wolfenginetest`. Use `wolfengineenv` to test that the `wolfengine` package is succesfully installed. If you want to run `wolfenginetest` directly you will need to directly source `wolfengineenv` via `source /usr/bin/wolfengineenv` or setup the env on your own, because `wolfenginetest` will fail otherwise. Use `wolfenginetest` to check that your shell env is correctly setup.
+The `wolfenginetest` yocto package will provide two apps, `wolfengineenv` and `wolfenginetest`. Running `wolfengineenv` will start up a child shell and run `wolfenginetest`. Use `wolfengineenv` to test that the `wolfengine` package is successfully installed. If you want to run `wolfenginetest` directly you will need to directly source `wolfengineenv` via `source /usr/bin/wolfengineenv` or setup the env on your own, because `wolfenginetest` will fail otherwise. Use `wolfenginetest` to check that your shell env is correctly setup.
 
 ## Getting Started
 

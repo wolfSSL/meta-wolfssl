@@ -2,7 +2,7 @@
 
 The `wolfprovider` recipe enables the integration of wolfSSL's cryptographic functionalities into OpenSSL through a custom provider mechanism. This integration allows applications using OpenSSL to leverage wolfSSL's advanced cryptographic algorithms, combining wolfSSL's lightweight and performance-optimized cryptography with OpenSSL's extensive API and capabilities. `wolfprovider` is designed for easy integration into Yocto-based systems, ensuring a seamless blend of security and performance ideal for embedded and constrained environments.
 
-The `wolfprovidertest` yocto package will provide two apps, `wolfproviderenv` and `wolfprovidertest`. Running `wolfproviderenv` will start up a child shell and run `wolfprovidertest`. Use `wolfproviderenv` to test that the `wolfprovider` package is succesfully installed. If you want to run `wolfprovidertest` directly you will need to directly source `wolfproviderenv` via `source /usr/bin/wolfproviderenv` or setup the env on your own, because `wolfprovidertest` will fail otherwise. Use `wolfprovidertest` to check that your shell env is correctly setup.
+The `wolfprovidertest` yocto package will provide two apps, `wolfproviderenv` and `wolfprovidertest`. Running `wolfproviderenv` will start up a child shell and run `wolfprovidertest`. Use `wolfproviderenv` to test that the `wolfprovider` package is successfully installed. If you want to run `wolfprovidertest` directly you will need to directly source `wolfproviderenv` via `source /usr/bin/wolfproviderenv` or setup the env on your own, because `wolfprovidertest` will fail otherwise. Use `wolfprovidertest` to check that your shell env is correctly setup.
 
 ## Getting Started
 
@@ -44,16 +44,16 @@ The `wolfprovidertest` yocto package will provide two apps, `wolfproviderenv` an
 4. **Configure wolfProvider Mode (Optional)**:
 
     wolfProvider can operate in two modes:
-    
-    **Normal Mode (Default)**: wolfProvider acts as a supplementary provider alongside OpenSSL's default provider. No configuration needed.
-    
-    **Replace-Default Mode**: wolfProvider replaces OpenSSL's default provider by patching OpenSSL, making wolfSSL the primary crypto backend.
-    
-    To enable and disable modes like FIPS, replace default, etc. for testing you can use these files:
-    `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/wolfssl_%.bbappend`
-    `layers/meta-wolfssl/recipes-core/images/wolfprovider-image-minimal/openssl_%.bbappend`
 
-    to rebuild with replace default we need to run a clean on the wolfprovider and openssl then rebuild: 
+    **Normal Mode (Default)**: wolfProvider acts as a supplementary provider alongside OpenSSL's default provider. No configuration needed.
+
+    **Replace-Default Mode**: wolfProvider replaces OpenSSL's default provider by patching OpenSSL, making wolfSSL the primary crypto backend.
+
+    To enable and disable modes like FIPS, replace default, etc. for testing you can use these files:
+    `layers/meta-wolfssl/recipes-core/images/wolfprovider-images/wolfssl_%.bbappend`
+    `layers/meta-wolfssl/recipes-core/images/wolfprovider-images/openssl_%.bbappend`
+
+    to rebuild with replace default we need to run a clean on the wolfprovider and openssl then rebuild:
 
     ```sh
     bitbake -c cleanall openssl wolfprovider
@@ -77,15 +77,15 @@ After building and deploying your image to the target device, you can test `wolf
     ```sh
     wolfproviderenv
     ```
-    
-    This sets up the environment and verifies wolfProvider is correctly installed and loaded. It automatically detects the mode you are in and does the neccesary things to prepare the env for testing.
+
+    This sets up the environment and verifies wolfProvider is correctly installed and loaded. It automatically detects the mode you are in and does the necessary things to prepare the env for testing.
 
 2. **Unit Tests**:
 
     ```sh
     wolfprovidertest
     ```
-    
+
     Runs the comprehensive wolfProvider unit test suite from the upstream wolfProvider repository. Tests cover all cryptographic operations.
 
 3. **Command-Line Tests**:
@@ -93,7 +93,7 @@ After building and deploying your image to the target device, you can test `wolf
     ```sh
     wolfprovidercmd
     ```
-    
+
     Runs OpenSSL command-line tests including:
     - Hash operations (SHA, MD5, etc.)
     - AES encryption/decryption
@@ -103,8 +103,8 @@ After building and deploying your image to the target device, you can test `wolf
 
 ## Demo Image
 
-See `recipes-core/images/wolfprovider-image-minimal/` for complete working examples of all configurations.
-Refer to the [recipes-core/images/wolfprovider-image-minimal/README.md](recipes-core/images/wolfprovider-image-minimal/README.md) file for more information.
+See `recipes-core/images/wolfprovider-images/` for complete working examples of all configurations.
+Refer to the [recipes-core/images/wolfprovider-images/README.md](recipes-core/images/wolfprovider-images/README.md) file for more information.
 
 ### Integrating wolfProvider with Custom Image
 
@@ -157,10 +157,10 @@ require /path/to/meta-wolfssl/conf/wolfssl-fips.conf
 ```
 
 **See working examples:**
-- `recipes-core/images/wolfprovider-image-minimal/wolfprovider-image-minimal/` (standalone, non-FIPS)
-- `recipes-core/images/wolfprovider-image-minimal/wolfprovider-fips-image-minimal/` (standalone, FIPS)
-- `recipes-core/images/wolfprovider-image-minimal/wolfprovider-replace-default-image-minimal/` (replace-default, non-FIPS)
-- `recipes-core/images/wolfprovider-image-minimal/wolfprovider-replace-default-fips-image-minimal/` (replace-default, FIPS)
+- `recipes-core/images/wolfprovider-images/wolfprovider-image-minimal/` (standalone, non-FIPS)
+- `recipes-core/images/wolfprovider-images/wolfprovider-fips-image-minimal/` (standalone, FIPS)
+- `recipes-core/images/wolfprovider-images/wolfprovider-replace-default-image-minimal/` (replace-default, non-FIPS)
+- `recipes-core/images/wolfprovider-images/wolfprovider-replace-default-fips-image-minimal/` (replace-default, FIPS)
 
 #### Using WOLFSSL_FEATURES (For Testing/Development)
 
@@ -210,7 +210,7 @@ The following existing files will automatically handle configuration:
 - `openssl_3.%.bbappend` - Automatically configures OpenSSL based on `WOLFPROVIDER_MODE`
 
 **Demo implementations:**
-See `recipes-core/images/wolfprovider-image-minimal/` for complete working examples of all configurations.
+See `recipes-core/images/wolfprovider-images/` for complete working examples of all configurations.
 
 #### Building Your Image
 

@@ -1,4 +1,4 @@
-# Configure wolfSSL to support wolfProvider
+# Configure wolfSSL to support wolfProvider FIPS mode
 #
 # This bbappend automatically configures wolfssl or wolfssl-fips with the features
 # needed by wolfprovider when 'wolfprovider' is in WOLFSSL_FEATURES or IMAGE_INSTALL
@@ -10,12 +10,12 @@
 inherit wolfssl-osp-support
 
 python __anonymous() {
-    # wolfProvider non-FIPS mode
+    # wolfProvider FIPS mode
     wolfssl_conditional_include_ext(
         d,
         enable_for='wolfprovider',
-        inc_file='inc/wolfprovider/wolfssl-enable-wolfprovider.inc',
-        allowed_providers=['wolfssl']
+        inc_file='inc/wolfprovider/wolfssl-enable-wolfprovider-fips.inc',
+        allowed_providers=['wolfssl-fips']
     )
 }
 
