@@ -145,9 +145,9 @@ After installing your build's Yocto/OpenEmbedded components:
 Using WOLFSSL_FEATURES Variable
 --------------------------------
 
-As an alternative to `IMAGE_INSTALL`, you can use the `WOLFSSL_FEATURES` variable 
-in your `local.conf` to enable specific wolfSSL features. This ensures wolfSSL 
-packages are configured correctly but doesn't automatically add them to every 
+As an alternative to `IMAGE_INSTALL`, you can use the `WOLFSSL_FEATURES` variable
+in your `local.conf` to enable specific wolfSSL features. This ensures wolfSSL
+packages are configured correctly but doesn't automatically add them to every
 image recipe:
 
 ```
@@ -156,17 +156,17 @@ WOLFSSL_FEATURES:append = " wolfclu wolfssh wolfmqtt wolftpm"
 
 Add this to your `build/conf/local.conf` file.
 
-When you specify a package in `WOLFSSL_FEATURES` or `IMAGE_INSTALL`, the layer 
-automatically configures wolfSSL with the necessary `--enable-*` options for that 
+When you specify a package in `WOLFSSL_FEATURES` or `IMAGE_INSTALL`, the layer
+automatically configures wolfSSL with the necessary `--enable-*` options for that
 package. The key difference:
 - `IMAGE_INSTALL`: Adds packages to your image AND configures wolfSSL
 - `WOLFSSL_FEATURES`: Only configures wolfSSL, packages must be added separately
 
 **Method 3: Manual .bbappend (Advanced)**
 
-If you don't want to use `IMAGE_INSTALL` or `WOLFSSL_FEATURES`, you can manually 
-create a `wolfssl_%.bbappend` file in your own layer that includes the necessary 
-`.inc` files for the features you need. For example, if you need wolfclu and wolfssh 
+If you don't want to use `IMAGE_INSTALL` or `WOLFSSL_FEATURES`, you can manually
+create a `wolfssl_%.bbappend` file in your own layer that includes the necessary
+`.inc` files for the features you need. For example, if you need wolfclu and wolfssh
 support, create a `wolfssl_%.bbappend` file:
 
 ```
@@ -182,8 +182,8 @@ require ${COREBASE}/../meta-wolfssl/inc/wolfclu/wolfssl-enable-wolfclu.inc
 require ${COREBASE}/../meta-wolfssl/inc/wolfssh/wolfssl-enable-wolfssh.inc
 ```
 
-**Important**: When using this method, you must also create `.bbappend` files for each 
-package you want to use. A convenience `.inc` file is provided to disable the feature 
+**Important**: When using this method, you must also create `.bbappend` files for each
+package you want to use. A convenience `.inc` file is provided to disable the feature
 check. For example:
 
 ```
@@ -233,12 +233,12 @@ archive where `COMMERCIAL_BUNDLE_DIR` points (or supply a `gs://…` URI plus
 checksum). In that case the 7zip helper remains enabled and requires
 `p7zip-native`.
 
-The `inc/wolfssl-manual-config.inc` file can be used for any wolfSSL package. It 
-disables the automatic validation check that looks for `IMAGE_INSTALL` or 
-`WOLFSSL_FEATURES`. Remember to also include the corresponding `wolfssl-enable-*.inc` 
+The `inc/wolfssl-manual-config.inc` file can be used for any wolfSSL package. It
+disables the automatic validation check that looks for `IMAGE_INSTALL` or
+`WOLFSSL_FEATURES`. Remember to also include the corresponding `wolfssl-enable-*.inc`
 file(s) in your `wolfssl_%.bbappend` to configure wolfSSL with the necessary features.
 
-This gives you complete control over which wolfSSL features are enabled without 
+This gives you complete control over which wolfSSL features are enabled without
 relying on automatic detection.
 
 Once your image has been built, the default location for the wolfSSL library
@@ -369,11 +369,11 @@ terminal.
 wolfSSL Demo Images
 -------------------
 
-This layer includes several pre-configured demo images for testing various wolfSSL 
-sub-packages. Each image is a minimal Yocto image based on `core-image-minimal` with 
+This layer includes several pre-configured demo images for testing various wolfSSL
+sub-packages. Each image is a minimal Yocto image based on `core-image-minimal` with
 specific wolfSSL components installed and configured.
 
-For detailed information about each demo image, including structure, configuration 
+For detailed information about each demo image, including structure, configuration
 methods, and testing instructions, see [recipes-core/README.md](recipes-core/README.md).
 
 ### Enabling Demo Images
@@ -384,7 +384,7 @@ To enable a demo image, add the following to your `conf/local.conf`:
 WOLFSSL_DEMOS = "wolfssl-image-minimal <additional-image-name>"
 ```
 
-**Important**: All demo images (except `wolfssl-image-minimal` itself) require 
+**Important**: All demo images (except `wolfssl-image-minimal` itself) require
 `wolfssl-image-minimal` to be included in `WOLFSSL_DEMOS` because they inherit from it.
 
 You can then build the image with:
@@ -419,20 +419,20 @@ $ bitbake <image-name>
 
 4. **wolfssl-py-image-minimal**
    - Enable with: `WOLFSSL_DEMOS = "wolfssl-image-minimal wolfssl-py-image-minimal"`
-   - Provides: Everything from `wolfssl-image-minimal` + Python bindings (wolfssl-py, 
+   - Provides: Everything from `wolfssl-image-minimal` + Python bindings (wolfssl-py,
      wolfcrypt-py, wolf-py-tests) + Python 3 with cffi and pytest
-   - Note: For all wolfssl-py tests to pass, you will need to configure networking in 
+   - Note: For all wolfssl-py tests to pass, you will need to configure networking in
      the QEMU environment (DNS resolvers, network connectivity, etc.)
 
 5. **wolfprovider-image-minimal**
    - Enable with: `WOLFSSL_DEMOS = "wolfssl-image-minimal wolfprovider-image-minimal"`
-   - Provides: Everything from `wolfssl-image-minimal` + wolfProvider + 
+   - Provides: Everything from `wolfssl-image-minimal` + wolfProvider +
      wolfprovidertest + OpenSSL 3.x
    - Description: Demonstrates wolfProvider as an OpenSSL 3.x provider
 
 6. **wolfssl-combined-image-minimal**
    - Enable with: `WOLFSSL_DEMOS = "wolfssl-image-minimal wolfssl-combined-image-minimal"`
-   - Provides: Everything from `wolfssl-image-minimal` + wolfssh + wolfmqtt + 
+   - Provides: Everything from `wolfssl-image-minimal` + wolfssh + wolfmqtt +
      wolfProvider + wolftpm + TPM 2.0 tools
    - Requirements: Add to `local.conf`:
      ```
@@ -444,30 +444,42 @@ $ bitbake <image-name>
 
 7. **wolfclu-combined-image-minimal**
    - Enable with: `WOLFSSL_DEMOS = "wolfssl-image-minimal wolfclu-combined-image-minimal"`
-   - Provides: Everything from `wolfssl-image-minimal` + wolfCLU + Python bindings 
-     (wolfssl-py, wolfcrypt-py, wolf-py-tests) + Python 3 with cffi and pytest + 
+   - Provides: Everything from `wolfssl-image-minimal` + wolfCLU + Python bindings
+     (wolfssl-py, wolfcrypt-py, wolf-py-tests) + Python 3 with cffi and pytest +
      DNS configuration + ca-certificates
    - Description: Combines wolfCLU with Python bindings and networking support
 
 8. **libgcrypt-image-minimal**
    - Enable with: `WOLFSSL_DEMOS = "wolfssl-image-minimal libgcrypt-image-minimal"`
    - Requires: `require /path/to/meta-wolfssl/conf/wolfssl-fips.conf` (wolfSSL FIPS bundle)
-   - Provides: Everything from `wolfssl-image-minimal` + libgcrypt with wolfSSL backend + 
+   - Provides: Everything from `wolfssl-image-minimal` + libgcrypt with wolfSSL backend +
      libgcrypt-ptest + ptest-runner
-   - Description: Demonstrates libgcrypt using wolfSSL FIPS as the crypto backend. Enables 
+   - Description: Demonstrates libgcrypt using wolfSSL FIPS as the crypto backend. Enables
      FIPS-validated cryptography for all applications using libgcrypt (GnuPG, systemd, etc.)
    - Testing: Run `ptest-runner libgcrypt` in QEMU to verify the wolfSSL backend
-   - More Info: See [recipes-support/libgcrypt/README.md](recipes-support/libgcrypt/README.md) 
+   - More Info: See [recipes-support/libgcrypt/README.md](recipes-support/libgcrypt/README.md)
      and [recipes-core/images/libgcrypt-image-minimal/README.md](recipes-core/images/libgcrypt-image-minimal/README.md)
 
 ### Building Multiple Demo Images
 
-You can enable multiple demo images by space-separating them. Remember to always 
+You can enable multiple demo images by space-separating them. Remember to always
 include `wolfssl-image-minimal` first:
 
 ```
 WOLFSSL_DEMOS = "wolfssl-image-minimal wolfclu-image-minimal wolfssl-py-image-minimal"
 ```
+
+### Standalone Demo Images
+
+These images do not require `wolfssl-image-minimal` in WOLFSSL_DEMOS:
+
+1. **fips-image-minimal**
+   - Enable with: `WOLFSSL_DEMOS = "fips-image-minimal"`
+   - Requires: `require /path/to/meta-wolfssl/conf/wolfssl-fips.conf` (wolfSSL FIPS bundle)
+   - Provides: libgcrypt with wolfSSL FIPS backend + gnutls with wolfSSL FIPS backend +
+     wolfProvider in replace-default mode + OpenSSL 3.x + test utilities
+   - Description: Comprehensive FIPS image demonstrating wolfSSL FIPS integration with
+     libgcrypt, gnutls, and wolfProvider. All crypto operations use wolfSSL FIPS as the backend.
 
 Then build each image individually:
 
@@ -485,7 +497,7 @@ After building, run images with QEMU using:
 $ runqemu <image-name>
 ```
 
-For images with special requirements (like `wolftpm-image-minimal`), use the provided 
+For images with special requirements (like `wolftpm-image-minimal`), use the provided
 test scripts in the image directory.
 
 Excluding Recipe from Build
