@@ -25,7 +25,7 @@ WOLFPROV_CMD_TEST_INSTALL_DIR = "${D}${WOLFPROV_CMD_TEST_DIR}"
 do_install() {
     # Create directory structure that do-cmd-tests.sh expects
     install -d ${WOLFPROV_CMD_TEST_INSTALL_DIR}/scripts/cmd_test
-    
+
     # Copy main cmd-test scripts to scripts/cmd_test/
     install -m 0755 ${S}/scripts/cmd_test/do-cmd-tests.sh ${WOLFPROV_CMD_TEST_INSTALL_DIR}/scripts/cmd_test/
     install -m 0755 ${S}/scripts/cmd_test/cmd-test-common.sh ${WOLFPROV_CMD_TEST_INSTALL_DIR}/scripts/cmd_test/
@@ -35,14 +35,14 @@ do_install() {
     install -m 0755 ${S}/scripts/cmd_test/rsa-cmd-test.sh ${WOLFPROV_CMD_TEST_INSTALL_DIR}/scripts/cmd_test/
     install -m 0755 ${S}/scripts/cmd_test/ecc-cmd-test.sh ${WOLFPROV_CMD_TEST_INSTALL_DIR}/scripts/cmd_test/
     install -m 0755 ${S}/scripts/cmd_test/req-cmd-test.sh ${WOLFPROV_CMD_TEST_INSTALL_DIR}/scripts/cmd_test/
-    
+
     # Copy env setup script to scripts/
     install -m 0755 ${S}/scripts/env-setup ${WOLFPROV_CMD_TEST_INSTALL_DIR}/scripts/
-    
+
     # Copy provider configuration files to root of test dir
     install -m 0644 ${S}/provider.conf ${WOLFPROV_CMD_TEST_INSTALL_DIR}/
     install -m 0644 ${S}/provider-fips.conf ${WOLFPROV_CMD_TEST_INSTALL_DIR}/ || true
-    
+
     # Install wrapper script to bindir
     install -d ${D}${bindir}
     install -m 0755 ${WORKDIR}/wolfprovidercmd.sh ${D}${bindir}/wolfprovidercmd
@@ -51,9 +51,9 @@ do_install() {
 python() {
     distro_version = d.getVar('DISTRO_VERSION', True)
     pn = d.getVar('PN', True)
-    
+
     files_var_name = 'FILES_' + pn if (distro_version.startswith('2.') or distro_version.startswith('3.')) else 'FILES:' + pn
-    
+
     wolfprov_cmd_test_dir = d.getVar('WOLFPROV_CMD_TEST_DIR', True)
     d.setVar(files_var_name, wolfprov_cmd_test_dir + '/* ${bindir}/wolfprovidercmd')
 }
