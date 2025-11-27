@@ -27,16 +27,20 @@ def wolfssl_conditional_require(d, package_name, inc_path):
         bb.parse.handle(inc_file, d, True)
 
 
-def wolfssl_conditional_require_mode(d, package_name, mode, inc_file):
+def wolfssl_conditional_require_mode(d, package_name, mode, inc_file=None):
     """
-    Conditionally include an .inc file based on a mode variable and WOLFSSL_FEATURES.
-    Supports space-separated modes (e.g., "replace-default enable-tests").
+    Conditionally include one or more .inc files based on a mode variable and
+    WOLFSSL_FEATURES. Supports space-separated modes (e.g., "replace-default
+    enable-tests") and a mapping of mode->inc_file so callers can configure
+    multiple modes in a single invocation.
     
     Args:
         d: BitBake datastore
         package_name: Name of the package to check for (e.g., 'wolfprovider')
-        mode: The expected mode (e.g., 'standalone' or 'replace-default')
-        inc_file: Relative path from layer root to the .inc file
+        mode: Either a string mode name or a dict mapping mode names to
+              inc-file paths.
+        inc_file: Relative path from layer root to the .inc file (required when
+                  'mode' is a single string)
     
     Returns:
         True if configuration was included, False otherwise
@@ -47,6 +51,16 @@ def wolfssl_conditional_require_mode(d, package_name, mode, inc_file):
             package_name='wolfprovider',
             mode='standalone',
             inc_file='inc/wolfprovider/openssl/openssl-enable-wolfprovider.inc'
+        )
+        
+        # Multiple modes in one call:
+        wolfssl_conditional_require_mode(
+            d,
+            package_name='wolfprovider',
+            mode={
+                'standalone': 'inc/wolfprovider/openssl/openssl-enable-wolfprovider.inc',
+                'replace-default': 'inc/wolfprovider/openssl/openssl-enable-wolfprovider-replace-default.inc',
+            }
         )
         
         # Supports multiple modes in WOLFPROVIDER_MODE:
@@ -67,37 +81,46 @@ def wolfssl_conditional_require_mode(d, package_name, mode, inc_file):
     
     # Support space-separated modes: split into list and check if expected mode is in the list
     current_modes = [m.strip() for m in current_mode_str.split() if m.strip()]
+
+    # Normalise callers passing a mapping vs a single mode
+    if isinstance(mode, dict):
+        mode_map = mode
+    else:
+        if inc_file is None:
+            bb.fatal(f"{package_name}: wolfssl_conditional_require_mode called without inc_file for mode '{mode}'")
+        mode_map = {mode: inc_file}
     
-    # Check if expected mode is in the current modes list
-    if mode not in current_modes:
-        bb.debug(2, f"{package_name}: {mode_var_name}='{current_mode_str}' does not contain '{mode}' - skipping")
-        return False
-    
-    # Mode found in list - include the configuration
-    # Show all detected modes for clarity
-    bb.note(f"{package_name}: {mode_var_name}='{current_mode_str}' contains '{mode}' mode - including {inc_file}")
+    included_any = False
     
     layerdir = d.getVar('WOLFSSL_LAYERDIR')
     if not layerdir:
         bb.fatal("WOLFSSL_LAYERDIR not set - ensure meta-wolfssl layer is properly configured")
     
-    full_inc_file = os.path.join(layerdir, inc_file)
-    bb.parse.mark_dependency(d, full_inc_file)
-    try:
-        bb.parse.handle(full_inc_file, d, True)
-        return True
-    except Exception as e:
-        bb.fatal(f"Failed to include {full_inc_file}: {e}")
+    for single_mode, single_inc in mode_map.items():
+        if single_mode not in current_modes:
+            bb.debug(2, f"{package_name}: {mode_var_name}='{current_mode_str}' does not contain '{single_mode}' - skipping")
+            continue
+        
+        bb.note(f"{package_name}: {mode_var_name}='{current_mode_str}' contains '{single_mode}' mode - including {single_inc}")
+        full_inc_file = os.path.join(layerdir, single_inc)
+        bb.parse.mark_dependency(d, full_inc_file)
+        try:
+            bb.parse.handle(full_inc_file, d, True)
+            included_any = True
+        except Exception as e:
+            bb.fatal(f"Failed to include {full_inc_file}: {e}")
+    
+    return included_any
 
 
-def wolfssl_conditional_require_flag(d, package_name, flag_name, inc_file):
+def wolfssl_conditional_require_flag(d, flag_name, inc_file):
     """
-    Conditionally include an .inc file based on a flags variable and WOLFSSL_FEATURES.
-    Flags are separate from modes - use for features like tests, not OpenSSL configuration.
+    Conditionally include an .inc file based solely on the current recipe's flags
+    variable (derived from PN). Flags are separate from modes - use for opt-in
+    features like tests, not OpenSSL configuration.
     
     Args:
         d: BitBake datastore
-        package_name: Name of the package to check for (e.g., 'wolfprovider')
         flag_name: The flag to check for (e.g., 'enable-tests')
         inc_file: Relative path from layer root to the .inc file
     
@@ -107,24 +130,21 @@ def wolfssl_conditional_require_flag(d, package_name, flag_name, inc_file):
     Example:
         wolfssl_conditional_require_flag(
             d,
-            package_name='wolfprovider',
             flag_name='enable-tests',
             inc_file='inc/wolfprovider/wolfprovider-enable-test.inc'
         )
         
         # Usage in local.conf:
-        # WOLFPROVIDER_FLAGS = "enable-tests"  # Can be space-separated: "enable-tests other-flag"
+        # WOLFPROVIDER_FLAGS = "enable-tests"  # PN=wolfprovider -> WOLFPROVIDER_FLAGS
     """
     import os
     import bb.parse
     
-    # Check if package is enabled
-    if not (bb.utils.contains('WOLFSSL_FEATURES', package_name, True, False, d) or \
-            bb.utils.contains('IMAGE_INSTALL', package_name, True, False, d)):
-        bb.debug(2, f"{package_name} not in WOLFSSL_FEATURES or IMAGE_INSTALL - skipping")
-        return False
+    package_name = d.getVar('PN')
+    if not package_name:
+        bb.fatal("wolfssl_conditional_require_flag called without PN set")
     
-    # Build the flags variable name from package name (e.g., 'wolfprovider' -> 'WOLFPROVIDER_FLAGS')
+    # Build the flags variable name from the current package name (e.g., wolfprovider -> WOLFPROVIDER_FLAGS)
     flags_var_name = f"{package_name.upper()}_FLAGS"
     current_flags_str = d.getVar(flags_var_name) or ''
     

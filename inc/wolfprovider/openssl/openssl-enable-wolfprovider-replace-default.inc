@@ -79,4 +79,9 @@ python do_patch:append:class-target () {
         bb.warn(f"REPLACE-DEFAULT MODE: Error applying patch: {e}")
 }
 
+do_install:append() {
+    install -d ${D}${sysconfdir}/openssl
+    echo "1" > ${D}${sysconfdir}/openssl/replace-default-enabled
+}
+
 
