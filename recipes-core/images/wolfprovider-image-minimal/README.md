@@ -21,34 +21,19 @@ These images demonstrate different wolfProvider configurations for OpenSSL 3.x i
 WOLFSSL_DEMOS = "wolfprovider-image-minimal"
 ```
 
-**Build:**
-```bash
-bitbake wolfprovider-image-minimal
-```
-
-### 2. wolfprovider-fips-image-minimal
-**Standalone mode, FIPS**
-
-- wolfProvider configured as an additional provider using FIPS-validated cryptography
-- Applications can explicitly load FIPS-validated wolfProvider
-- Includes test utilities and unit tests
-
-**Configuration:**
+if enabling fips add: 
 ```bitbake
-# Enable demo images
-WOLFSSL_DEMOS = "wolfprovider-fips-image-minimal wolfssl-image-minimal"
-
 # In build/conf/local.conf:
 require /path/to/meta-wolfssl/conf/wolfssl-fips.conf
 ```
 
 **Build:**
 ```bash
-bitbake wolfprovider-fips-image-minimal
+bitbake wolfprovider-image-minimal
 ```
 
-### 3. wolfprovider-replace-default-image-minimal
-**Replace-default mode, non-FIPS**
+### 2. wolfprovider-replace-default-image-minimal
+**Replace-default mode**
 
 - wolfProvider replaces OpenSSL's default provider
 - All OpenSSL operations automatically use wolfProvider
@@ -60,30 +45,15 @@ bitbake wolfprovider-fips-image-minimal
 WOLFSSL_DEMOS = "wolfprovider-replace-default-image-minimal"
 ```
 
-**Build:**
-```bash
-bitbake wolfprovider-replace-default-image-minimal
-```
-
-### 4. wolfprovider-replace-default-fips-image-minimal
-**Replace-default mode, FIPS**
-
-- wolfProvider replaces OpenSSL's default provider using FIPS-validated cryptography
-- All OpenSSL operations automatically use FIPS cryptography
-- Complete system-wide FIPS 140-3 validated cryptography
-
-**Configuration:**
+if enabling fips add: 
 ```bitbake
-# Enable demo images
-WOLFSSL_DEMOS = "wolfprovider-replace-default-fips-image-minimal wolfssl-image-minimal"
-
 # In build/conf/local.conf:
 require /path/to/meta-wolfssl/conf/wolfssl-fips.conf
 ```
 
 **Build:**
 ```bash
-bitbake wolfprovider-replace-default-fips-image-minimal
+bitbake wolfprovider-replace-default-image-minimal
 ```
 
 ## What's Included

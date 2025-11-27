@@ -8,8 +8,8 @@ REPLACE_DEFAULT_MODE=0
 WOLFSSL_FIPS_MODE=0
 
 # Method 1: Check build-time configuration file
-if [ -f /etc/wolfprovider/replace-default-mode ]; then
-    MODE=$(cat /etc/wolfprovider/replace-default-mode)
+if [ -f /etc/openssl/replace-default-enabled ]; then
+    MODE=$(cat /etc/openssl/replace-default-enabled)
     if [ "$MODE" = "1" ]; then
         REPLACE_DEFAULT_MODE=1
         echo "Detected replace-default mode (from config file)"
@@ -56,9 +56,6 @@ else
         echo "Detected wolfSSL non-FIPS build (runtime detection)"
     fi
 fi
-
-OPENSSL_CNF="/etc/ssl/openssl.cnf"
-PROVIDER_CONF=""
 
 if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
     PROVIDER_CONF="/etc/ssl/openssl.cnf.d/wolfprovider-fips.conf"
