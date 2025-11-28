@@ -41,8 +41,20 @@ do_configure:append:class-target () {
     if [ -f "${B}/configdata.pm" ] && grep -q "enable-fips" "${B}/configdata.pm" 2>/dev/null; then
         bbwarn "REPLACE-DEFAULT MODE: FIPS detected in config, forcing reconfigure without FIPS"
         cd "${B}"
-        # Get the target from the original config
-        target=$(grep "our \$config{target}" "${B}/configdata.pm" 2>/dev/null | sed "s/.*'\(.*\)'.*/\1/" || echo "linux-x86_64")
+        # Derive the correct OpenSSL Configure target from TARGET_ARCH (mirrors the recipe's mapping)
+        case "${TARGET_ARCH}" in
+            aarch64|arm64)      target="linux-aarch64" ;;
+            arm*)               target="linux-armv4" ;;
+            riscv64)            target="linux-generic64" ;;
+            riscv32)            target="linux-generic32" ;;
+            powerpc64le)        target="linux-ppc64le" ;;
+            powerpc64)          target="linux-ppc64" ;;
+            powerpc)            target="linux-ppc" ;;
+            x86_64)             target="linux-x86_64" ;;
+            i?86)               target="linux-x86" ;;
+            *)                  bbwarn "REPLACE-DEFAULT MODE: unknown TARGET_ARCH=${TARGET_ARCH}, using linux-generic64"
+                                target="linux-generic64" ;;
+        esac
         # Reconfigure without enable-fips
         HASHBANGPERL="/usr/bin/env perl" PERL=perl PERL5LIB="${S}/external/perl/Text-Template-1.46/lib/" \
         perl "${S}/Configure" no-fips shared ${EXTRA_OECONF} ${DEPRECATED_CRYPTO_FLAGS} \
@@ -83,5 +95,3 @@ do_install:append() {
     install -d ${D}${sysconfdir}/openssl
     echo "1" > ${D}${sysconfdir}/openssl/replace-default-enabled
 }
-
-
