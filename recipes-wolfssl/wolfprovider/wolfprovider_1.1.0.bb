@@ -35,6 +35,17 @@ install_provider_module() {
     if [ ! -e ${D}${libdir}/ssl-3/modules/libwolfprov.so ]; then
         ln -sf ${libdir}/libwolfprov.so.0.0.0 ${D}${libdir}/ssl-3/modules/libwolfprov.so
     fi
+
+    # Create symlink in the ossl-modules directory
+    install -d ${D}${libdir}/ossl-modules
+    if [ ! -e ${D}${libdir}/ossl-modules/libwolfprov.so ]; then
+        ln -sf ${libdir}/libwolfprov.so.0.0.0 ${D}${libdir}/ossl-modules/libwolfprov.so
+    fi
+
+    # Install config files to openssl.cnf.d/ (following Debian convention)
+    install -d ${D}${sysconfdir}/ssl/openssl.cnf.d
+    install -m 0644 ${S}/provider.conf ${D}${sysconfdir}/ssl/openssl.cnf.d/wolfprovider.conf
+    install -m 0644 ${S}/provider-fips.conf ${D}${sysconfdir}/ssl/openssl.cnf.d/wolfprovider-fips.conf
 }
 
 do_install[postfuncs] += "install_provider_module"
@@ -52,7 +63,8 @@ FILES_SOLIBSDEV = ""
 FILES:${PN}-dev = "${includedir} ${libdir}/pkgconfig/*.pc"
 
 # Ensure the symlink is assigned to runtime
-FILES:${PN} += "${libdir}/libwolfprov.so ${libdir}/ssl-3/modules/libwolfprov.so"
+FILES:${PN} += "${libdir}/libwolfprov.so ${libdir}/ssl-3/modules/libwolfprov.so ${libdir}/ossl-modules/libwolfprov.so"
+FILES:${PN} += "${sysconfdir}/ssl/openssl.cnf.d/wolfprovider*.conf"
 
 # Shipping an unversioned .so in runtime: suppress QA warning
 INSANE_SKIP:${PN} += "dev-so"
