@@ -63,12 +63,31 @@ else
     PROVIDER_CONF="/etc/ssl/openssl.cnf.d/wolfprovider.conf"
 fi
 
-if [ -f "$OPENSSL_CNF" ] && [ -f "$PROVIDER_CONF" ]; then
-    # Replace the OpenSSL configuration with the wolfProvider configuration
-    if ! cmp -s "$PROVIDER_CONF" "$OPENSSL_CNF"; then
-        cp "$PROVIDER_CONF" "$OPENSSL_CNF"
-        echo "Replaced $OPENSSL_CNF with wolfProvider configuration ($PROVIDER_CONF)"
+# In standalone mode, we need to load the provider config
+if [ "$REPLACE_DEFAULT_MODE" -eq 0 ]; then
+    # Determine the OpenSSL config file path
+    if [ -n "$OPENSSL_CONF" ]; then
+        OPENSSL_CNF="$OPENSSL_CONF"
+    elif [ -f "/etc/ssl/openssl.cnf" ]; then
+        OPENSSL_CNF="/etc/ssl/openssl.cnf"
+    elif [ -f "/usr/lib/ssl-3/openssl.cnf" ]; then
+        OPENSSL_CNF="/usr/lib/ssl-3/openssl.cnf"
+    else
+        OPENSSL_CNF="/etc/ssl/openssl.cnf"
     fi
+
+    # Copy provider config to openssl.cnf if both files exist and are different
+    if [ -f "$PROVIDER_CONF" ] && [ -f "$OPENSSL_CNF" ]; then
+        if ! cmp -s "$PROVIDER_CONF" "$OPENSSL_CNF"; then
+            cp "$PROVIDER_CONF" "$OPENSSL_CNF"
+            echo "Replaced $OPENSSL_CNF with wolfProvider configuration ($PROVIDER_CONF)"
+        fi
+    elif [ -f "$PROVIDER_CONF" ] && [ ! -f "$OPENSSL_CNF" ]; then
+        echo "Warning: $OPENSSL_CNF not found, cannot load wolfProvider configuration"
+    fi
+
+    # Export OPENSSL_CONF to ensure OpenSSL uses the correct config
+    export OPENSSL_CONF="$OPENSSL_CNF"
 fi
 
 echo "=========================================="
