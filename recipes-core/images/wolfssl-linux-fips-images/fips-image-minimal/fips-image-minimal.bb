@@ -38,6 +38,7 @@ IMAGE_INSTALL:append = " \
     glibc-utils \
     binutils \
     ldd \
+    curl \
 "
 
 require recipes-core/images/core-image-minimal.bb
