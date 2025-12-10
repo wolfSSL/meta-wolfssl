@@ -29,6 +29,7 @@ IMAGE_INSTALL:append = " \
     wolfprovider \
     openssl \
     openssl-bin \
+    openssh \
     wolfprovidercmd \
     wolfproviderenv \
     pkgconfig \
