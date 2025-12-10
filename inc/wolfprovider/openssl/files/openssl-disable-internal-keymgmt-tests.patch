@@ -1,0 +1,27 @@
+Description: Disable internal keymgmt tests when using FIPS provider (wolfProvider)
+Upstream-Status: Inappropriate [configuration-specific; not suitable for upstream]
+Signed-off-by: WolfSSL Team <info@wolfssl.com>
+
+diff --git a/test/recipes/02-test_internal_keymgmt.t b/test/recipes/02-test_internal_keymgmt.t
+index 28f510f164..1a7bbc129a 100644
+--- a/test/recipes/02-test_internal_keymgmt.t
++++ b/test/recipes/02-test_internal_keymgmt.t
+@@ -7,15 +7,6 @@
+ # https://www.openssl.org/source/license.html
+
+ use strict;
+-use OpenSSL::Test qw(:DEFAULT bldtop_dir srctop_file);
+-use OpenSSL::Test::Utils;
+-
+-setup("test_internal_keymgmt");
+-
+-plan tests => 1;
+-
+-$ENV{OPENSSL_MODULES} = bldtop_dir("test");
+-
+-ok(run(test(["keymgmt_internal_test",
+-    srctop_file("test", "certs", "ee-cert.pem")])),
+-    "running test_internal_keymgmt");
++use warnings;
++use OpenSSL::Test;
++plan skip_all => "Disabled under wolfprovider FIPS mode";
