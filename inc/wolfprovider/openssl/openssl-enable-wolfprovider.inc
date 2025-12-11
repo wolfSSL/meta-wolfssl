@@ -8,10 +8,6 @@ do_install:append() {
     echo "0" > ${D}${sysconfdir}/openssl/replace-default-enabled
 }
 
-# Ensure BitBake can locate the patch in this include's files directory
-FILESEXTRAPATHS:prepend := "${WOLFSSL_LAYERDIR}/inc/wolfprovider/openssl/files:"
-SRC_URI:append:class-target = " file://openssl-disable-internal-keymgmt-tests.patch"
-
 # Disable internal keymgmt tests under wolfprovider FIPS mode which
 # fails on the FACTOR3 and EXPONENT3 and COEFFICIENT2 parameters which
 # are not supported by wolfProvider.
@@ -23,7 +19,13 @@ python do_patch:append:class-target () {
         return
 
     s = d.getVar("S")
+    # Construct full path directly from layer directory (no need for FILESEXTRAPATHS)
     patch_path = os.path.join(d.getVar("WOLFSSL_LAYERDIR"), "inc/wolfprovider/openssl/files/openssl-disable-internal-keymgmt-tests.patch")
+    # Check if patch file exists
+    if not os.path.exists(patch_path):
+        bb.warn(f"openssl-disable-internal-keymgmt-tests.patch not found at {patch_path}")
+        return
+
     # Try to apply the patch; if it fails with "already applied", log it and continue
     try:
         result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"], 
