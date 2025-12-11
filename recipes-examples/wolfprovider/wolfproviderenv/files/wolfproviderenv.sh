@@ -5,9 +5,7 @@
 # When executed: Also runs verification tests
 
 REPLACE_DEFAULT_MODE=0
-STANDALONE_MODE=0
 WOLFSSL_FIPS_MODE=0
-NON_FIPS_MODE=0
 
 # Setup for libwolfprov.so (needed before runtime detection)
 mkdir -p /usr/lib/ssl-3/modules
@@ -19,82 +17,115 @@ fi
 export OPENSSL_MODULES=/usr/lib/ssl-3/modules
 export LD_LIBRARY_PATH=/usr/lib:/lib:$LD_LIBRARY_PATH
 
-# Method 1: Runtime detection by checking default provider
-DEFAULT_PROVIDER=$(openssl list -providers 2>/dev/null | grep -A1 "^  default$" \
-| grep "name:" | grep -i "wolfSSL Provider")
-if [ -n "$DEFAULT_PROVIDER" ]; then
-    REPLACE_DEFAULT_MODE=$((REPLACE_DEFAULT_MODE + 1))
-    echo "Detected replace-default mode (runtime detection)"
-else
-    STANDALONE_MODE=$((STANDALONE_MODE + 1))
-    echo "Detected normal wolfprovider mode (runtime detection)"
-fi
-# Method 2: Check build-time configuration file
+# Method 1: Check config file for replace-default mode
+CONFIG_REPLACE_DEFAULT=-1
 if [ -f /etc/openssl/replace-default-enabled ]; then
     MODE=$(cat /etc/openssl/replace-default-enabled)
     if [ "$MODE" = "1" ]; then
-        REPLACE_DEFAULT_MODE=$((REPLACE_DEFAULT_MODE + 1))
+        CONFIG_REPLACE_DEFAULT=1
         echo "Detected replace-default mode (from config file)"
     else
-        STANDALONE_MODE=$((STANDALONE_MODE + 1))
+        CONFIG_REPLACE_DEFAULT=0
         echo "Detected normal wolfprovider mode (from config file)"
     fi
-else
-    echo "No config file found, using runtime detection"
 fi
-# Verify consistency and report
-if [ "$REPLACE_DEFAULT_MODE" -eq 2 ]; then
-    REPLACE_DEFAULT_MODE=1
-    echo "Detected replace-default mode"
-elif [ "$STANDALONE_MODE" -eq 2 ]; then
-    REPLACE_DEFAULT_MODE=0
-    echo "Detected normal wolfprovider mode"
-elif [ "$REPLACE_DEFAULT_MODE" -eq 1 ] && [ "$STANDALONE_MODE" -eq 1 ]; then
-    echo "WARNING: Config file and runtime detection are inconsistent!"
-    echo "  Runtime: $([ "$REPLACE_DEFAULT_MODE" -eq 1 ] && echo 'replace-default' || echo 'normal')"
-    echo "  Config file: $([ "$STANDALONE_MODE" -eq 1 ] && echo 'normal' || echo 'replace-default')"
-    echo "  Using runtime detection"
-    REPLACE_DEFAULT_MODE=1
-    STANDALONE_MODE=0
+# Method 2: Check runtime detection for replace-default mode
+RUNTIME_REPLACE_DEFAULT=-1
+DEFAULT_PROVIDER_RD=$(openssl list -providers 2>/dev/null | grep -A1 "^  default$" \
+| grep "name:" | grep -i "wolfSSL Provider")
+if [ -n "$DEFAULT_PROVIDER_RD" ]; then
+    RUNTIME_REPLACE_DEFAULT=1
+    echo "Detected replace-default mode (runtime detection)"
+else
+    RUNTIME_REPLACE_DEFAULT=0
+    echo "Detected normal wolfprovider mode (runtime detection)"
 fi
 
-# Method 1: Runtime detection (Replace default and FIPS mode)
-DEFAULT_PROVIDER=$(openssl list -providers 2>/dev/null | grep -A1 "^  default$" \
-| grep "name:" | grep -i "wolfSSL Provider FIPS")
-if [ -n "$DEFAULT_PROVIDER" ]; then
-    WOLFSSL_FIPS_MODE=$((WOLFSSL_FIPS_MODE + 1))
-    echo "Detected wolfSSL FIPS build (runtime detection)"
-else
-    NON_FIPS_MODE=$((NON_FIPS_MODE + 1))
-    echo "Detected wolfSSL non-FIPS build (runtime detection)"
+# Verify both config file and runtime detection for replace-default mode
+if [ "$CONFIG_REPLACE_DEFAULT" -ne -1 ] && [ "$RUNTIME_REPLACE_DEFAULT" -ne -1 ]; then
+    if [ "$CONFIG_REPLACE_DEFAULT" -eq "$RUNTIME_REPLACE_DEFAULT" ]; then
+        REPLACE_DEFAULT_MODE=$CONFIG_REPLACE_DEFAULT
+        if [ "$REPLACE_DEFAULT_MODE" -eq 1 ]; then
+            echo "Detected replace-default mode (config and runtime agree)"
+        else
+            echo "Detected normal wolfprovider mode (config and runtime agree)"
+        fi
+    else
+        echo "WARNING: Config file and runtime detection are inconsistent!"
+        echo "  Config file: $([ "$CONFIG_REPLACE_DEFAULT" -eq 1 ] && echo 'replace-default' || echo 'normal')"
+        echo "  Runtime: $([ "$RUNTIME_REPLACE_DEFAULT" -eq 1 ] && echo 'replace-default' || echo 'normal')"
+        echo "  Using runtime detection as source of truth"
+        REPLACE_DEFAULT_MODE=$RUNTIME_REPLACE_DEFAULT
+    fi
+elif [ "$CONFIG_REPLACE_DEFAULT" -ne -1 ]; then
+    REPLACE_DEFAULT_MODE=$CONFIG_REPLACE_DEFAULT
+    if [ "$REPLACE_DEFAULT_MODE" -eq 1 ]; then
+        echo "Detected replace-default mode (from config file only)"
+    else
+        echo "Detected normal wolfprovider mode (from config file only)"
+    fi
+elif [ "$RUNTIME_REPLACE_DEFAULT" -ne -1 ]; then
+    REPLACE_DEFAULT_MODE=$RUNTIME_REPLACE_DEFAULT
+    if [ "$REPLACE_DEFAULT_MODE" -eq 1 ]; then
+        echo "Detected replace-default mode (from runtime detection only)"
+    else
+        echo "Detected normal wolfprovider mode (from runtime detection only)"
+    fi
 fi
-# Method 2: Check build-time configuration file
+
+# Method 1: Check config file for FIPS mode
+CONFIG_FIPS=-1
 if [ -f /etc/wolfssl/fips-enabled ]; then
     FIPS_VALUE=$(cat /etc/wolfssl/fips-enabled)
     if [ "$FIPS_VALUE" = "1" ]; then
-        WOLFSSL_FIPS_MODE=$((WOLFSSL_FIPS_MODE + 1))
+        CONFIG_FIPS=1
         echo "Detected wolfSSL FIPS build (from config file)"
     else
-        NON_FIPS_MODE=$((NON_FIPS_MODE + 1))
+        CONFIG_FIPS=0
         echo "Detected wolfSSL non-FIPS build (from config file)"
     fi
-else
-    echo "No config file found, using runtime detection"
 fi
-# Verify consistency and report
-if [ "$WOLFSSL_FIPS_MODE" -eq 2 ]; then
-    WOLFSSL_FIPS_MODE=1
-    echo "Detected wolfSSL FIPS build"
-elif [ "$NON_FIPS_MODE" -eq 2 ]; then
-    WOLFSSL_FIPS_MODE=0
-    echo "Detected wolfSSL non-FIPS build"
-elif [ "$WOLFSSL_FIPS_MODE" -eq 1 ] && [ "$NON_FIPS_MODE" -eq 1 ]; then
-    echo "WARNING: Config file and runtime detection are inconsistent!"
-    echo "  Runtime: $([ "$WOLFSSL_FIPS_MODE" -eq 1 ] && echo 'wolfSSL FIPS' || echo 'wolfSSL non-FIPS')"
-    echo "  Config file: $([ "$NON_FIPS_MODE" -eq 1 ] && echo 'wolfSSL non-FIPS' || echo 'wolfSSL FIPS')"
-    echo "  Using runtime detection"
-    WOLFSSL_FIPS_MODE=1
-    NON_FIPS_MODE=0
+# Method 2: Check runtime detection for FIPS mode
+RUNTIME_FIPS=-1
+PROVIDER_FIPS=$(openssl list -providers 2>/dev/null | grep "name:" | grep -i "wolfSSL Provider FIPS")
+if [ -n "$PROVIDER_FIPS" ]; then
+    RUNTIME_FIPS=1
+    echo "Detected wolfSSL FIPS build (runtime detection)"
+else
+    RUNTIME_FIPS=0
+    echo "Detected wolfSSL non-FIPS build (runtime detection)"
+fi
+
+# Verify both config file and runtime detection for FIPS mode
+if [ "$CONFIG_FIPS" -ne -1 ] && [ "$RUNTIME_FIPS" -ne -1 ]; then
+    if [ "$CONFIG_FIPS" -eq "$RUNTIME_FIPS" ]; then
+        WOLFSSL_FIPS_MODE=$CONFIG_FIPS
+        if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
+            echo "Detected wolfSSL FIPS build (config and runtime agree)"
+        else
+            echo "Detected wolfSSL non-FIPS build (config and runtime agree)"
+        fi
+    else
+        echo "WARNING: Config file and runtime detection are inconsistent for FIPS!"
+        echo "  Config file: $([ "$CONFIG_FIPS" -eq 1 ] && echo 'FIPS' || echo 'non-FIPS')"
+        echo "  Runtime: $([ "$RUNTIME_FIPS" -eq 1 ] && echo 'FIPS' || echo 'non-FIPS')"
+        echo "  Using runtime detection as source of truth"
+        WOLFSSL_FIPS_MODE=$RUNTIME_FIPS
+    fi
+elif [ "$CONFIG_FIPS" -ne -1 ]; then
+    WOLFSSL_FIPS_MODE=$CONFIG_FIPS
+    if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
+        echo "Detected wolfSSL FIPS build (from config file only)"
+    else
+        echo "Detected wolfSSL non-FIPS build (from config file only)"
+    fi
+elif [ "$RUNTIME_FIPS" -ne -1 ]; then
+    WOLFSSL_FIPS_MODE=$RUNTIME_FIPS
+    if [ "$WOLFSSL_FIPS_MODE" -eq 1 ]; then
+        echo "Detected wolfSSL FIPS build (from runtime detection only)"
+    else
+        echo "Detected wolfSSL non-FIPS build (from runtime detection only)"
+    fi
 fi
 
 # Determine the provider config file to use
