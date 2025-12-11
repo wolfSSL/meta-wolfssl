@@ -12,7 +12,7 @@ deltask do_wolfssl_check_package
 
 # Fetch wolfSSL from upstream GitHub
 SRC_URI = "git://github.com/wolfSSL/wolfssl.git;protocol=https;branch=master"
-SRCREV = "fd58885887f3f1ea1ef27062597185b17d3507df"
+SRCREV = "569a5e03882c4cdef9e99f3a4cfcee96bc25c2cb"
 
 # After git fetch, S is the git checkout
 S = "${WORKDIR}/git"
