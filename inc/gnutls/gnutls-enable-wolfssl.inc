@@ -1,7 +1,7 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 # Override version and source for target builds only
-PV:class-target = "3.8.9+git${SRCPV}"
+PV:class-target = "3.8.11+git${SRCPV}"
 LIC_FILES_CHKSUM:class-target = "file://COPYING;md5=1ebbd3e34237af26da5dc08a4e440464 \
                     file://COPYING.LESSERv2;md5=4bf661c1e3793e55c8d1051bc5e0ae21"
 
@@ -12,7 +12,7 @@ DEPENDS:append:class-target = " virtual/wolfssl libunistring gmp nettle libtasn1
 RDEPENDS:${PN}:append:class-target = " wolfssl"
 
 # Use wolfSSL fork of gnutls
-SRC_URI:class-target = "git://github.com/wolfSSL/gnutls.git;protocol=https;branch=gnutls-wolfssl \
+SRC_URI:class-target = "git://github.com/wolfSSL/gnutls.git;protocol=https;branch=gnutls-wolfssl-3.8.11 \
                         file://0001-creating-hmac-file-should-be-excuted-in-target-envi.patch \
 "
 SRCREV:class-target = "${AUTOREV}"
