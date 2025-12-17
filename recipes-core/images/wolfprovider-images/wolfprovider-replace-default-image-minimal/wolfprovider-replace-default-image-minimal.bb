@@ -9,6 +9,12 @@ IMAGE_INSTALL:append = " \
     wolfprovider \
     openssl \
     openssl-bin \
+"
+
+# Add test utilities which are not strictly necessary for the image
+IMAGE_INSTALL:append = " \
+    openssl-ptest \
+    wolfprovidertest \
     wolfprovidercmd \
     wolfproviderenv \
     bash \
