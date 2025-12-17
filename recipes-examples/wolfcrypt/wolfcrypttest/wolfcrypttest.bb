@@ -9,7 +9,12 @@ LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=928770bfaa2d2704ecffeb131cc7bfd8"
 S = "${WORKDIR}/git/wolfcrypt/test"
 DEPENDS += "virtual/wolfssl"
-RDEPENDS:${PN} += "wolfssl"
+
+inherit wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl')
+}
 
 SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=59f4fa568615396fbf381b073b220d1e8d61e4c2"
 
@@ -22,28 +27,15 @@ WOLFCRYPT_TEST_INSTALL_DIR = "${D}${WOLFCRYPT_TEST_DIR}"
 WOLFCRYPT_TEST_README = "README.txt"
 WOLFCRYPT_TEST_README_DIR = "${WOLFCRYPT_TEST_INSTALL_DIR}/${WOLFCRYPT_TEST_README}"
 
-python () {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    wolfcrypt_test_dir = d.getVar('WOLFCRYPT_TEST_DIR', True)
-    wolfcrypt_test_install_dir = d.getVar('WOLFCRYPT_TEST_INSTALL_DIR', True)
-    wolfcrypt_test_readme_dir = d.getVar('WOLFCRYPT_TEST_README_DIR', True)
-
-    bbnote = 'bbnote "Installing dummy file for wolfCrypt test example"\n'
-    installDir = 'install -m 0755 -d "%s"\n' % wolfcrypt_test_install_dir
-    makeDummy = 'echo "This is a dummy package" > "%s"\n' % wolfcrypt_test_readme_dir
-
-    d.appendVar('do_install', bbnote)
-    d.appendVar('do_install', installDir)
-    d.appendVar('do_install', makeDummy)
-
-    pn = d.getVar('PN', True)
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        files_var_name = 'FILES_' + pn
-    else:
-        files_var_name = 'FILES:' + pn
-    
-    current_files = d.getVar(files_var_name, True) or ""
-    new_files = current_files + ' ' + wolfcrypt_test_dir + '/*'
-    d.setVar(files_var_name, new_files)
+do_install_wolfcrypttest_dummy() {
+    bbnote "Installing dummy file for wolfCrypt test example"
+    install -m 0755 -d "${WOLFCRYPT_TEST_INSTALL_DIR}"
+    echo "This is a dummy package" > "${WOLFCRYPT_TEST_README_DIR}"
 }
 
+addtask do_install_wolfcrypttest_dummy after do_install before do_package
+do_install_wolfcrypttest_dummy[fakeroot] = "1"
+
+python __anonymous() {
+    wolfssl_varAppend(d, 'FILES', '${PN}', ' ${WOLFCRYPT_TEST_DIR}/*')
+}

@@ -1,10 +1,26 @@
-# Disable SHA-512/256 for wolfSSL FIPS compatibility
-#
-# wolfSSL FIPS does not include SHA-512/256 in its validated algorithm list.
-# When using wolfProvider with wolfSSL FIPS, curl's SHA-512/256 based HTTP
-# Digest authentication will fail at runtime since the algorithm is unavailable.
-#
-# By defining CURL_DISABLE_SHA512_256 at compile time, curl properly reports
-# the feature as unavailable and tests that require it are skipped rather than
-# failing.
-CFLAGS:append = " -DCURL_DISABLE_SHA512_256"
+# Check Yocto version and include appropriate file
+python() {
+    import os
+
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
+
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    codename = None
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            codename = series
+            if series in modern_series:
+                use_modern = True
+                break
+
+    if use_modern:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), f'inc/curl/{codename}/curl-enable-wolfprovider-fips-modern.inc')
+    else:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), f'inc/curl/{codename}/curl-enable-wolfprovider-fips-legacy.inc')
+
+    # Include the appropriate file
+    bb.parse.handle(require_file, d, True)
+}

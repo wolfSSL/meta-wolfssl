@@ -1,14 +1,22 @@
-# Enable replace default unit tests with wolfProvider
+# Check Yocto version and include appropriate file
+python() {
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-# Also export as environment variable for configure script compatibility
-export WOLFPROV_REPLACE_DEFAULT = "1"
-export WOLFPROV_REPLACE_DEFAULT_TESTING = "1"
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
-# Enable unit tests that use internal OpenSSL provider functions
-# These functions (ossl_provider_new, ossl_provider_activate, etc.) are only available
-# when OpenSSL is patched with the replace-default patch
-CPPFLAGS:append = " -DWOLFPROV_REPLACE_DEFAULT"
-CPPFLAGS:append = " -DWOLFPROV_REPLACE_DEFAULT_UNIT_TEST"
-CPPFLAGS:append = " -DWOLFPROV_QUICKTEST"
+    if use_modern:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfprovider/wolfprovider-enable-replace-default-unittest-modern.inc')
+    else:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfprovider/wolfprovider-enable-replace-default-unittest-legacy.inc')
 
-
+    # Include the appropriate file
+    bb.parse.handle(require_file, d, True)
+}

@@ -1,36 +1,22 @@
-# Configuration to enable wolf-py-tests support in wolfssl
-# Python tests may need specific features enabled
-EXTRA_OECONF += "--enable-shared"
+# Check Yocto version and include appropriate file
+python() {
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-WOLFSSL_PY_TEST_CERTS_DIR = "/home/root/wolf-py-tests/certs"
-WOLFSSL_PY_CERTS_DIR = "/certs"
-WOLFSSL_PY_CERTS_INSTALL_DIR = "${D}${WOLFSSL_PY_TEST_CERTS_DIR}"
-WOLFSSL_PY_CERTS_SOURCE_DIR = "${S}${WOLFSSL_PY_CERTS_DIR}"
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
-python () {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    wolfssl_py_certs_install_dir = d.getVar('WOLFSSL_PY_CERTS_INSTALL_DIR', True)
-    wolfssl_py_certs_source_dir = d.getVar('WOLFSSL_PY_CERTS_SOURCE_DIR', True)
-
-    bbnote = 'bbnote "Installing Certs Directory for wolf-py Tests"\n'
-    installDir = 'install -m 0755 -d "%s"\n' % (wolfssl_py_certs_install_dir)
-    cpDer = 'cp -r %s/*.der %s\n' % (wolfssl_py_certs_source_dir, wolfssl_py_certs_install_dir)
-    cpPem = 'cp -r %s/*.pem %s\n' % (wolfssl_py_certs_source_dir, wolfssl_py_certs_install_dir)
-
-    d.appendVar('do_install', bbnote)
-    d.appendVar('do_install', installDir)
-    d.appendVar('do_install', cpDer)
-    d.appendVar('do_install', cpPem)
-
-    pn = d.getVar('PN', True)
-    wolfssl_py_test_certs_dir = d.getVar('WOLFSSL_PY_TEST_CERTS_DIR', True)
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        files_var_name = 'FILES_' + pn
+    if use_modern:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolf-py-tests/wolfssl-enable-wolf-py-tests-modern.inc')
     else:
-        files_var_name = 'FILES:' + pn
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolf-py-tests/wolfssl-enable-wolf-py-tests-legacy.inc')
 
-    current_files = d.getVar(files_var_name, True) or ""
-    new_files = current_files + ' ' + wolfssl_py_test_certs_dir + '/*'
-    d.setVar(files_var_name, new_files)
+    # Include the appropriate file
+    bb.parse.handle(require_file, d, True)
 }
-

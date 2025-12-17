@@ -1,15 +1,22 @@
-# Configuration to enable wolfengine support in wolfssl
-
+# Check Yocto version and include appropriate file
 python() {
-    # Get the package revision (PR) for wolfssl
-    wolfssl_pr = d.getVar('PR', True)
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    # Based on the revision, conditionally append to EXTRA_OECONF
-    if wolfssl_pr == 'commerical.fips':
-        d.appendVar('EXTRA_OECONF', ' --enable-engine=fips-v5')
-    elif wolfssl_pr == 'fipsReady':
-        d.appendVar('EXTRA_OECONF', ' --enable-engine=fips-ready')
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
+
+    if use_modern:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfengine/wolfssl-enable-wolfengine-modern.inc')
     else:
-        d.appendVar('EXTRA_OECONF', ' --enable-engine=no-fips')
-}
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfengine/wolfssl-enable-wolfengine-legacy.inc')
 
+    # Include the appropriate file
+    bb.parse.handle(require_file, d, True)
+}

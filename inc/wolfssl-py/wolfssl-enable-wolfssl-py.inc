@@ -1,6 +1,22 @@
-# Configuration to enable wolfssl-py support in wolfssl
-# Python bindings need specific features enabled
-EXTRA_OECONF += "--enable-sni --enable-opensslextra --enable-opensslall --enable-dtls13 --enable-dtls --enable-crl --enable-tlsx --enable-secure-renegotiation"
+# Check Yocto version and include appropriate file
+python() {
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-TARGET_CFLAGS += "-DKEEP_PEER_CERT -DFP_MAX_BITS=8192 -DHAVE_EX_DATA -DOPENSSL_COMPATIBLE_DEFAULTS"
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
+    if use_modern:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfssl-py/wolfssl-enable-wolfssl-py-modern.inc')
+    else:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfssl-py/wolfssl-enable-wolfssl-py-legacy.inc')
+
+    # Include the appropriate file
+    bb.parse.handle(require_file, d, True)
+}

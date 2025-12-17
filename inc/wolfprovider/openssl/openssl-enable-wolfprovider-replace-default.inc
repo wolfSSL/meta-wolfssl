@@ -1,12 +1,39 @@
-# OpenSSL wolfProvider REPLACE-DEFAULT mode configuration
-# This file is included when wolfProvider is configured to replace OpenSSL's default crypto provider
-# It should be included from the image recipe when replace-default mode is desired
+# Check Yocto version and include appropriate file
+python() {
+    import os
 
-# Build OpenSSL as plain, non-FIPS OpenSSL
-# wolfProvider will provide FIPS functionality using wolfSSL FIPS
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-PACKAGECONFIG:class-target = ""
-EXTRA_OECONF:append:class-target = " no-fips shared "
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    codename = None
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            codename = series
+            if series in modern_series:
+                use_modern = True
+                break
+
+    # Determine file type
+    file_type = 'modern' if use_modern else 'legacy'
+
+    # Try codename-specific path first, fallback to generic
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if codename:
+        codename_file = os.path.join(layerdir, f'inc/wolfprovider/openssl/{codename}/openssl-enable-wolfprovider-replace-default-{file_type}.inc')
+        if os.path.exists(codename_file):
+            require_file = codename_file
+        else:
+            # Fallback to generic modern/legacy at root
+            require_file = os.path.join(layerdir, f'inc/wolfprovider/openssl/openssl-enable-wolfprovider-replace-default-{file_type}.inc')
+    else:
+        require_file = os.path.join(layerdir, f'inc/wolfprovider/openssl/openssl-enable-wolfprovider-replace-default-{file_type}.inc')
+
+    # Include the appropriate file
+    bb.parse.handle(require_file, d, True)
+}
 
 # OpenSSL target-only tweaks for replace-default mode
 do_configure:prepend:class-target () {
@@ -30,7 +57,7 @@ do_configure:prepend:class-target () {
     if echo "${IMAGE_FEATURES}" | grep -qw "fips"; then
         sed -i 's/^BUILD_METADATA=.*/BUILD_METADATA=wolfProvider-fips/' $vfile
     fi
-    
+
 }
 
 # Override do_configure to filter enable-fips from the actual configure command
@@ -79,7 +106,7 @@ python do_patch:append:class-target () {
     # Try to apply patch; if it fails with "already applied", log it and continue
     try:
         # First check with --dry-run to see if patch can be applied
-        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"], 
+        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"],
                               capture_output=True, text=True, check=False)
         if result.returncode == 0:
             bb.note("REPLACE-DEFAULT MODE: Patch can be applied, applying now...")
@@ -89,7 +116,7 @@ python do_patch:append:class-target () {
             bb.debug(1, f"Patch check output: {result.stderr}")
     except Exception as e:
         bb.warn(f"REPLACE-DEFAULT MODE: Error applying patch: {e}")
-    
+
     # Export ossl_provider_* symbols by patching libcrypto.num
     # This is required for replace-default unit tests to link
     libcrypto_num = os.path.join(s, "util", "libcrypto.num")
@@ -99,7 +126,7 @@ python do_patch:append:class-target () {
             # Read the file to find the last symbol number and version
             with open(libcrypto_num, 'r') as f:
                 lines = f.readlines()
-            
+
             # Find the last symbol number and version
             last_num = 0
             last_version = "3.0.0"
@@ -114,14 +141,14 @@ python do_patch:append:class-target () {
                                 last_version = parts[2]
                     except ValueError:
                         pass
-            
+
             # Check if symbols are already added
             with open(libcrypto_num, 'r') as f:
                 content = f.read()
                 if 'ossl_provider_new' in content:
                     bb.note("REPLACE-DEFAULT MODE: ossl_provider_* symbols already in libcrypto.num")
                     return
-            
+
             # Append the 6 provider symbols
             symbols_to_add = [
                 ("ossl_provider_new", last_num + 1),
@@ -131,12 +158,12 @@ python do_patch:append:class-target () {
                 ("ossl_provider_free", last_num + 5),
                 ("ossl_default_provider_init", last_num + 6),
             ]
-            
+
             with open(libcrypto_num, 'a') as f:
                 for symbol_name, symbol_num in symbols_to_add:
                     # Format: symbol_name    NUM    VERSION    EXIST::FUNCTION:
                     f.write(f"{symbol_name:<40} {symbol_num}\t{last_version}\tEXIST::FUNCTION:\n")
-            
+
             bb.note(f"REPLACE-DEFAULT MODE: Added {len(symbols_to_add)} provider symbols to libcrypto.num")
         except Exception as e:
             bb.warn(f"REPLACE-DEFAULT MODE: Error patching libcrypto.num: {e}")
@@ -164,7 +191,7 @@ python do_patch:append:class-target () {
 
     # Try to apply the patch; if it fails with "already applied", log it and continue
     try:
-        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"], 
+        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"],
                               capture_output=True, text=True, check=False)
         if result.returncode == 0:
             bb.note("openssl-disable-internal-keymgmt-tests.patch can be applied, applying now...")

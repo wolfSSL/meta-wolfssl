@@ -11,9 +11,13 @@
 
 # FIPS hash configuration
 WOLFSSL_FIPS_HASH_MODE ?= "auto"
-WOLFSSL_FIPS_HASH_MODE:class-native = "manual"
-WOLFSSL_FIPS_HASH_MODE:class-nativesdk = "manual"
 WOLFSSL_FIPS_PLACEHOLDER ?= "0000000000000000000000000000000000000000000000000000000000000000"
+
+python __anonymous() {
+    # Set mode to manual for native/nativesdk builds
+    if bb.utils.contains('OVERRIDES', 'class-native', True, False, d) or bb.utils.contains('OVERRIDES', 'class-nativesdk', True, False, d):
+        d.setVar('WOLFSSL_FIPS_HASH_MODE', 'manual')
+}
 
 # This will be set by anonymous Python based on mode (manual: FIPS_HASH, auto: function call)
 WOLFSSL_GET_HASH_METHOD ?= ""
@@ -25,16 +29,16 @@ WOLFSSL_FIPS_TEST_BINARY ?= "${B}/wolfcrypt/test/.libs/testwolfcrypt"
 # This function performs the actual hash retrieval and returns the value
 get_wolfssl_fips_hash() {
     local mode="${WOLFSSL_FIPS_HASH_MODE}"
-    
+
     if [ "${mode}" != "auto" ]; then
         # Manual mode: return the configured hash
         echo "${FIPS_HASH}"
         return 0
     fi
-    
+
     # Auto mode: perform hash extraction
     bbnote "wolfSSL FIPS auto mode: extracting hash from test binary"
-    
+
     # Build test binary if not already built (configure should have enabled --enable-crypttests)
     if [ ! -x "${WOLFSSL_FIPS_TEST_BINARY}" ]; then
         bbnote "Building wolfCrypt test binary for FIPS hash generation"
@@ -43,7 +47,7 @@ get_wolfssl_fips_hash() {
         # Build everything needed for the test (redirect output to log files, not stdout)
         oe_runmake all 1>&2
     fi
-    
+
     # Capture and return the hash directly (only hash goes to stdout)
     local hash=$(wolfssl_fips_capture_hash)
     local rc=$?
@@ -51,7 +55,7 @@ get_wolfssl_fips_hash() {
         bberror "Failed to capture FIPS hash (rc=${rc})"
         return 1
     fi
-    
+
     # Return only the hash to stdout (no other messages)
     echo "${hash}"
     return 0
@@ -78,13 +82,13 @@ wolfssl_fips_clean_config() {
 # Dynamic variable setup - handles dependencies, class inheritance, and task ordering
 python __anonymous () {
     import bb
-    
+
     mode = d.getVar('WOLFSSL_FIPS_HASH_MODE')
     distro_version = d.getVar('DISTRO_VERSION')
-    
+
     # Add clean function to do_configure (version-compatible based on DISTRO_VERSION)
     clean_command = 'wolfssl_fips_clean_config\n'
-    
+
     if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
         # For Dunfell (3.x) and earlier - use old style variable
         existing = d.getVar('do_configure_prepend') or ''
@@ -92,19 +96,19 @@ python __anonymous () {
     else:
         # For Kirkstone (4.x) and later - use prefuncs
         d.appendVarFlag('do_configure', 'prefuncs', ' wolfssl_fips_clean_config')
-    
+
     # Only set up for auto mode
     if mode == 'auto':
         # Inherit qemu class for cross-compilation support
         bb.parse.BBHandler.inherit('qemu', '', 0, d)
-        
+
         # Add qemu-native dependency
         d.appendVar('DEPENDS', ' qemu-native')
-        
+
         # Include crypttests configuration for auto mode
         include_file = d.expand('${WOLFSSL_LAYERDIR}/inc/wolfcrypttest/wolfssl-enable-wolfcrypttest.inc')
         bb.parse.handle(include_file, d, True)
-        
+
         bb.build.addtask('do_wolfssl_fips_capture_hash', 'do_compile', 'do_configure', d)
     else:
         # Manual mode task
@@ -122,7 +126,7 @@ wolfssl_fips_capture_hash() {
 
     # Use temporary file for output
     local temp_log=$(mktemp)
-    
+
     # Determine if we need QEMU (cross-compile) or can run natively
     local run_cmd=""
     if [ "${BUILD_ARCH}" = "${TARGET_ARCH}" ]; then
@@ -134,10 +138,10 @@ wolfssl_fips_capture_hash() {
         bbnote "Cross-compile detected - using QEMU wrapper"
         run_cmd="${WOLFSSL_QEMU_WRAPPER} ${WOLFSSL_FIPS_TEST_BINARY}"
     fi
-    
+
     bbnote "Capturing wolfSSL FIPS hash from test binary"
     bbnote "Command: ${run_cmd}"
-    
+
     set +e
     ${run_cmd} > ${temp_log} 2>&1
     local rc=$?
@@ -154,7 +158,7 @@ wolfssl_fips_capture_hash() {
 
     # Parse the hash from output
     local parsed=$(grep -E "hash = " "${temp_log}" | tail -n1 | awk -F'=' '{print $2}' | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
-    
+
     # Debug: show output if parsing failed
     if [ -z "${parsed}" ]; then
         bberror "Failed to parse FIPS hash from test output"
@@ -163,10 +167,10 @@ wolfssl_fips_capture_hash() {
         rm -f ${temp_log}
         return 1
     fi
-    
+
     rm -f ${temp_log}
     bbnote "wolfSSL FIPS hash extracted: ${parsed}"
-    
+
     # Return the hash value
     echo "${parsed}"
     return 0
@@ -178,7 +182,7 @@ do_wolfssl_fips_capture_hash() {
     # Place a placeholder hash in fips_test.c before capturing
     PLACEHOLDER_HASH="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
     bbnote "Setting placeholder hash in fips_test.c: ${PLACEHOLDER_HASH}"
-    
+
     if [ -f "${S}/wolfcrypt/src/fips_test.c" ]; then
         cp ${S}/wolfcrypt/src/fips_test.c ${S}/wolfcrypt/src/fips_test.c.orig
         sed "s/^\".*\";/\"${PLACEHOLDER_HASH}\";/" ${S}/wolfcrypt/src/fips_test.c.orig > ${S}/wolfcrypt/src/fips_test.c
@@ -186,7 +190,7 @@ do_wolfssl_fips_capture_hash() {
         rm -f ${B}/wolfcrypt/test/.libs/testwolfcrypt ${B}/wolfcrypt/test/testwolfcrypt
         touch ${S}/wolfcrypt/src/fips_test.c
     fi
-    
+
     # Reconfigure to ensure placeholder is used
     do_configure
 
@@ -201,29 +205,29 @@ do_wolfssl_fips_capture_hash() {
         bberror "Failed to capture wolfSSL FIPS hash (rc=${rc})"
         bbfatal "FIPS hash capture failed - cannot continue"
     fi
-    
+
     # Display the captured hash
     bbplain "=========================================="
     bbplain "wolfSSL FIPS Hash (auto mode): ${CAPTURED_HASH}"
     bbplain "=========================================="
-    
+
     # Update fips_test.c with the captured hash (same as official fips-hash.sh)
     if [ ! -f "${S}/wolfcrypt/src/fips_test.c" ]; then
         bbfatal "fips_test.c not found at ${S}/wolfcrypt/src/fips_test.c"
     fi
-    
+
     # Create backup of original if it doesn't exist yet
     if [ ! -f "${S}/wolfcrypt/src/fips_test.c.bak" ]; then
         bbnote "Creating backup of original fips_test.c"
         cp ${S}/wolfcrypt/src/fips_test.c ${S}/wolfcrypt/src/fips_test.c.bak
     fi
-    
+
     bbnote "Updating fips_test.c with captured hash"
     sed "s/^\".*\";/\"${CAPTURED_HASH}\";/" ${S}/wolfcrypt/src/fips_test.c > ${S}/wolfcrypt/src/fips_test.c.tmp
     mv ${S}/wolfcrypt/src/fips_test.c.tmp ${S}/wolfcrypt/src/fips_test.c
-    
+
     bbnote "Updated fips_test.c with hash: ${CAPTURED_HASH}"
-    
+
     # Run configure again
     do_configure
 }
@@ -232,33 +236,33 @@ do_wolfssl_fips_capture_hash_manual() {
 
     # Manual mode: just use the configured FIPS_HASH value
     CAPTURED_HASH=${FIPS_HASH}
-    
+
     if [ -z "${CAPTURED_HASH}" ]; then
         bbfatal "FIPS_HASH is not set in manual mode"
     fi
-    
+
     # Display the configured hash
     bbplain "=========================================="
     bbplain "wolfSSL FIPS Hash (manual mode): ${CAPTURED_HASH}"
     bbplain "=========================================="
-    
+
     # Update fips_test.c with the configured hash
     if [ ! -f "${S}/wolfcrypt/src/fips_test.c" ]; then
         bbfatal "fips_test.c not found at ${S}/wolfcrypt/src/fips_test.c"
     fi
-    
+
     # Create backup of original if it doesn't exist yet
     if [ ! -f "${S}/wolfcrypt/src/fips_test.c.bak" ]; then
         bbnote "Creating backup of original fips_test.c"
         cp ${S}/wolfcrypt/src/fips_test.c ${S}/wolfcrypt/src/fips_test.c.bak
     fi
-    
+
     bbnote "Updating fips_test.c with configured hash"
     sed "s/^\".*\";/\"${CAPTURED_HASH}\";/" ${S}/wolfcrypt/src/fips_test.c > ${S}/wolfcrypt/src/fips_test.c.tmp
     mv ${S}/wolfcrypt/src/fips_test.c.tmp ${S}/wolfcrypt/src/fips_test.c
-    
+
     bbnote "Updated fips_test.c with hash: ${CAPTURED_HASH}"
-    
+
     # Reconfigure to pick up the updated hash
     # Note: wolfssl_fips_clean_config will run automatically via prefuncs
     do_configure

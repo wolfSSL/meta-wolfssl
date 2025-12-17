@@ -11,14 +11,17 @@ LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=2c1c00f9d3ed9e24fa69b932b7e7aff2"
 
 DEPENDS += "virtual/wolfssl"
-RDEPENDS:${PN} += "wolfssl"
 
 SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;nobranch=1;protocol=https;rev=320ed37633f896cf2485c9c5f8bed3400ae8b4d5"
 
 
 S = "${WORKDIR}/git"
 
-inherit autotools pkgconfig wolfssl-helper
+inherit autotools pkgconfig wolfssl-helper wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl')
+}
 
 EXTRA_OECONF = "--with-libwolfssl-prefix=${STAGING_EXECPREFIXDIR}"
 
@@ -27,5 +30,5 @@ export CFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'
 export CXXFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'
 export LDFLAGS += ' -Wl,--build-id=none'
 
-# Ensure consistent locale                                                      
+# Ensure consistent locale
 export LC_ALL = "C"

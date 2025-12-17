@@ -1,18 +1,22 @@
-EXTRA_OECONF += " \
-    --enable-cmac \
-    --enable-aesccm \
-    --enable-keygen \
-    --enable-fips=v5 \
-"
+# Check Yocto version and include appropriate file
+python() {
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-TARGET_CFLAGS += " \
-    -DWOLFSSL_PUBLIC_ASN \
-    -DHAVE_PUBLIC_FFDHE \
-    -DHAVE_FFDHE_3072 \
-    -DHAVE_FFDHE_4096 \
-    -DWOLFSSL_DH_EXTRA \
-    -DWOLFSSL_PSS_SALT_LEN_DISCOVER \
-    -DWOLFSSL_PUBLIC_MP \
-    -DWOLFSSL_RSA_KEY_CHECK \
-    -DNO_MD5 \
-"
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
+
+    if use_modern:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfssl-fips/wolfssl-enable-gnutls-modern.inc')
+    else:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfssl-fips/wolfssl-enable-gnutls-legacy.inc')
+
+    # Include the appropriate file
+    bb.parse.handle(require_file, d, True)
+}

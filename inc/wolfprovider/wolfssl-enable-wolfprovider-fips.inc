@@ -1,22 +1,22 @@
-# Configuration to enable wolfprovider FIPS support in wolfssl
-# To enable debug add `--enable-debug --enable-keylog-export` to EXTRA_OECONF
+# Check Yocto version and include appropriate file
+python() {
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-EXTRA_OECONF += " --enable-fips=v5 --enable-opensslcoexist"
-TARGET_CFLAGS += " -DWOLFSSL_OLD_OID_SUM -DWOLFSSL_DH_EXTRA"
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
-# Use a marker file to signal we are a FIPS build
-WOLFSSL_ISFIPS = "1"
+    if use_modern:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfprovider/wolfssl-enable-wolfprovider-fips-modern.inc')
+    else:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfprovider/wolfssl-enable-wolfprovider-fips-legacy.inc')
 
-# commercial bundle missing stamp-h.in required by automake with 5.2.1
-do_configure:prepend() {
-    if [ ! -f ${S}/stamp-h.in ]; then
-        touch ${S}/stamp-h.in
-    fi
+    # Include the appropriate file
+    bb.parse.handle(require_file, d, True)
 }
-
-do_install:append() {
-    install -d ${D}${sysconfdir}/wolfssl
-    echo "1" > ${D}${sysconfdir}/wolfssl/fips-enabled
-}
-
-

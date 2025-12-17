@@ -1,14 +1,22 @@
-# Include this file in any wolfSSL package bbappend when manually configuring wolfSSL.
-# This will disable the feature check task that validates IMAGE_INSTALL or WOLFSSL_FEATURES.
-# 
-# Usage in your-layer/recipes-wolfssl/<package>/<package>_%.bbappend:
-#   require inc/wolfssl-manual-config.inc
-#
-# Or with full path:
-#   require ${COREBASE}/../meta-wolfssl/inc/wolfssl-manual-config.inc
-#
-# Note: You also need to configure wolfSSL by including the appropriate
-# wolfssl-enable-*.inc file(s) in your wolfssl_%.bbappend file.
+# Check Yocto version and include appropriate file
+python() {
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-deltask do_wolfssl_check_package
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
+    if use_modern:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfssl-manual-config-modern.inc')
+    else:
+        require_file = os.path.join(d.getVar('WOLFSSL_LAYERDIR'), 'inc/wolfssl-manual-config-legacy.inc')
+
+    # Include the appropriate file
+    bb.parse.handle(require_file, d, True)
+}
