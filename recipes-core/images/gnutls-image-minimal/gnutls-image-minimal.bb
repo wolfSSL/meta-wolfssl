@@ -6,6 +6,7 @@ DESCRIPTION = "This image includes gnutls configured to use wolfSSL/wolfCrypt as
 require recipes-core/images/wolfssl-minimal-image/wolfssl-image-minimal.bb
 
 IMAGE_INSTALL += " \
+    nettle \
     gnutls \
     gnutls-dev \
     gnutls-bin \
