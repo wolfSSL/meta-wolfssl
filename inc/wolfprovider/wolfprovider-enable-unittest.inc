@@ -1,8 +1,20 @@
 # Configuration to enable wolfProvider unit tests
 # Modeled exactly after wolfcrypttest approach - simple and clean
 
-FILESEXTRAPATHS:prepend := "${WOLFSSL_LAYERDIR}/recipes-examples/wolfprovider/wolfprovidertest/files:"
-SRC_URI += "file://wolfprovidertest.sh"
+# Set FILESEXTRAPATHS and SRC_URI early using Python to ensure correct evaluation order
+python __anonymous() {
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if not layerdir:
+        bb.fatal("WOLFSSL_LAYERDIR not set - ensure meta-wolfssl layer is properly configured")
+    
+    # Set FILESEXTRAPATHS first, then SRC_URI
+    filespath = layerdir + "/recipes-examples/wolfprovider/wolfprovidertest/files:"
+    existing_paths = d.getVar('FILESEXTRAPATHS') or ''
+    d.setVar('FILESEXTRAPATHS', filespath + existing_paths)
+    
+    # Add SRC_URI entry
+    d.appendVar('SRC_URI', ' file://wolfprovidertest.sh')
+}
 
 # Unit test directory and binary names
 WOLFPROVIDER_TEST_DIR = "${B}/test/.libs"
@@ -13,8 +25,9 @@ WOLFPROVIDER_CERTS_DIR = "${S}/certs"
 WOLFPROVIDER_CERTS_INSTALL_DIR = "${D}${datadir}/wolfprovider-test/certs"
 
 # Override CERTS_DIR to point to the installed location instead of build directory
-CFLAGS:append = ' -DCERTS_DIR=\\"/usr/share/wolfprovider-test/certs\\"'
-CXXFLAGS:append = ' -DCERTS_DIR=\\"/usr/share/wolfprovider-test/certs\\"'
+# First undefine CERTS_DIR (in case autotools defined it), then redefine it
+CFLAGS:append = ' -UCERTS_DIR -DCERTS_DIR=\\"/usr/share/wolfprovider-test/certs\\"'
+CXXFLAGS:append = ' -UCERTS_DIR -DCERTS_DIR=\\"/usr/share/wolfprovider-test/certs\\"'
 
 # Simple installation using Python function, exactly like wolfcrypttest
 python () {
