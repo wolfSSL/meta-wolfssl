@@ -12,31 +12,6 @@ else
     exit 1
 fi
 
-if [ -f /etc/openssl/replace-default-enabled ]; then
-    MODE=$(cat /etc/openssl/replace-default-enabled)
-    if [ "$MODE" = "1" ]; then
-        REPLACE_DEFAULT_MODE=1
-        echo "Detected replace-default mode (from config file)"
-    else
-        echo "Detected normal wolfprovider mode (from config file)"
-    fi
-else
-    # Method 2: Runtime detection by checking default provider
-    DEFAULT_PROVIDER=$(openssl list -providers 2>/dev/null | grep -A1 "^  default$" | grep "name:" | grep -i "wolfSSL Provider")
-    if [ -n "$DEFAULT_PROVIDER" ]; then
-        REPLACE_DEFAULT_MODE=1
-        echo "Detected replace-default mode (runtime detection)"
-    else
-        echo "Detected normal wolfprovider mode (runtime detection)"
-    fi
-fi
-
-if [ "${REPLACE_DEFAULT_MODE:-0}" -eq 1 ]; then
-    echo "wolfProvider unit tests are disabled in replace-default mode."
-    echo "Skipping test execution until Replace Default mode is supported."
-    exit 0
-fi
-
 echo "=========================================="
 echo "Running wolfProvider Unit Test"
 echo "=========================================="
