@@ -40,6 +40,7 @@ IMAGE_INSTALL:append = " \
     binutils \
     ldd \
     curl \
+    librelp-ptest \
 "
 
 require recipes-core/images/core-image-minimal.bb
