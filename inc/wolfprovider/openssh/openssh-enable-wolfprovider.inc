@@ -2,10 +2,8 @@
 # Include this file for standard wolfProvider integration as a provider plugin
 
 # Bring in the openssh patch from the OSP repository (target only)
-# TODO: Use the official OSP repository when the patch is merged
-# https://github.com/wolfSSL/osp/pull/311
 SRC_URI:append:class-target = " \
-    git://github.com/padelsbach/osp.git;protocol=https;branch=wp-openssh-fips-patch;name=osp;destsuffix=git/osp \
+    git://github.com/wolfSSL/osp.git;protocol=https;branch=master;name=osp;destsuffix=git/osp \
 "
 
 # Track the revision for the OSP auxiliary repo fetch
@@ -27,7 +25,7 @@ python do_patch:append:class-target () {
 
     # Try to apply the patch; if it fails with "already applied", log it and continue
     try:
-        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"], 
+        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"],
                               capture_output=True, text=True, check=False)
         if result.returncode == 0:
             bb.note(f"{patch_path} can be applied, applying now...")
