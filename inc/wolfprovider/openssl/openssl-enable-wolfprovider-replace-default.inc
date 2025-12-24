@@ -89,6 +89,59 @@ python do_patch:append:class-target () {
             bb.debug(1, f"Patch check output: {result.stderr}")
     except Exception as e:
         bb.warn(f"REPLACE-DEFAULT MODE: Error applying patch: {e}")
+    
+    # Export ossl_provider_* symbols by patching libcrypto.num
+    # This is required for replace-default unit tests to link
+    libcrypto_num = os.path.join(s, "util", "libcrypto.num")
+    if os.path.exists(libcrypto_num):
+        bb.note("REPLACE-DEFAULT MODE: Exporting ossl_provider_* symbols in libcrypto.num")
+        try:
+            # Read the file to find the last symbol number and version
+            with open(libcrypto_num, 'r') as f:
+                lines = f.readlines()
+            
+            # Find the last symbol number and version
+            last_num = 0
+            last_version = "3.0.0"
+            for line in lines:
+                parts = line.split()
+                if len(parts) >= 2:
+                    try:
+                        num = int(parts[1])
+                        if num > last_num:
+                            last_num = num
+                            if len(parts) >= 3:
+                                last_version = parts[2]
+                    except ValueError:
+                        pass
+            
+            # Check if symbols are already added
+            with open(libcrypto_num, 'r') as f:
+                content = f.read()
+                if 'ossl_provider_new' in content:
+                    bb.note("REPLACE-DEFAULT MODE: ossl_provider_* symbols already in libcrypto.num")
+                    return
+            
+            # Append the 6 provider symbols
+            symbols_to_add = [
+                ("ossl_provider_new", last_num + 1),
+                ("ossl_provider_activate", last_num + 2),
+                ("ossl_provider_deactivate", last_num + 3),
+                ("ossl_provider_add_to_store", last_num + 4),
+                ("ossl_provider_free", last_num + 5),
+                ("ossl_default_provider_init", last_num + 6),
+            ]
+            
+            with open(libcrypto_num, 'a') as f:
+                for symbol_name, symbol_num in symbols_to_add:
+                    # Format: symbol_name    NUM    VERSION    EXIST::FUNCTION:
+                    f.write(f"{symbol_name:<40} {symbol_num}\t{last_version}\tEXIST::FUNCTION:\n")
+            
+            bb.note(f"REPLACE-DEFAULT MODE: Added {len(symbols_to_add)} provider symbols to libcrypto.num")
+        except Exception as e:
+            bb.warn(f"REPLACE-DEFAULT MODE: Error patching libcrypto.num: {e}")
+    else:
+        bb.warn(f"REPLACE-DEFAULT MODE: libcrypto.num not found at {libcrypto_num}")
 }
 
 # Disable internal keymgmt tests under wolfprovider FIPS mode which
