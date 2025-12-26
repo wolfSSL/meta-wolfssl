@@ -37,13 +37,15 @@ DEFAULT_PREFERENCE = "-1"
 
 # Commercial bundle configuration
 # Users can set WOLFSSL_SRC_DIR in local.conf to specify bundle location
+# Users can set WOLFSSL_SRC_DIRECTORY in local.conf to point directly to extracted source
 WOLFSSL_SRC_DIR ?= "${@os.path.dirname(d.getVar('FILE', True))}/commercial/files"
+WOLFSSL_SRC_DIRECTORY ?= ""
 WOLFSSL_BUNDLE_FILE ?= ""
 WOLFSSL_BUNDLE_GCS_URI ?= ""
 WOLFSSL_BUNDLE_GCS_TOOL ?= ""
 
-# Enable commercial bundle extraction only when WOLFSSL_SRC is configured
-COMMERCIAL_BUNDLE_ENABLED ?= "${@'1' if d.getVar('WOLFSSL_SRC') else '0'}"
+# Enable commercial bundle extraction only when WOLFSSL_SRC or WOLFSSL_SRC_DIRECTORY is configured
+COMMERCIAL_BUNDLE_ENABLED ?= "${@'1' if (d.getVar('WOLFSSL_SRC') or d.getVar('WOLFSSL_SRC_DIRECTORY')) else '0'}"
 
 # Map to commercial class variables
 COMMERCIAL_BUNDLE_DIR = "${WOLFSSL_SRC_DIR}"
@@ -54,6 +56,7 @@ COMMERCIAL_BUNDLE_SHA = "${WOLFSSL_SRC_SHA}"
 COMMERCIAL_BUNDLE_TARGET = "${WORKDIR}"
 COMMERCIAL_BUNDLE_GCS_URI = "${WOLFSSL_BUNDLE_GCS_URI}"
 COMMERCIAL_BUNDLE_GCS_TOOL = "${@d.getVar('WOLFSSL_BUNDLE_GCS_TOOL') or 'auto'}"
+COMMERCIAL_BUNDLE_SRC_DIR = "${WOLFSSL_SRC_DIRECTORY}"
 
 # Use helper functions from wolfssl-commercial.bbclass for conditional configuration
 SRC_URI = "${@get_commercial_src_uri(d)}"

@@ -51,8 +51,25 @@ inherit wolfssl-initramfs
 PACKAGE_INSTALL:append = " wolfssl-linuxkm"
 ```
 
-For FIPS:
+**Automatic FIPS Selection:**
 
+If you have configured `wolfssl-fips.conf` with:
+```bitbake
+# Use wolfSSL FIPS Linux kernel module (FIPS-validated kernel module)
+PREFERRED_PROVIDER_virtual/wolfssl-linuxkm = "wolfssl-linuxkm-fips"
+PREFERRED_PROVIDER_wolfssl-linuxkm = "wolfssl-linuxkm-fips"
+```
+
+**Note:** Both lines are required:
+- `virtual/wolfssl-linuxkm` - Controls build-time dependencies
+- `wolfssl-linuxkm` - Controls runtime package installation
+
+Then `wolfssl-linuxkm` will automatically resolve to the FIPS-validated version (`wolfssl-linuxkm-fips`).
+No code changes needed - the virtual provider system handles the switch automatically.
+
+**Manual FIPS Selection (alternative):**
+
+You can also explicitly specify the FIPS version:
 ```bitbake
 PACKAGE_INSTALL:append = " wolfssl-linuxkm-fips"
 ```
