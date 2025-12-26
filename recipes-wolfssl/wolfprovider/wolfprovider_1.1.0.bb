@@ -10,7 +10,7 @@ DEPENDS += "util-linux-native"
 PROVIDES += "wolfprovider"
 RPROVIDES_${PN} = "wolfprovider"
 
-SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=3d6ae459bc051840ecfd9c98cdf7579f1633c24b"
+SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=2f3af895edaf49039942c95a996fb5eb78aa57c0"
 
 DEPENDS += " virtual/wolfssl \
             openssl \
