@@ -49,3 +49,10 @@ require recipes-core/images/core-image-minimal.bb
 # Set in local.conf:
 #   WOLFSSL_DEMOS = "fips-image-minimal"
 #   require conf/wolfssl-fips.conf
+#
+# For early kernel module loading (initramfs), also add to local.conf:
+#   INITRAMFS_IMAGE = "fips-initramfs"
+#   INITRAMFS_IMAGE_BUNDLE = "1"
+#
+# Note: INITRAMFS_IMAGE must be set in local.conf (not here) because
+# the kernel needs to see it at build time, not just the image.

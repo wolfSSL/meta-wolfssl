@@ -4,6 +4,11 @@ LICENSE = "GPL-3.0-only"
 DEPENDS += "virtual/kernel openssl-native"
 LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
 
+# This recipe provides:
+# - wolfssl-linuxkm (automatic from recipe name)
+# - virtual/wolfssl-linuxkm (build-time interface for switching implementations)
+PROVIDES += "wolfssl-linuxkm virtual/wolfssl-linuxkm"
+
 # Build for target kernel
 inherit module-base autotools wolfssl-helper
 
@@ -51,9 +56,6 @@ do_install:append() {
 }
 
 RDEPENDS:${PN} = ""
-
-# Provide alias so both names work
-RPROVIDES:${PN} = "kernel-module-libwolfssl"
 
 INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
 
