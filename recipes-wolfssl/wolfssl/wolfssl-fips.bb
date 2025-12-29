@@ -19,7 +19,12 @@ DEPENDS += "util-linux-native"
 # - virtual/wolfssl (build-time interface for switching implementations)
 # At runtime, the wolfssl-fips package provides wolfssl to satisfy package dependencies
 PROVIDES += "wolfssl-fips virtual/wolfssl"
-RPROVIDES:${PN} += "wolfssl"
+
+inherit autotools pkgconfig wolfssl-helper wolfssl-commercial wolfssl-fips-helper wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varAppend(d, 'RPROVIDES', '${PN}', ' wolfssl')
+}
 
 # Lower preference so regular wolfssl is default
 # Users must explicitly set PREFERRED_PROVIDER_virtual/wolfssl = "wolfssl-fips"
@@ -64,8 +69,6 @@ S = "${@get_commercial_source_dir(d)}"
 
 # Optional: switch to GCS/tarball flow (gs:// URI) when set
 require ${WOLFSSL_LAYERDIR}/inc/wolfssl-fips/wolfssl-commercial-gcs.inc
-
-inherit autotools pkgconfig wolfssl-helper wolfssl-commercial wolfssl-fips-helper
 
 # Skip the package check for wolfssl-fips itself (it's the base library)
 deltask do_wolfssl_check_package

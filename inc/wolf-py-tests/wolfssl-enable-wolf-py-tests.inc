@@ -1,5 +1,8 @@
 # Configuration to enable wolf-py-tests support in wolfssl
 # Python tests may need specific features enabled
+
+inherit wolfssl-compatibility
+
 EXTRA_OECONF += "--enable-shared"
 
 WOLFSSL_PY_TEST_CERTS_DIR = "/home/root/wolf-py-tests/certs"
@@ -8,7 +11,6 @@ WOLFSSL_PY_CERTS_INSTALL_DIR = "${D}${WOLFSSL_PY_TEST_CERTS_DIR}"
 WOLFSSL_PY_CERTS_SOURCE_DIR = "${S}${WOLFSSL_PY_CERTS_DIR}"
 
 python () {
-    distro_version = d.getVar('DISTRO_VERSION', True)
     wolfssl_py_certs_install_dir = d.getVar('WOLFSSL_PY_CERTS_INSTALL_DIR', True)
     wolfssl_py_certs_source_dir = d.getVar('WOLFSSL_PY_CERTS_SOURCE_DIR', True)
 
@@ -21,16 +23,11 @@ python () {
     d.appendVar('do_install', installDir)
     d.appendVar('do_install', cpDer)
     d.appendVar('do_install', cpPem)
-
-    pn = d.getVar('PN', True)
-    wolfssl_py_test_certs_dir = d.getVar('WOLFSSL_PY_TEST_CERTS_DIR', True)
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        files_var_name = 'FILES_' + pn
-    else:
-        files_var_name = 'FILES:' + pn
-
-    current_files = d.getVar(files_var_name, True) or ""
-    new_files = current_files + ' ' + wolfssl_py_test_certs_dir + '/*'
-    d.setVar(files_var_name, new_files)
 }
 
+python __anonymous() {
+    pn = d.getVar('PN') or d.getVar('PN', True)
+    wolfssl_py_test_certs_dir = d.getVar('WOLFSSL_PY_TEST_CERTS_DIR') or d.getVar('WOLFSSL_PY_TEST_CERTS_DIR', True)
+
+    wolfssl_varAppend(d, 'FILES', pn, ' ' + wolfssl_py_test_certs_dir + '/*')
+}

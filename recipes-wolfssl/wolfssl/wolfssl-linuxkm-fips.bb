@@ -11,7 +11,17 @@ DEPENDS += "virtual/kernel openssl-native"
 # - virtual/wolfssl-linuxkm (build-time interface for switching implementations)
 # At runtime, the wolfssl-linuxkm-fips package provides wolfssl-linuxkm to satisfy package dependencies
 PROVIDES += "wolfssl-linuxkm-fips virtual/wolfssl-linuxkm"
-RPROVIDES:${PN} += "wolfssl-linuxkm"
+
+# Build for target kernel
+inherit module-base wolfssl-helper autotools wolfssl-commercial wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varAppend(d, 'RPROVIDES', '${PN}', ' wolfssl-linuxkm')
+    wolfssl_varAppend(d, 'FILES', '${PN}', ' ${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra/libwolfssl.ko')
+    wolfssl_varAppend(d, 'FILES', '${PN}-dbg', ' ${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra/.debug')
+    wolfssl_varAppend(d, 'INSANE_SKIP', '${PN}', ' buildpaths debug-files')
+    wolfssl_varAppend(d, 'INSANE_SKIP', '${PN}-dbg', ' buildpaths')
+}
 
 # Lower preference so regular wolfssl-linuxkm is default
 # Users must explicitly set PREFERRED_PROVIDER_virtual/wolfssl-linuxkm = "wolfssl-linuxkm-fips"
@@ -33,9 +43,6 @@ COMMERCIAL_BUNDLE_PASS    = "${WOLFSSL_SRC_PASS}"
 COMMERCIAL_BUNDLE_SHA     = "${WOLFSSL_SRC_SHA}"
 COMMERCIAL_BUNDLE_TARGET  = "${WORKDIR}"
 COMMERCIAL_BUNDLE_SRC_DIR = "${WOLFSSL_SRC_DIRECTORY}"
-
-# Build for target kernel
-inherit module-base wolfssl-helper autotools wolfssl-commercial
 
 # Kernel module FIPS hash configuration
 # WOLFSSL_FIPS_HASH_MODE_LINUXKM controls whether to use manual hash or kernel's auto-generation
@@ -60,8 +67,6 @@ DEPENDS += "binutils-cross-${TARGET_ARCH}"
 
 # Make sure we package the .ko
 PACKAGES = "${PN} ${PN}-dbg"
-FILES:${PN} += "${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra/libwolfssl.ko"
-FILES:${PN}-dbg += "${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra/.debug"
 
 # Tie package arch to machine
 PACKAGE_ARCH = "${MACHINE_ARCH}"
@@ -81,10 +86,14 @@ EXTRA_OECONF = " \
     --enable-crypttests \
 "
 
-# Pass FIPS hash as compile-time define (same approach as userspace wolfssl-fips)
-EXTRA_OEMAKE:append = "${@' KERNEL_EXTRA_CFLAGS=\"-DWOLFCRYPT_FIPS_CORE_HASH_VALUE=' + d.getVar('FIPS_HASH_LINUXKM') + '\"' if d.getVar('WOLFSSL_FIPS_HASH_MODE_LINUXKM') == 'manual' and d.getVar('FIPS_HASH_LINUXKM') else ''}"
+python __anonymous() {
+    # Pass FIPS hash as compile-time define (same approach as userspace wolfssl-fips)
+    if d.getVar('WOLFSSL_FIPS_HASH_MODE_LINUXKM') == 'manual' and d.getVar('FIPS_HASH_LINUXKM'):
+        hash_val = d.getVar('FIPS_HASH_LINUXKM')
+        wolfssl_varAppendNonOverride(d, 'EXTRA_OEMAKE', ' KERNEL_EXTRA_CFLAGS="-DWOLFCRYPT_FIPS_CORE_HASH_VALUE=' + hash_val + '"')
+}
 
-do_configure:prepend() {
+do_configure_fips_hash_check() {
     if [ "${WOLFSSL_FIPS_HASH_MODE_LINUXKM}" = "manual" ]; then
         if [ -n "${FIPS_HASH_LINUXKM}" ]; then
             bbnote "Kernel module manual FIPS mode - hash: ${FIPS_HASH_LINUXKM}"
@@ -96,12 +105,10 @@ do_configure:prepend() {
     fi
 }
 
+addtask do_configure_fips_hash_check after do_patch before do_configure
+
 do_install() {
     install -d ${D}${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra
     install -m 0644 ${S}/linuxkm/libwolfssl.ko \
         ${D}${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra/
 }
-
-# Skip package QA warnings for kernel modules
-INSANE_SKIP:${PN} += "buildpaths debug-files"
-INSANE_SKIP:${PN}-dbg += "buildpaths"

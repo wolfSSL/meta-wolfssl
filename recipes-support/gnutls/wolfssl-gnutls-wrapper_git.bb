@@ -9,7 +9,12 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0-only;md5=801f80980d171d
 PV = "1.0+git${SRCPV}"
 
 DEPENDS = "virtual/wolfssl gnutls"
-RDEPENDS:${PN} += "wolfssl gnutls bash"
+
+inherit pkgconfig wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varSet(d, 'RDEPENDS', '${PN}', 'wolfssl gnutls bash')
+}
 
 SRC_URI = "git://github.com/wolfssl/gnutls-wolfssl.git;protocol=https;branch=main;destsuffix=git"
 SRCREV = "${AUTOREV}"
@@ -27,19 +32,10 @@ EXTRA_OEMAKE = " \
     'WOLFSSL_INSTALL=${STAGING_DIR_TARGET}${prefix}' \
 "
 
-CFLAGS:append = " \
-    -I${STAGING_INCDIR} \
-    -DENABLE_WOLFSSL \
-    -fPIC \
-"
-
-LDFLAGS:append = " \
-    -L${STAGING_LIBDIR} \
-    -Wl,-rpath,${libdir} \
-    -Wl,-rpath,${WOLFSSL_GNUTLS_PREFIX}/lib \
-    -Wl,--no-as-needed \
-    -Wl,-z,now \
-"
+python __anonymous() {
+    wolfssl_varAppendNonOverride(d, 'CFLAGS', ' -I${STAGING_INCDIR} -DENABLE_WOLFSSL -fPIC')
+    wolfssl_varAppendNonOverride(d, 'LDFLAGS', ' -L${STAGING_LIBDIR} -Wl,-rpath,${libdir} -Wl,-rpath,${WOLFSSL_GNUTLS_PREFIX}/lib -Wl,--no-as-needed -Wl,-z,now')
+}
 
 do_compile() {
     bbnote "Building wolfSSL-GnuTLS wrapper..."
@@ -67,7 +63,7 @@ do_compile() {
         all
 }
 
-do_install:class-target() {
+do_install() {
     # Install to /usr/lib/gnutls
     install -d ${D}${libdir}
     if [ -f ${S}/libgnutls-wolfssl-wrapper.so ]; then
@@ -155,18 +151,11 @@ EOF
     ln -sf ${WOLFSSL_GNUTLS_PREFIX}/tests/run-tests.sh ${D}${bindir}/gnutls-wolfssl-tests
 }
 
-FILES:${PN}:class-target = "\
-    ${libdir}/*.so \
-    /opt/wolfssl-gnutls-wrapper/lib/*.so \
-    ${WOLFSSL_GNUTLS_PREFIX}/tests/* \
-    ${bindir}/gnutls-wolfssl-tests \
-"
+python __anonymous() {
+    wolfssl_varSet(d, 'FILES', '${PN}', '${libdir}/*.so /opt/wolfssl-gnutls-wrapper/lib/*.so ${WOLFSSL_GNUTLS_PREFIX}/tests/* ${bindir}/gnutls-wolfssl-tests')
+    wolfssl_varSet(d, 'FILES', '${PN}-dev', '${includedir}/* ${libdir}/pkgconfig/*')
+    wolfssl_varAppend(d, 'INSANE_SKIP', '${PN}', ' dev-so ldflags')
+}
 
-FILES:${PN}-dev:class-target = "\
-    ${includedir}/* \
-    ${libdir}/pkgconfig/* \
-"
-
-INSANE_SKIP:${PN}:class-target += "dev-so ldflags"
-SOLIBS:class-target = ".so"
-FILES_SOLIBSDEV:class-target = ""
+SOLIBS = ".so"
+FILES_SOLIBSDEV = ""

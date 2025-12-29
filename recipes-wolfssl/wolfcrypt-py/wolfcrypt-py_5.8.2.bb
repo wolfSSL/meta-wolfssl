@@ -1,6 +1,6 @@
 SUMMARY = "wolfCrypt Python, a.k.a. wolfcrypt is a Python module that \
            encapsulates wolfSSL's wolfCrypt API."
-           
+
 DESCRIPTION = "wolfCrypt is a lightweight, portable, C-language-based crypto \
                library targeted at IoT, embedded, and RTOS environments \
                primarily because of its size, speed, and feature set. It works \
@@ -29,12 +29,11 @@ DEPENDS += " virtual/wolfssl \
             python3 \
             "
 
-RDEPENDS:${PN} += " wolfssl \
-                    python3 \
-                    python3-cffi \
-                  "
+inherit setuptools3 wolfssl-compatibility
 
-inherit setuptools3  
+python __anonymous() {
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl python3 python3-cffi')
+}
 
 S = "${WORKDIR}/git"
 

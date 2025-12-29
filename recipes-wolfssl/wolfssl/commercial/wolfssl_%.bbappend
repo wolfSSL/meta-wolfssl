@@ -22,14 +22,13 @@ COMMERCIAL_BUNDLE_GCS_TOOL = "${@d.getVar('WOLFSSL_BUNDLE_GCS_TOOL') or 'auto'}"
 SRC_URI = "${@get_commercial_src_uri(d)}"
 S = "${@get_commercial_source_dir(d)}"
 
-inherit wolfssl-commercial
+inherit wolfssl-commercial wolfssl-compatibility
 
 # Ensure autogen.sh never runs for commercial bundles
-python() {
-    autogen_create = 'echo -e "#!/bin/sh\nexit 0" > ${S}/autogen.sh && chmod +x ${S}/autogen.sh'
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        d.appendVar('do_configure_prepend', autogen_create)
-    else:
-        d.appendVar('do_configure:prepend', autogen_create)
+do_configure_disable_autogen() {
+    echo -e "#!/bin/sh\nexit 0" > ${S}/autogen.sh
+    chmod +x ${S}/autogen.sh
 }
+
+addtask do_configure_disable_autogen after do_unpack before do_configure
+

@@ -7,4 +7,5 @@
 # By defining CURL_DISABLE_SHA512_256 at compile time, curl properly reports
 # the feature as unavailable and tests that require it are skipped rather than
 # failing.
-CFLAGS:append = " -DCURL_DISABLE_SHA512_256"
+
+CFLAGS += " -DCURL_DISABLE_SHA512_256"

@@ -1,6 +1,8 @@
 SUMMARY = "Minimal FIPS image with libgcrypt, gnutls, and wolfProvider (replace-default mode)"
 DESCRIPTION = "A minimal Linux image that includes libgcrypt, gnutls, and wolfProvider all configured to use wolfSSL FIPS as the crypto backend. wolfProvider is configured in replace-default mode. This image requires wolfSSL FIPS and does not require wolfssl-image-minimal."
 
+inherit wolfssl-compatibility
+
 # Validate that wolfssl-fips is the provider
 # Just to be sure that the user has set the correct provider
 python __anonymous() {
@@ -12,36 +14,9 @@ python __anonymous() {
 
     if wolfssl_provider != 'wolfssl-fips':
         bb.fatal("fips-image-minimal requires PREFERRED_PROVIDER_wolfssl = 'wolfssl-fips'. Current value: '%s'. Please set 'require conf/wolfssl-fips.conf' in local.conf" % wolfssl_provider)
-}
 
-# Add packages with wolfSSL FIPS backend support
-# Includes all testing applications from libgcrypt, gnutls, and wolfProvider demo images
-IMAGE_INSTALL:append = " \
-    wolfssl \
-    libgcrypt \
-    libgcrypt-ptest \
-    gnutls \
-    gnutls-dev \
-    gnutls-bin \
-    gnutls-fips \
-    wolfssl-gnutls-wrapper \
-    wolfssl-gnutls-wrapper-dev \
-    wolfprovider \
-    openssl \
-    openssl-bin \
-    openssh \
-    wolfprovidercmd \
-    wolfproviderenv \
-    pkgconfig \
-    ptest-runner \
-    bash \
-    make \
-    glibc-utils \
-    binutils \
-    ldd \
-    curl \
-    librelp-ptest \
-"
+    wolfssl_varAppendNonOverride(d, 'IMAGE_INSTALL', ' wolfssl libgcrypt libgcrypt-ptest gnutls gnutls-dev gnutls-bin gnutls-fips wolfssl-gnutls-wrapper wolfssl-gnutls-wrapper-dev wolfprovider openssl openssl-bin openssh wolfprovidercmd wolfproviderenv pkgconfig ptest-runner bash make glibc-utils binutils ldd curl librelp-ptest')
+}
 
 require recipes-core/images/core-image-minimal.bb
 

@@ -2,18 +2,26 @@
 # This file is included when wolfProvider is configured to replace OpenSSL's default crypto provider
 # It should be included from the image recipe when replace-default mode is desired
 
+inherit wolfssl-compatibility
+
 # Build OpenSSL as plain, non-FIPS OpenSSL
 # wolfProvider will provide FIPS functionality using wolfSSL FIPS
 
-PACKAGECONFIG:class-target = ""
-EXTRA_OECONF:append:class-target = " no-fips shared "
+python __anonymous() {
+    # Only apply to class-target
+    if bb.data.inherits_class('target', d):
+        d.setVar('PACKAGECONFIG', '')
+        wolfssl_varAppendNonOverride(d, 'EXTRA_OECONF', ' no-fips shared ')
+        wolfssl_varAppend(d, 'RDEPENDS', 'libcrypto3', ' wolfprovider')
+        wolfssl_varAppendNonOverride(d, 'SRC_URI', ' git://github.com/wolfSSL/wolfProvider.git;protocol=https;nobranch=1;rev=v1.1.0;destsuffix=git/wolfProvider')
+}
 
 # OpenSSL target-only tweaks for replace-default mode
-do_configure:prepend:class-target () {
+do_configure_version_metadata() {
     set -eu
 
     # Be explicit about where we are
-    echo "TARGET do_configure prepend: S='${S}', B='${B}'"
+    echo "TARGET do_configure: S='${S}', B='${B}'"
 
     vfile="${S}/VERSION.dat"
 
@@ -30,11 +38,13 @@ do_configure:prepend:class-target () {
     if echo "${IMAGE_FEATURES}" | grep -qw "fips"; then
         sed -i 's/^BUILD_METADATA=.*/BUILD_METADATA=wolfProvider-fips/' $vfile
     fi
-    
 }
 
+addtask do_configure_version_metadata after do_unpack before do_configure
+do_configure_version_metadata[class-target] = ""
+
 # Override do_configure to filter enable-fips from the actual configure command
-do_configure:append:class-target () {
+do_configure_filter_fips() {
     # The base do_configure uses ${PACKAGECONFIG_CONFARGS} which still has enable-fips
     # We need to regenerate it without enable-fips
     # Re-run configure with enable-fips explicitly removed
@@ -63,15 +73,10 @@ do_configure:append:class-target () {
     fi
 }
 
-# Ensure provider is present on TARGET runtime (doesn't touch -native/-nativesdk)
-RDEPENDS:libcrypto3:append:class-target = " wolfprovider"
+addtask do_configure_filter_fips after do_configure before do_compile
+do_configure_filter_fips[class-target] = ""
 
-# Bring in the replace-default patch (target only)
-SRC_URI:append:class-target = " \
-    git://github.com/wolfSSL/wolfProvider.git;protocol=https;nobranch=1;rev=v1.1.0;destsuffix=git/wolfProvider \
-"
-
-python do_patch:append:class-target () {
+python do_patch_replace_default() {
     import os, subprocess
     s = d.getVar("S")
     patch_path = os.path.join(d.getVar("WORKDIR"), "git/wolfProvider/patches/openssl3-replace-default.patch")
@@ -79,7 +84,7 @@ python do_patch:append:class-target () {
     # Try to apply patch; if it fails with "already applied", log it and continue
     try:
         # First check with --dry-run to see if patch can be applied
-        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"], 
+        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"],
                               capture_output=True, text=True, check=False)
         if result.returncode == 0:
             bb.note("REPLACE-DEFAULT MODE: Patch can be applied, applying now...")
@@ -89,7 +94,7 @@ python do_patch:append:class-target () {
             bb.debug(1, f"Patch check output: {result.stderr}")
     except Exception as e:
         bb.warn(f"REPLACE-DEFAULT MODE: Error applying patch: {e}")
-    
+
     # Export ossl_provider_* symbols by patching libcrypto.num
     # This is required for replace-default unit tests to link
     libcrypto_num = os.path.join(s, "util", "libcrypto.num")
@@ -99,7 +104,7 @@ python do_patch:append:class-target () {
             # Read the file to find the last symbol number and version
             with open(libcrypto_num, 'r') as f:
                 lines = f.readlines()
-            
+
             # Find the last symbol number and version
             last_num = 0
             last_version = "3.0.0"
@@ -114,14 +119,14 @@ python do_patch:append:class-target () {
                                 last_version = parts[2]
                     except ValueError:
                         pass
-            
+
             # Check if symbols are already added
             with open(libcrypto_num, 'r') as f:
                 content = f.read()
                 if 'ossl_provider_new' in content:
                     bb.note("REPLACE-DEFAULT MODE: ossl_provider_* symbols already in libcrypto.num")
                     return
-            
+
             # Append the 6 provider symbols
             symbols_to_add = [
                 ("ossl_provider_new", last_num + 1),
@@ -131,12 +136,12 @@ python do_patch:append:class-target () {
                 ("ossl_provider_free", last_num + 5),
                 ("ossl_default_provider_init", last_num + 6),
             ]
-            
+
             with open(libcrypto_num, 'a') as f:
                 for symbol_name, symbol_num in symbols_to_add:
                     # Format: symbol_name    NUM    VERSION    EXIST::FUNCTION:
                     f.write(f"{symbol_name:<40} {symbol_num}\t{last_version}\tEXIST::FUNCTION:\n")
-            
+
             bb.note(f"REPLACE-DEFAULT MODE: Added {len(symbols_to_add)} provider symbols to libcrypto.num")
         except Exception as e:
             bb.warn(f"REPLACE-DEFAULT MODE: Error patching libcrypto.num: {e}")
@@ -144,10 +149,13 @@ python do_patch:append:class-target () {
         bb.warn(f"REPLACE-DEFAULT MODE: libcrypto.num not found at {libcrypto_num}")
 }
 
+addtask do_patch_replace_default after do_patch before do_configure
+do_patch_replace_default[class-target] = ""
+
 # Disable internal keymgmt tests under wolfprovider FIPS mode which
 # fails on the FACTOR3 and EXPONENT3 and COEFFICIENT2 parameters which
 # are not supported by wolfProvider.
-python do_patch:append:class-target () {
+python do_patch_disable_keymgmt_tests() {
     import os, subprocess
     # Only run this when FIPS is enabled
     if not bb.utils.contains('IMAGE_FEATURES', 'fips', True, False, d):
@@ -164,7 +172,7 @@ python do_patch:append:class-target () {
 
     # Try to apply the patch; if it fails with "already applied", log it and continue
     try:
-        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"], 
+        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"],
                               capture_output=True, text=True, check=False)
         if result.returncode == 0:
             bb.note("openssl-disable-internal-keymgmt-tests.patch can be applied, applying now...")
@@ -176,7 +184,13 @@ python do_patch:append:class-target () {
         bb.warn(f"openssl-disable-internal-keymgmt-tests.patch: Error applying patch: {e}")
 }
 
-do_install:append() {
+addtask do_patch_disable_keymgmt_tests after do_patch_replace_default before do_configure
+do_patch_disable_keymgmt_tests[class-target] = ""
+
+do_install_replace_default_config() {
     install -d ${D}${sysconfdir}/openssl
     echo "1" > ${D}${sysconfdir}/openssl/replace-default-enabled
 }
+
+addtask do_install_replace_default_config after do_install before do_package
+do_install_replace_default_config[fakeroot] = "1"

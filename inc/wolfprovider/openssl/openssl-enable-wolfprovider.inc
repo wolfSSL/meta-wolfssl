@@ -1,17 +1,22 @@
 # OpenSSL standalone wolfProvider mode configuration
 # Include this file for standard wolfProvider integration as a provider plugin
 
+inherit wolfssl-compatibility
+
 EXTRA_OECONF += " no-fips shared "
 
-do_install:append() {
+do_install_wolfprovider_config() {
     install -d ${D}${sysconfdir}/openssl
     echo "0" > ${D}${sysconfdir}/openssl/replace-default-enabled
 }
 
+addtask do_install_wolfprovider_config after do_install before do_package
+do_install_wolfprovider_config[fakeroot] = "1"
+
 # Disable internal keymgmt tests under wolfprovider FIPS mode which
 # fails on the FACTOR3 and EXPONENT3 and COEFFICIENT2 parameters which
 # are not supported by wolfProvider.
-python do_patch:append:class-target () {
+python do_patch_disable_keymgmt_tests() {
     import os, subprocess
     # Only run this when FIPS is enabled
     if not bb.utils.contains('IMAGE_FEATURES', 'fips', True, False, d):
@@ -28,7 +33,7 @@ python do_patch:append:class-target () {
 
     # Try to apply the patch; if it fails with "already applied", log it and continue
     try:
-        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"], 
+        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"],
                               capture_output=True, text=True, check=False)
         if result.returncode == 0:
             bb.note("openssl-disable-internal-keymgmt-tests.patch can be applied, applying now...")
@@ -40,3 +45,5 @@ python do_patch:append:class-target () {
         bb.warn(f"openssl-disable-internal-keymgmt-tests.patch: Error applying patch: {e}")
 }
 
+addtask do_patch_disable_keymgmt_tests after do_patch before do_configure
+do_patch_disable_keymgmt_tests[class-target] = ""

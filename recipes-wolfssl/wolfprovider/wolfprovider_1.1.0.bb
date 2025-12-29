@@ -16,9 +16,15 @@ DEPENDS += " virtual/wolfssl \
             openssl \
             "
 
-RDEPENDS:${PN} += "wolfssl openssl"
+inherit autotools pkgconfig wolfssl-helper wolfssl-compatibility
 
-inherit autotools pkgconfig wolfssl-helper
+python __anonymous() {
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl openssl')
+    wolfssl_varSet(d, 'FILES', '${PN}-dev', '${includedir} ${libdir}/pkgconfig/*.pc')
+    wolfssl_varAppend(d, 'FILES', '${PN}', ' ${libdir}/libwolfprov.so ${libdir}/ssl-3/modules/libwolfprov.so ${libdir}/ossl-modules/libwolfprov.so')
+    wolfssl_varAppend(d, 'FILES', '${PN}', ' ${sysconfdir}/ssl/openssl.cnf.d/wolfprovider*.conf')
+    wolfssl_varAppend(d, 'INSANE_SKIP', '${PN}', ' dev-so')
+}
 
 S = "${WORKDIR}/git"
 
@@ -29,7 +35,7 @@ install_provider_module() {
         echo "libwolfprov.so.0.0.0 not found in ${D}${libdir}/" >&2
         exit 1
     fi
-    
+
     # Create the OpenSSL module directory symlink
     install -d ${D}${libdir}/ssl-3/modules
     if [ ! -e ${D}${libdir}/ssl-3/modules/libwolfprov.so ]; then
@@ -50,22 +56,12 @@ install_provider_module() {
 
 do_install[postfuncs] += "install_provider_module"
 
-CFLAGS:append = " -I${S}/include"
-CXXFLAGS:append = " -I${S}/include"
-CPPFLAGS:append = " -I${S}/include"
+CFLAGS += " -I${S}/include"
+CXXFLAGS += " -I${S}/include"
+CPPFLAGS += " -I${S}/include"
 
 EXTRA_OECONF += " --with-openssl=${STAGING_EXECPREFIXDIR}"
 
 # Keep unversioned .so in the runtime package
 FILES_SOLIBSDEV = ""
-
-# Explicitly list what goes to -dev instead (headers, pc)
-FILES:${PN}-dev = "${includedir} ${libdir}/pkgconfig/*.pc"
-
-# Ensure the symlink is assigned to runtime
-FILES:${PN} += "${libdir}/libwolfprov.so ${libdir}/ssl-3/modules/libwolfprov.so ${libdir}/ossl-modules/libwolfprov.so"
-FILES:${PN} += "${sysconfdir}/ssl/openssl.cnf.d/wolfprovider*.conf"
-
-# Shipping an unversioned .so in runtime: suppress QA warning
-INSANE_SKIP:${PN} += "dev-so"
 

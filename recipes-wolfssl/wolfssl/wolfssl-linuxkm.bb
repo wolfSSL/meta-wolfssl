@@ -10,7 +10,13 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
 PROVIDES += "wolfssl-linuxkm virtual/wolfssl-linuxkm"
 
 # Build for target kernel
-inherit module-base autotools wolfssl-helper
+inherit module-base autotools wolfssl-helper wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varSet(d, 'RDEPENDS', '${PN}', '')
+    wolfssl_varSet(d, 'FILES', '${PN}', '${nonarch_base_libdir}/modules ${sysconfdir}/modules-load.d')
+    wolfssl_varAppend(d, 'INSANE_SKIP', '${PN}', ' buildpaths debug-files')
+}
 
 # Skip the package check for wolfssl itself (it's the base library)
 deltask do_wolfssl_check_package
@@ -50,17 +56,12 @@ do_install() {
 }
 
 # Remove debug directory if present
-do_install:append() {
+do_install_linuxkm_autoload() {
     install -d ${D}/etc/modules-load.d
     echo "libwolfssl" > ${D}/etc/modules-load.d/wolfssl.conf
 }
 
-RDEPENDS:${PN} = ""
+addtask do_install_linuxkm_autoload after do_install before do_package
+do_install_linuxkm_autoload[fakeroot] = "1"
 
 INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
-
-FILES:${PN} = "${nonarch_base_libdir}/modules \
-               ${sysconfdir}/modules-load.d"
-
-# Skip package QA warnings for kernel modules
-INSANE_SKIP:${PN} += "buildpaths debug-files"

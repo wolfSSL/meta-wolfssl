@@ -1,4 +1,4 @@
-FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+inherit wolfssl-compatibility
 
 PV = "3.10"
 SUMMARY = "A low level cryptographic library"
@@ -31,8 +31,15 @@ EXTRA_AUTORECONF += "--exclude=aclocal"
 
 EXTRA_OECONF = "--disable-openssl"
 
-EXTRA_OECONF:append:armv7a = "${@bb.utils.contains("TUNE_FEATURES","neon",""," --disable-arm-neon --disable-fat",d)}"
-EXTRA_OECONF:append:armv7ve = "${@bb.utils.contains("TUNE_FEATURES","neon",""," --disable-arm-neon --disable-fat",d)}"
+python __anonymous() {
+    # Handle ARM NEON settings
+    if bb.utils.contains('TUNE_FEATURES', 'neon', False, True, d):
+        if d.getVar('TARGET_ARCH') in ['armv7a', 'armv7ve']:
+            wolfssl_varAppendNonOverride(d, 'EXTRA_OECONF', ' --disable-arm-neon --disable-fat')
+
+    wolfssl_varPrepend(d, 'FILESEXTRAPATHS', '${THISDIR}/files:')
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}-ptest', ' ${PN}-bin')
+}
 
 do_compile_ptest() {
     oe_runmake -C testsuite
@@ -56,7 +63,5 @@ do_install_ptest() {
         sed -i -e 's|../tools/|${bindir}/|g' ${D}${PTEST_PATH}/testsuite/*-test
         sed -i -e 's|../examples/|./|g' ${D}${PTEST_PATH}/testsuite/*-test
 }
-
-RDEPENDS:${PN}-ptest += "${PN}-bin"
 
 BBCLASSEXTEND = "native nativesdk"

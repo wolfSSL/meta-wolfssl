@@ -1,20 +1,23 @@
 # OpenSSH wolfProvider FIPS mode configuration
 # Include this file for standard wolfProvider integration as a provider plugin
 
-# Bring in the openssh patch from the OSP repository (target only)
-SRC_URI:append:class-target = " \
-    git://github.com/wolfSSL/osp.git;protocol=https;branch=master;name=osp;destsuffix=git/osp \
-"
+inherit wolfssl-compatibility
 
 # Track the revision for the OSP auxiliary repo fetch
 SRCREV_osp = "${AUTOREV}"
 
-# Ensure BitBake can locate the updated run-ptest script in this include's files directory
-FILESEXTRAPATHS:prepend := "${WOLFSSL_LAYERDIR}/inc/wolfprovider/openssh/files:"
-SRC_URI:append:class-target = " file://run-ptest"
+python __anonymous() {
+    if bb.data.inherits_class('target', d):
+        # Bring in the openssh patch from the OSP repository
+        wolfssl_varAppendNonOverride(d, 'SRC_URI', ' git://github.com/wolfSSL/osp.git;protocol=https;branch=master;name=osp;destsuffix=git/osp')
+        wolfssl_varAppendNonOverride(d, 'SRC_URI', ' file://run-ptest')
+
+        # Ensure BitBake can locate the updated run-ptest script in this include's files directory
+        wolfssl_varPrepend(d, 'FILESEXTRAPATHS', '${WOLFSSL_LAYERDIR}/inc/wolfprovider/openssh/files:')
+}
 
 # Apply the patch for the correct version of OpenSSH
-python do_patch:append:class-target () {
+python do_patch_openssh_wolfprov() {
     import os, subprocess
     # Only run this when FIPS is enabled
     if not bb.utils.contains('IMAGE_FEATURES', 'fips', True, False, d):
@@ -36,3 +39,6 @@ python do_patch:append:class-target () {
     except Exception as e:
         bb.warn(f"{patch_path}: Error applying patch: {e}")
 }
+
+addtask do_patch_openssh_wolfprov after do_patch before do_configure
+do_patch_openssh_wolfprov[class-target] = ""

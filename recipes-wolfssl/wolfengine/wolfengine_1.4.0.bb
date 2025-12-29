@@ -18,9 +18,11 @@ DEPENDS += " virtual/wolfssl \
             openssl \
             "
 
-RDEPENDS:${PN} += "wolfssl openssl"
+inherit autotools pkgconfig wolfssl-helper wolfssl-compatibility
 
-inherit autotools pkgconfig wolfssl-helper
+python __anonymous() {
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl openssl')
+}
 
 CFLAGS += " -I${S}/include -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
 CXXFLAGS += " -I${S}/include  -g0 -O2 -ffile-prefix-map=${WORKDIR}=."
