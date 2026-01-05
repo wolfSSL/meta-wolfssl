@@ -1,1 +1,1 @@
-require ${WOLFSSL_LAYERDIR}/inc/libssh/libssh-enable-libgcrypt-wolfssl.inc
+require ${WOLFSSL_LAYERDIR}/inc/${LAYERSERIES_CORENAMES}/libssh/libssh-enable-libgcrypt-wolfssl.inc

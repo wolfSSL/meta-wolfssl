@@ -3,4 +3,4 @@
 # the latest release of gnutls.
 #
 
-require ${WOLFSSL_LAYERDIR}/inc/nettle/nettle.inc
+require ${WOLFSSL_LAYERDIR}/inc/${LAYERSERIES_CORENAMES}/nettle/nettle.inc
