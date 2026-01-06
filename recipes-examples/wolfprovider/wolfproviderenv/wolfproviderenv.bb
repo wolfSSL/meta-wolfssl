@@ -7,7 +7,12 @@ LIC_FILES_CHKSUM = ""
 
 DEPENDS = "openssl pkgconfig-native virtual/wolfssl wolfprovider"
 PROVIDES += "wolfproviderenv"
-RPROVIDES_${PN} = "wolfproviderenv"
+
+inherit pkgconfig wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varSet(d, 'RPROVIDES', '${PN}', 'wolfproviderenv')
+}
 
 SRC_URI = "file://wolfproviderenv.c \
            file://wolfproviderenv.sh \
@@ -34,16 +39,7 @@ do_install() {
     install -m 0755 ${WORKDIR}/wolfproviderenv.sh ${D}${bindir}/wolfproviderenv
 }
 
-FILES_${PN} = "${bindir}/wolfproviderverify ${bindir}/wolfproviderenv"
-
-# Dynamic RDEPENDS adjustment for bash
-python() {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    pn = d.getVar('PN', True)
-
-    rdepends_var_name = 'RDEPENDS_' + pn if (distro_version.startswith('2.') or distro_version.startswith('3.')) else 'RDEPENDS:' + pn
-
-    current_rdepends = d.getVar(rdepends_var_name, True) or ""
-    new_rdepends = current_rdepends + " bash"
-    d.setVar(rdepends_var_name, new_rdepends)
+python __anonymous() {
+    wolfssl_varSet(d, 'FILES', '${PN}', '${bindir}/wolfproviderverify ${bindir}/wolfproviderenv')
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' bash')
 }

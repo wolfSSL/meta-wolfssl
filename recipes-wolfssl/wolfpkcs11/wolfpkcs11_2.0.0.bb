@@ -7,13 +7,16 @@ LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://gpl-3.0.txt;md5=d32239bcb673463ab874e80d47fae504"
 
 DEPENDS += "virtual/wolfssl"
-RDEPENDS:${PN} += "wolfssl"
 
 SRC_URI = "git://github.com/wolfSSL/wolfPKCS11.git;nobranch=1;protocol=https;rev=6b76537e4cc5bea0358b7059fda26d1872584be4"
 
 S = "${WORKDIR}/git"
 
-inherit autotools pkgconfig wolfssl-helper
+inherit autotools pkgconfig wolfssl-helper wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl')
+}
 
 export CFLAGS += ' -I${STAGING_INCDIR} -L${STAGING_LIBDIR}'
 

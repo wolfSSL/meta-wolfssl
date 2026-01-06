@@ -8,7 +8,12 @@ LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
 
 DEPENDS = "openssl virtual/wolfssl wolfprovider"
-RDEPENDS:${PN} = "bash openssl wolfprovider"
+
+inherit wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varSet(d, 'RDEPENDS', '${PN}', 'bash openssl wolfprovider')
+}
 
 SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=a8223f5707a9c4460d89f4cbe7b3a129c4e85c6a \
            file://wolfprovidercmd.sh"
@@ -48,12 +53,6 @@ do_install() {
     install -m 0755 ${WORKDIR}/wolfprovidercmd.sh ${D}${bindir}/wolfprovidercmd
 }
 
-python() {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    pn = d.getVar('PN', True)
-
-    files_var_name = 'FILES_' + pn if (distro_version.startswith('2.') or distro_version.startswith('3.')) else 'FILES:' + pn
-
-    wolfprov_cmd_test_dir = d.getVar('WOLFPROV_CMD_TEST_DIR', True)
-    d.setVar(files_var_name, wolfprov_cmd_test_dir + '/* ${bindir}/wolfprovidercmd')
+python __anonymous() {
+    wolfssl_varSet(d, 'FILES', '${PN}', '${WOLFPROV_CMD_TEST_DIR}/* ${bindir}/wolfprovidercmd')
 }

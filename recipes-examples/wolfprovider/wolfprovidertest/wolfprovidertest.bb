@@ -8,6 +8,8 @@ LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/GPL-3.0-only;md5=c79ff39f19dfec6d293b95dea7b07891"
 DEPENDS += "wolfprovider"
 
+inherit wolfssl-compatibility
+
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
 
@@ -16,27 +18,15 @@ WOLFPROVIDER_TEST_INSTALL_DIR = "${D}${WOLFPROVIDER_TEST_DIR}"
 WOLFPROVIDER_TEST_README = "README.txt"
 WOLFPROVIDER_TEST_README_DIR = "${WOLFPROVIDER_TEST_INSTALL_DIR}/${WOLFPROVIDER_TEST_README}"
 
-python () {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    wolfprovider_test_dir = d.getVar('WOLFPROVIDER_TEST_DIR', True)
-    wolfprovider_test_install_dir = d.getVar('WOLFPROVIDER_TEST_INSTALL_DIR', True)
-    wolfprovider_test_readme_dir = d.getVar('WOLFPROVIDER_TEST_README_DIR', True)
+do_install_wolfprovidertest_dummy() {
+    bbnote "Installing dummy file for wolfProvider test example"
+    install -m 0755 -d "${WOLFPROVIDER_TEST_INSTALL_DIR}"
+    echo "This is a dummy package" > "${WOLFPROVIDER_TEST_README_DIR}"
+}
 
-    bbnote = 'bbnote "Installing dummy file for wolfProvider test example"\n'
-    installDir = 'install -m 0755 -d "%s"\n' % wolfprovider_test_install_dir
-    makeDummy = 'echo "This is a dummy package" > "%s"\n' % wolfprovider_test_readme_dir
+addtask do_install_wolfprovidertest_dummy after do_install before do_package
+do_install_wolfprovidertest_dummy[fakeroot] = "1"
 
-    d.appendVar('do_install', bbnote)
-    d.appendVar('do_install', installDir)
-    d.appendVar('do_install', makeDummy)
-
-    pn = d.getVar('PN', True)
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        files_var_name = 'FILES_' + pn
-    else:
-        files_var_name = 'FILES:' + pn
-    
-    current_files = d.getVar(files_var_name, True) or ""
-    new_files = current_files + ' ' + wolfprovider_test_dir + '/*'
-    d.setVar(files_var_name, new_files)
+python __anonymous() {
+    wolfssl_varAppend(d, 'FILES', '${PN}', ' ${WOLFPROVIDER_TEST_DIR}/*')
 }

@@ -1,36 +1,28 @@
-# Enable test directory installation for wolfcrypt-py
-#
-# This include file configures wolfcrypt-py to install its test directory
-# to the target system for running Python binding tests.
+# Check Yocto version and include appropriate file
+def wolfcrypt_py_get_tests_inc(d):
+    import os
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-WOLFCRYPT_PY_TEST_DIR = "${S}"
-WOLFCRYPT_PY_DIR = "/home/root/wolf-py-tests/wolfcrypt-py-test"
-WOLFCRYPT_PY_TEST_TARGET_DIR = "${D}${WOLFCRYPT_PY_DIR}"
+    bb.note("wolfcrypt-py-enable-tests.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
-python () {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    wolfcrypt_py_test_dir = d.getVar('WOLFCRYPT_PY_TEST_DIR', True)
-    wolfcrypt_py_test_target_dir = d.getVar('WOLFCRYPT_PY_TEST_TARGET_DIR', True)
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
-    installDirCmd = 'install -m 0755 -d "%s"\n' % wolfcrypt_py_test_target_dir
-    cpWolfcryptPyTestCmd = 'cp -r %s/* %s\n' % (wolfcrypt_py_test_dir, wolfcrypt_py_test_target_dir)
-
-    d.appendVar('do_install', installDirCmd)
-    d.appendVar('do_install', cpWolfcryptPyTestCmd)
-
-    pn = d.getVar('PN', True)
-    wolfcrypt_py_dir = d.getVar('WOLFCRYPT_PY_DIR', True)
-    
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        files_var_name = 'FILES_' + pn
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if use_modern:
+        inc_file = os.path.join(layerdir, 'inc/wolf-py-tests/wolfcrypt-py-enable-tests-modern.inc')
     else:
-        files_var_name = 'FILES:' + pn
-    
-    current_files = d.getVar(files_var_name, True) or ""
-    new_files = current_files + ' ' + wolfcrypt_py_dir + '/*'
-    d.setVar(files_var_name, new_files)
-}
+        inc_file = os.path.join(layerdir, 'inc/wolf-py-tests/wolfcrypt-py-enable-tests-legacy.inc')
 
-# Python Specific option
-export PYTHONDONTWRITEBYTECODE = "1"
+    bb.note("wolfcrypt-py-enable-tests.inc: Including file: %s" % inc_file)
+    return inc_file
 
+# Include the appropriate file
+require ${@wolfcrypt_py_get_tests_inc(d)}
