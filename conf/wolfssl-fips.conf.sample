@@ -15,6 +15,11 @@
 PREFERRED_PROVIDER_virtual/wolfssl = "wolfssl-fips"
 PREFERRED_PROVIDER_wolfssl = "wolfssl-fips"
 
+# Optional: Use wolfSSL FIPS Linux kernel module
+# Uncomment to use the FIPS-validated kernel module instead of the standard one
+#PREFERRED_PROVIDER_virtual/wolfssl-linuxkm = "wolfssl-linuxkm-fips"
+#PREFERRED_PROVIDER_wolfssl-linuxkm = "wolfssl-linuxkm-fips"
+
 # FIPS hash mode: "auto" (QEMU-based extraction) or "manual" (use static FIPS_HASH)
 WOLFSSL_FIPS_HASH_MODE ?= "manual"
 

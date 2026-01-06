@@ -1,0 +1,29 @@
+From: WolfSSL <support@wolfssl.com>
+Date: Tue, 17 Dec 2024 00:00:00 +0000
+Subject: [PATCH] Enable FIPS mode for libssh with libgcrypt backend
+
+Hardcode ssh_fips_mode() to return true to enable FIPS mode in libssh
+when using the libgcrypt backend.
+
+Upstream-Status: Inappropriate [configuration]
+
+Signed-off-by: WolfSSL <support@wolfssl.com>
+---
+ include/libssh/libgcrypt.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/libssh/libgcrypt.h b/include/libssh/libgcrypt.h
+index 1234567..abcdefg 100644
+--- a/include/libssh/libgcrypt.h
++++ b/include/libssh/libgcrypt.h
+@@ -115,7 +115,7 @@ ssh_string ssh_sexp_extract_mpi(const gcry_sexp_t sexp,
+                                 enum gcry_mpi_format informat,
+                                 enum gcry_mpi_format outformat);
+
+-#define ssh_fips_mode() false
++#define ssh_fips_mode() true
+
+ #ifdef __cplusplus
+ }
+--
+2.34.1

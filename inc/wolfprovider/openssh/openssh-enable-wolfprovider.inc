@@ -1,38 +1,41 @@
-# OpenSSH wolfProvider FIPS mode configuration
-# Include this file for standard wolfProvider integration as a provider plugin
+# Check Yocto version and include appropriate file
+def openssh_get_wolfprovider_inc(d):
+    import os
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-# Bring in the openssh patch from the OSP repository (target only)
-SRC_URI:append:class-target = " \
-    git://github.com/wolfSSL/osp.git;protocol=https;branch=master;name=osp;destsuffix=git/osp \
-"
+    bb.note("openssh-enable-wolfprovider.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
-# Track the revision for the OSP auxiliary repo fetch
-SRCREV_osp = "${AUTOREV}"
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    codename = None
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            codename = series
+            if series in modern_series:
+                use_modern = True
+                break
 
-# Ensure BitBake can locate the updated run-ptest script in this include's files directory
-FILESEXTRAPATHS:prepend := "${WOLFSSL_LAYERDIR}/inc/wolfprovider/openssh/files:"
-SRC_URI:append:class-target = " file://run-ptest"
+    # Determine file type
+    file_type = 'modern' if use_modern else 'legacy'
 
-# Apply the patch for the correct version of OpenSSH
-python do_patch:append:class-target () {
-    import os, subprocess
-    # Only run this when FIPS is enabled
-    if not bb.utils.contains('IMAGE_FEATURES', 'fips', True, False, d):
-        bb.note("FIPS not enabled; skipping openssh-V_9_6_P1-FIPS-wolfprov.patch")
-        return
-    patch_path = os.path.join(d.getVar("WORKDIR"), "git/osp/wolfProvider/openssh/openssh-V_9_6_P1-FIPS-wolfprov.patch")
-    s = d.getVar("S")
-
-    # Try to apply the patch; if it fails with "already applied", log it and continue
-    try:
-        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"],
-                              capture_output=True, text=True, check=False)
-        if result.returncode == 0:
-            bb.note(f"{patch_path} can be applied, applying now...")
-            subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path], check=True)
+    # Try codename-specific directory first, fallback to scarthgap (most recent stable)
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if codename:
+        codename_dir = os.path.join(layerdir, 'inc/wolfprovider/openssh/%s' % codename)
+        if os.path.isdir(codename_dir):
+            # Use codename-specific file
+            inc_file = os.path.join(codename_dir, 'openssh-enable-wolfprovider-%s.inc' % file_type)
         else:
-            bb.note(f"{patch_path} already applied or cannot apply, skipping")
-            bb.debug(1, f"Patch check output: {result.stderr}")
-    except Exception as e:
-        bb.warn(f"{patch_path}: Error applying patch: {e}")
-}
+            # Fallback to scarthgap (most recent stable version)
+            inc_file = os.path.join(layerdir, 'inc/wolfprovider/openssh/scarthgap/openssh-enable-wolfprovider-%s.inc' % file_type)
+    else:
+        # If no codename detected, use scarthgap as default
+        inc_file = os.path.join(layerdir, 'inc/wolfprovider/openssh/scarthgap/openssh-enable-wolfprovider-%s.inc' % file_type)
+
+    bb.note("openssh-enable-wolfprovider.inc: Including file: %s" % inc_file)
+    return inc_file
+
+# Include the appropriate file
+require ${@openssh_get_wolfprovider_inc(d)}
