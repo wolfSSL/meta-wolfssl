@@ -29,6 +29,7 @@
 # Optional format variables:
 #   COMMERCIAL_BUNDLE_FILE - Bundle filename including extension (defaults to <NAME>.7z)
 #   COMMERCIAL_BUNDLE_GCS_URI - gs:// path to the protected bundle
+#   COMMERCIAL_BUNDLE_SRC_DIR - Direct path to already-extracted source directory (skips fetch/extract)
 
 # Commercial bundles already ship generated configure scripts, so skip autoreconf
 AUTOTOOLS_AUTORECONF = "no"
@@ -55,6 +56,12 @@ def get_commercial_bundle_archive(d):
 
 def get_commercial_src_uri(d):
     """Generate SRC_URI for commercial bundle if configured, dummy file otherwise"""
+    # Check for direct source directory first (skip fetch/extract)
+    src_dir = d.getVar('COMMERCIAL_BUNDLE_SRC_DIR')
+    if src_dir and src_dir.strip() and not src_dir.startswith('${'):
+        # Direct source directory - no fetch needed
+        return ""
+
     bundle_archive = d.getVar('COMMERCIAL_BUNDLE_ARCHIVE')
     bundle_sha = d.getVar('COMMERCIAL_BUNDLE_SHA')
     gcs_uri = d.getVar('COMMERCIAL_BUNDLE_GCS_URI')
@@ -79,9 +86,18 @@ def get_commercial_src_uri(d):
 
 def get_commercial_source_dir(d):
     """Get source directory for commercial bundle if configured, WORKDIR otherwise"""
-    bundle_name = d.getVar('COMMERCIAL_BUNDLE_NAME')
     workdir = d.getVar('WORKDIR')
-    
+    bundle_name = d.getVar('COMMERCIAL_BUNDLE_NAME')
+
+    # Check for direct source directory - return the copy location in WORKDIR
+    src_dir = d.getVar('COMMERCIAL_BUNDLE_SRC_DIR')
+    if src_dir and src_dir.strip() and not src_dir.startswith('${'):
+        # do_commercial_extract will copy to WORKDIR/bundle_name
+        if bundle_name and bundle_name.strip() and not bundle_name.startswith('${'):
+            return f'{workdir}/{bundle_name}'
+        # Fallback to workdir if bundle_name not set
+        return workdir
+
     # Check if bundle_name is actually set (not empty, None, or unexpanded variable)
     if bundle_name and bundle_name.strip() and not bundle_name.startswith('${'):
         return f'{workdir}/{bundle_name}'
@@ -90,7 +106,7 @@ def get_commercial_source_dir(d):
 def get_commercial_bbclassextend(d):
     """Return BBCLASSEXTEND variants only when commercial bundle is configured"""
     bundle_name = d.getVar('COMMERCIAL_BUNDLE_NAME')
-    
+
     # Check if bundle_name is actually set (not empty, None, or unexpanded variable)
     if bundle_name and bundle_name.strip() and not bundle_name.startswith('${'):
         return 'native nativesdk'
@@ -106,6 +122,7 @@ COMMERCIAL_BUNDLE_SHA ?= ""
 COMMERCIAL_BUNDLE_TARGET ?= "${WORKDIR}"
 COMMERCIAL_BUNDLE_PLACEHOLDER ?= "${WOLFSSL_LAYERDIR}/recipes-wolfssl/wolfssl/commercial/files/README.md"
 COMMERCIAL_BUNDLE_GCS_URI ?= ""
+COMMERCIAL_BUNDLE_SRC_DIR ?= ""
 COMMERCIAL_BUNDLE_ARCHIVE = "${@get_commercial_bundle_archive(d)}"
 
 # Task to extract commercial bundle
@@ -114,8 +131,9 @@ python do_commercial_extract() {
     import bb
     import bb.process
     import bb.build
-    
+
     enabled = d.getVar('COMMERCIAL_BUNDLE_ENABLED')
+    src_dir = d.getVar('COMMERCIAL_BUNDLE_SRC_DIR')
     bundle_dir = d.getVar('COMMERCIAL_BUNDLE_DIR')
     bundle_archive = d.getVar('COMMERCIAL_BUNDLE_ARCHIVE')
     bundle_pass = d.getVar('COMMERCIAL_BUNDLE_PASS')
@@ -126,22 +144,40 @@ python do_commercial_extract() {
         bb.note("COMMERCIAL_BUNDLE_ENABLED=0; skipping commercial extraction (standard fetch/unpack will run).")
         return
 
+    # If direct source directory is provided, skip extraction
+    if src_dir and src_dir.strip() and not src_dir.startswith('${'):
+        bb.note(f"COMMERCIAL_BUNDLE_SRC_DIR={src_dir}; copying source directory to WORKDIR.")
+
+        # Copy source directory to WORKDIR to avoid polluting the original
+        import shutil
+        bundle_name = d.getVar('COMMERCIAL_BUNDLE_NAME')
+        dest_dir = os.path.join(target_dir, bundle_name)
+
+        if os.path.exists(dest_dir):
+            bb.note(f"Removing existing build directory: {dest_dir}")
+            shutil.rmtree(dest_dir)
+
+        bb.note(f"Copying {src_dir} to {dest_dir}")
+        shutil.copytree(src_dir, dest_dir, symlinks=True)
+        bb.note("Source directory copied successfully")
+        return
+
     if not bundle_dir:
         bb.fatal("COMMERCIAL_BUNDLE_DIR not set. Please set the directory containing the commercial bundle.")
-    
+
     if not bundle_archive:
         bb.fatal("COMMERCIAL_BUNDLE_NAME/FILE not set. Please provide the bundle filename.")
-    
+
     is_seven_zip = bundle_archive.endswith('.7z')
     is_tarball = bundle_archive.endswith('.tar.gz') or bundle_archive.endswith('.tgz')
-    
+
     if is_seven_zip and not bundle_pass:
         bb.fatal("COMMERCIAL_BUNDLE_PASS not set. Please set bundle password for .7z archives.")
 
     if not is_seven_zip:
         bb.note("Non-7z commercial bundle detected; letting BitBake unpack the archive.")
         return
-    
+
     bundle_path = os.path.join(bundle_dir, bundle_archive)
 
     if not os.path.exists(bundle_path):
@@ -168,9 +204,9 @@ python do_commercial_extract() {
     ret = os.system(f'cp -f "{bundle_path}" "{target_dir}"')
     if ret != 0:
         bb.fatal(f"Failed to copy bundle to {target_dir}")
-    
+
     archive_in_target = os.path.join(target_dir, bundle_archive)
-    
+
     if is_seven_zip:
         # Locate 7zip binary from native sysroot or host
         path = d.getVar('PATH')
@@ -199,7 +235,17 @@ addtask commercial_extract after do_fetch before do_patch
 # Conditionally add p7zip-native dependency only when commercial bundle variables are set
 python __anonymous() {
     enabled = d.getVar('COMMERCIAL_BUNDLE_ENABLED')
+    src_dir = d.getVar('COMMERCIAL_BUNDLE_SRC_DIR')
     archive = d.getVar('COMMERCIAL_BUNDLE_ARCHIVE')
+
+    # Skip p7zip and unpack tasks if using direct source directory
+    # But keep commercial_extract to copy the source
+    if enabled == "1" and src_dir and src_dir.strip() and not src_dir.startswith('${'):
+        bb.build.deltask('do_fetch', d)
+        bb.build.deltask('do_unpack', d)
+        # do_commercial_extract will copy the source directory
+        return
+
     if enabled == "1" and archive and archive.endswith('.7z'):
         d.appendVar('DEPENDS', ' p7zip-native')
         d.appendVarFlag('do_commercial_extract', 'depends', ' p7zip-native:do_populate_sysroot')

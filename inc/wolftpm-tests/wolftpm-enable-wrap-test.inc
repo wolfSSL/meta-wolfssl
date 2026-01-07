@@ -1,29 +1,28 @@
-# Enable wrap_test installation for wolfTPM
-#
-# This include file configures wolfTPM to build and install the wrap_test
-# example to the target system for testing.
+# Check Yocto version and include appropriate file
+def wolftpm_get_wrap_test_inc(d):
+    import os
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-WOLFTPM_TEST_DIR = "${B}/examples/wrap/.libs"
-WOLFTPM_TEST = "wrap_test"
-WOLFTPM_TEST_YOCTO = "wolftpm-wrap-test"
-WOLFTPM_INSTALL_DIR = "${D}${bindir}"
+    bb.note("wolftpm-enable-wrap-test.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
-# Configurations (--enable-devtpm is required for the TPM simulator to work)
-EXTRA_OECONF += "--enable-devtpm"
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
-python () {
-    # Get the environment variables WOLFTPM_TEST_DIR, WOLFTPM_TEST,
-    # WOLFTPM_TEST_YOCTO, and WOLFTPM_INSTALL_DIR
-    wolftpm_test_dir = d.getVar('WOLFTPM_TEST_DIR', True)
-    wolftpm_test = d.getVar('WOLFTPM_TEST', True)
-    wolftpm_test_yocto = d.getVar('WOLFTPM_TEST_YOCTO', True)
-    wolftpm_install_dir = d.getVar('WOLFTPM_INSTALL_DIR', True)
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if use_modern:
+        inc_file = os.path.join(layerdir, 'inc/wolftpm-tests/wolftpm-enable-wrap-test-modern.inc')
+    else:
+        inc_file = os.path.join(layerdir, 'inc/wolftpm-tests/wolftpm-enable-wrap-test-legacy.inc')
 
-    installDir = 'install -m 0755 -d "%s"\n' % (wolftpm_install_dir)
-    cpWrapTest = 'cp "%s/%s" "%s/%s"\n' % (wolftpm_test_dir, wolftpm_test,
-        wolftpm_install_dir, wolftpm_test_yocto)
+    bb.note("wolftpm-enable-wrap-test.inc: Including file: %s" % inc_file)
+    return inc_file
 
-    d.appendVar('do_install', installDir)
-    d.appendVar('do_install', cpWrapTest)
-}
-
+# Include the appropriate file
+require ${@wolftpm_get_wrap_test_inc(d)}

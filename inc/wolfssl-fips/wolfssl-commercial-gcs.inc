@@ -1,30 +1,28 @@
-# Use Yocto's native GCS/tarball fetch path instead of the 7z helper when
-# WOLFSSL_BUNDLE_GCS_URI is provided. This disables the custom commercial
-# extraction task and lets BitBake handle download + unpack.
-WOLFSSL_BUNDLE_GCS_URI ?= ""
+# Check Yocto version and include appropriate file
+def wolfssl_get_commercial_gcs_inc(d):
+    import os
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-python () {
-    import bb
-    import bb.build
+    bb.note("wolfssl-commercial-gcs.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
-    uri = d.getVar('WOLFSSL_BUNDLE_GCS_URI')
-    if not uri or not uri.strip():
-        return
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
-    sha = d.getVar('WOLFSSL_SRC_SHA') or ''
-    bundle_file = d.getVar('WOLFSSL_BUNDLE_FILE') or d.getVar('COMMERCIAL_BUNDLE_ARCHIVE') or ''
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if use_modern:
+        inc_file = os.path.join(layerdir, 'inc/wolfssl-fips/wolfssl-commercial-gcs-modern.inc')
+    else:
+        inc_file = os.path.join(layerdir, 'inc/wolfssl-fips/wolfssl-commercial-gcs-legacy.inc')
 
-    flags = ''
-    if bundle_file:
-        flags += f';downloadfilename={bundle_file}'
-    if sha:
-        flags += f';sha256sum={sha}'
+    bb.note("wolfssl-commercial-gcs.inc: Including file: %s" % inc_file)
+    return inc_file
 
-    d.setVar('SRC_URI', f"{uri}{flags}")
-    d.setVar('S', f"{d.getVar('WORKDIR')}/{d.getVar('WOLFSSL_SRC')}")
-    d.setVar('COMMERCIAL_BUNDLE_ENABLED', '0')
-    d.setVar('COMMERCIAL_BUNDLE_DIR', '${DL_DIR}')
-
-    # Only tarballs are expected on this path; rely on BitBake unpack
-    bb.build.deltask('do_commercial_extract', d)
-}
+# Include the appropriate file
+require ${@wolfssl_get_commercial_gcs_inc(d)}

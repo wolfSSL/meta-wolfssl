@@ -10,13 +10,16 @@ LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://LICENSING;md5=2c2d0ee3db6ceba278dd43212ed03733"
 
 DEPENDS += "virtual/wolfssl"
-RDEPENDS:${PN} += "wolfssl"
 
 SRC_URI = "git://github.com/wolfssl/wolfssh.git;nobranch=1;protocol=https;rev=c10896cae99ecf2b5c1ae170d0eb001f18008809"
 
 S = "${WORKDIR}/git"
 
-inherit autotools pkgconfig wolfssl-helper
+inherit autotools pkgconfig wolfssl-helper wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl')
+}
 
 EXTRA_OECONF = "--with-wolfssl=${STAGING_EXECPREFIXDIR}"
 
@@ -25,5 +28,5 @@ export CFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'
 export CXXFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'
 export LDFLAGS += ' -Wl,--build-id=none'
 
-# Ensure consistent locale                                                      
+# Ensure consistent locale
 export LC_ALL = "C"

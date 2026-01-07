@@ -1,19 +1,28 @@
-# Configuration to enable wolfcryptbenchmark support in wolfssl
-EXTRA_OECONF += "--enable-crypttests"
+# Check Yocto version and include appropriate file
+def wolfssl_get_wolfcryptbenchmark_inc(d):
+    import os
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-python () {
-    files_var = 'FILES:' + d.getVar('PN')
-    d.appendVar(files_var, ' ${bindir}/wolfcryptbenchmark')
-}
+    bb.note("wolfssl-enable-wolfcryptbenchmark.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
-do_install:append() {
-    bbnote "Installing wolfCrypt Benchmarks"
-    if [ ! -x "${B}/wolfcrypt/benchmark/.libs/benchmark" ]; then
-        bbwarn "wolfCrypt benchmark binary missing at ${B}/wolfcrypt/benchmark/.libs/benchmark"
-        return
-    fi
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
-    install -Dm0755 "${B}/wolfcrypt/benchmark/.libs/benchmark" "${D}${bindir}/wolfcryptbenchmark"
-}
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if use_modern:
+        inc_file = os.path.join(layerdir, 'inc/wolfcryptbenchmark/wolfssl-enable-wolfcryptbenchmark-modern.inc')
+    else:
+        inc_file = os.path.join(layerdir, 'inc/wolfcryptbenchmark/wolfssl-enable-wolfcryptbenchmark-legacy.inc')
 
-TARGET_CFLAGS += "-DUSE_CERT_BUFFERS_2048 -DUSE_CERT_BUFFERS_256 -DBENCH_EMBEDDED"
+    bb.note("wolfssl-enable-wolfcryptbenchmark.inc: Including file: %s" % inc_file)
+    return inc_file
+
+# Include the appropriate file
+require ${@wolfssl_get_wolfcryptbenchmark_inc(d)}

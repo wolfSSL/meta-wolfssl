@@ -1,22 +1,28 @@
-# Configure wolfSSL for libgcrypt integration
-#
-# This include file configures wolfSSL with the necessary features
-# to support libgcrypt-wolfssl (libgcrypt with wolfSSL/wolfCrypt backend)
-#
-# Required wolfSSL features:
-#   --enable-fips=v5    : FIPS 140-3 validation
-#   --enable-keygen     : Key generation support
-#
-# Required compile flags:
-#   HAVE_AES_ECB               : AES ECB mode support
-#   WC_RSA_DIRECT              : Direct RSA operations
-#   WC_RSA_NO_PADDING          : RSA without padding
-#   WOLFSSL_PUBLIC_MP          : Public multi-precision math
-#   WOLFSSL_RSA_KEY_CHECK      : RSA key validation
-#   ACVP_VECTOR_TESTING        : ACVP test vector support
-#   WOLFSSL_ECDSA_SET_K        : ECDSA k value setting
+# Check Yocto version and include appropriate file
+def wolfssl_get_libgcrypt_inc(d):
+    import os
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-EXTRA_OECONF += " --enable-fips=v5 --enable-keygen "
+    bb.note("wolfssl-enable-libgcrypt.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
-TARGET_CFLAGS += "-DHAVE_AES_ECB -DWC_RSA_DIRECT -DWC_RSA_NO_PADDING -DWOLFSSL_PUBLIC_MP -DWOLFSSL_RSA_KEY_CHECK -DACVP_VECTOR_TESTING -DWOLFSSL_ECDSA_SET_K"
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if use_modern:
+        inc_file = os.path.join(layerdir, 'inc/wolfssl-fips/wolfssl-enable-libgcrypt-modern.inc')
+    else:
+        inc_file = os.path.join(layerdir, 'inc/wolfssl-fips/wolfssl-enable-libgcrypt-legacy.inc')
+
+    bb.note("wolfssl-enable-libgcrypt.inc: Including file: %s" % inc_file)
+    return inc_file
+
+# Include the appropriate file
+require ${@wolfssl_get_libgcrypt_inc(d)}

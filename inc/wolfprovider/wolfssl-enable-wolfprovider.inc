@@ -1,15 +1,28 @@
-# Configuration to enable wolfprovider support in wolfssl
-# To enable debug add `--enable-debug --enable-keylog-export` to EXTRA_OECONF
+# Check Yocto version and include appropriate file
+def wolfssl_get_wolfprovider_inc(d):
+    import os
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-EXTRA_OECONF += " --enable-all-crypto --with-eccminsz=192 --with-max-ecc-bits=1024 --enable-opensslcoexist --enable-sha"
-TARGET_CFLAGS += " -DWC_RSA_NO_PADDING -DWOLFSSL_PUBLIC_MP -DHAVE_PUBLIC_FFDHE -DHAVE_FFDHE_6144 -DHAVE_FFDHE_8192 -DWOLFSSL_PSS_LONG_SALT -DWOLFSSL_PSS_SALT_LEN_DISCOVER -DRSA_MIN_SIZE=1024 -DWOLFSSL_OLD_OID_SUM"
+    bb.note("wolfssl-enable-wolfprovider.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
-# Use a marker file to signal we are a non-FIPS build
-WOLFSSL_ISFIPS = "0"
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
-do_install:append() {
-    install -d ${D}${sysconfdir}/wolfssl
-    echo "0" > ${D}${sysconfdir}/wolfssl/fips-enabled
-}
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if use_modern:
+        inc_file = os.path.join(layerdir, 'inc/wolfprovider/wolfssl-enable-wolfprovider-modern.inc')
+    else:
+        inc_file = os.path.join(layerdir, 'inc/wolfprovider/wolfssl-enable-wolfprovider-legacy.inc')
 
+    bb.note("wolfssl-enable-wolfprovider.inc: Including file: %s" % inc_file)
+    return inc_file
 
+# Include the appropriate file
+require ${@wolfssl_get_wolfprovider_inc(d)}

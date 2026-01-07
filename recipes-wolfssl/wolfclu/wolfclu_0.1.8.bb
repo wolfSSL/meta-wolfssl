@@ -11,13 +11,16 @@ PROVIDES += "wolfclu"
 RPROVIDES_${PN} = "wolfclu"
 
 DEPENDS += "virtual/wolfssl"
-RDEPENDS:${PN} += "wolfssl"
 
 SRC_URI = "git://github.com/wolfssl/wolfclu.git;nobranch=1;protocol=https;rev=439a801afb3b9050af7906479300afb29f7b72ff"
 
 S = "${WORKDIR}/git"
 
-inherit autotools pkgconfig wolfssl-helper
+inherit autotools pkgconfig wolfssl-helper wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl')
+}
 
 EXTRA_OECONF = "--with-wolfssl=${STAGING_EXECPREFIXDIR}"
 

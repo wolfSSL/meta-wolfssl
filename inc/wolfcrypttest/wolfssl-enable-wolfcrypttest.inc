@@ -1,19 +1,28 @@
-# Configuration to enable wolfcrypttest support in wolfssl
-EXTRA_OECONF += "--enable-crypttests"
+# Check Yocto version and include appropriate file
+def wolfssl_get_wolfcrypttest_inc(d):
+    import os
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-python () {
-    files_var = 'FILES:' + d.getVar('PN')
-    d.appendVar(files_var, ' ${bindir}/wolfcrypttest')
-}
+    bb.note("wolfssl-enable-wolfcrypttest.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
-do_install:append() {
-    bbnote "Installing wolfCrypt Tests"
-    if [ ! -x "${B}/wolfcrypt/test/.libs/testwolfcrypt" ]; then
-        bbwarn "wolfCrypt test binary missing at ${B}/wolfcrypt/test/.libs/testwolfcrypt"
-        return
-    fi
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            if series in modern_series:
+                use_modern = True
+                break
 
-    install -Dm0755 "${B}/wolfcrypt/test/.libs/testwolfcrypt" "${D}${bindir}/wolfcrypttest"
-}
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if use_modern:
+        inc_file = os.path.join(layerdir, 'inc/wolfcrypttest/wolfssl-enable-wolfcrypttest-modern.inc')
+    else:
+        inc_file = os.path.join(layerdir, 'inc/wolfcrypttest/wolfssl-enable-wolfcrypttest-legacy.inc')
 
-TARGET_CFLAGS += "-DUSE_CERT_BUFFERS_2048 -DUSE_CERT_BUFFERS_256 -DWOLFSSL_RSA_KEY_CHECK -DNO_WRITE_TEMP_FILES"
+    bb.note("wolfssl-enable-wolfcrypttest.inc: Including file: %s" % inc_file)
+    return inc_file
+
+# Include the appropriate file
+require ${@wolfssl_get_wolfcrypttest_inc(d)}

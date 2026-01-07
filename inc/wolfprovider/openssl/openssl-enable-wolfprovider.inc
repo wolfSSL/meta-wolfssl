@@ -1,42 +1,41 @@
-# OpenSSL standalone wolfProvider mode configuration
-# Include this file for standard wolfProvider integration as a provider plugin
+# Check Yocto version and include appropriate file
+def openssl_get_wolfprovider_inc(d):
+    import os
+    layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-EXTRA_OECONF += " no-fips shared "
+    bb.note("openssl-enable-wolfprovider.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
-do_install:append() {
-    install -d ${D}${sysconfdir}/openssl
-    echo "0" > ${D}${sysconfdir}/openssl/replace-default-enabled
-}
+    # Check if version is 3.1 or newer (dunfell and later)
+    use_modern = False
+    codename = None
+    if layerseries:
+        series_list = layerseries.split()
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        for series in series_list:
+            codename = series
+            if series in modern_series:
+                use_modern = True
+                break
 
-# Disable internal keymgmt tests under wolfprovider FIPS mode which
-# fails on the FACTOR3 and EXPONENT3 and COEFFICIENT2 parameters which
-# are not supported by wolfProvider.
-python do_patch:append:class-target () {
-    import os, subprocess
-    # Only run this when FIPS is enabled
-    if not bb.utils.contains('IMAGE_FEATURES', 'fips', True, False, d):
-        bb.note("FIPS not enabled; skipping openssl-disable-internal-keymgmt-tests.patch")
-        return
+    # Determine file type
+    file_type = 'modern' if use_modern else 'legacy'
 
-    s = d.getVar("S")
-    # Construct full path directly from layer directory (no need for FILESEXTRAPATHS)
-    patch_path = os.path.join(d.getVar("WOLFSSL_LAYERDIR"), "inc/wolfprovider/openssl/files/openssl-disable-internal-keymgmt-tests.patch")
-    # Check if patch file exists
-    if not os.path.exists(patch_path):
-        bb.warn(f"openssl-disable-internal-keymgmt-tests.patch not found at {patch_path}")
-        return
-
-    # Try to apply the patch; if it fails with "already applied", log it and continue
-    try:
-        result = subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path, "--dry-run"], 
-                              capture_output=True, text=True, check=False)
-        if result.returncode == 0:
-            bb.note("openssl-disable-internal-keymgmt-tests.patch can be applied, applying now...")
-            subprocess.run(["patch", "-d", s, "-p1", "-i", patch_path], check=True)
+    # Try codename-specific directory first, fallback to scarthgap (most recent stable)
+    layerdir = d.getVar('WOLFSSL_LAYERDIR')
+    if codename:
+        codename_dir = os.path.join(layerdir, 'inc/wolfprovider/openssl/%s' % codename)
+        if os.path.isdir(codename_dir):
+            # Use codename-specific file
+            inc_file = os.path.join(codename_dir, 'openssl-enable-wolfprovider-%s.inc' % file_type)
         else:
-            bb.note("openssl-disable-internal-keymgmt-tests.patch already applied or cannot apply, skipping")
-            bb.debug(1, f"Patch check output: {result.stderr}")
-    except Exception as e:
-        bb.warn(f"openssl-disable-internal-keymgmt-tests.patch: Error applying patch: {e}")
-}
+            # Fallback to scarthgap (most recent stable version)
+            inc_file = os.path.join(layerdir, 'inc/wolfprovider/openssl/scarthgap/openssl-enable-wolfprovider-%s.inc' % file_type)
+    else:
+        # If no codename detected, use scarthgap as default
+        inc_file = os.path.join(layerdir, 'inc/wolfprovider/openssl/scarthgap/openssl-enable-wolfprovider-%s.inc' % file_type)
 
+    bb.note("openssl-enable-wolfprovider.inc: Including file: %s" % inc_file)
+    return inc_file
+
+# Include the appropriate file
+require ${@openssl_get_wolfprovider_inc(d)}
