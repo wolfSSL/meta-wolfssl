@@ -28,8 +28,7 @@ S:class-target = "${WORKDIR}/git"
 
 # Add patch directory to file search path
 # Patches are in files/ subdirectory relative to this .inc file
-FILESEXTRAPATHS:prepend:class-target := "${WOLFSSL_LAYERDIR}/inc/libgcrypt/files:"
-
+FILESEXTRAPATHS:prepend:class-target := "${WOLFSSL_LAYERDIR}/inc/libgcrypt/scarthgap/files:"
 # Add wolfssl as dependency
 DEPENDS:append:class-target = " virtual/wolfssl"
 RDEPENDS:${PN}:append:class-target = " wolfssl"
