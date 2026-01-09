@@ -6,12 +6,9 @@
 inherit wolfssl-osp-support
 
 python __anonymous() {
-    yocto_version = d.getVar('LAYERSERIES_CORENAMES') or ''
-    inc_path = f'inc/{yocto_version}/gnupg/gnupg-enable-libgcrypt-wolfssl.inc'
-
     wolfssl_osp_include_if_provider(
         d,
-        inc_file=inc_path,
+        inc_file='inc/gnupg/gnupg-enable-libgcrypt-wolfssl.inc',
         allowed_providers=['wolfssl-fips']
     )
 }
