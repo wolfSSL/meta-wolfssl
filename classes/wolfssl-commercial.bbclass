@@ -239,6 +239,15 @@ addtask commercial_extract after do_fetch before do_patch
 # Conditionally add p7zip-native dependency only when commercial bundle variables are set
 python __anonymous() {
     enabled = d.getVar('COMMERCIAL_BUNDLE_ENABLED')
+    if not enabled or enabled == '0':
+        wolfssl_src = d.getVar('WOLFSSL_SRC')
+        wolfssl_src_dir = d.getVar('COMMERCIAL_BUNDLE_SRC_DIR')
+
+        if (wolfssl_src and wolfssl_src.strip()) or (wolfssl_src_dir and wolfssl_src_dir.strip() and not wolfssl_src_dir.startswith('${')):
+            d.setVar('COMMERCIAL_BUNDLE_ENABLED', '1')
+            enabled = '1'
+            bb.debug(1, "COMMERCIAL_BUNDLE_ENABLED auto-detected as 1 based on WOLFSSL_SRC or COMMERCIAL_BUNDLE_SRC_DIR")
+
     src_dir = d.getVar('COMMERCIAL_BUNDLE_SRC_DIR')
     archive = d.getVar('COMMERCIAL_BUNDLE_ARCHIVE')
 

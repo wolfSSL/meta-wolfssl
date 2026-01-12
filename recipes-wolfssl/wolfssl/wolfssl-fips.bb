@@ -49,9 +49,6 @@ WOLFSSL_BUNDLE_FILE ?= ""
 WOLFSSL_BUNDLE_GCS_URI ?= ""
 WOLFSSL_BUNDLE_GCS_TOOL ?= ""
 
-# Enable commercial bundle extraction only when WOLFSSL_SRC or WOLFSSL_SRC_DIRECTORY is configured
-COMMERCIAL_BUNDLE_ENABLED ?= "${@'1' if (d.getVar('WOLFSSL_SRC') or d.getVar('WOLFSSL_SRC_DIRECTORY')) else '0'}"
-
 # Map to commercial class variables
 COMMERCIAL_BUNDLE_DIR = "${WOLFSSL_SRC_DIR}"
 COMMERCIAL_BUNDLE_NAME = "${WOLFSSL_SRC}"

@@ -36,10 +36,6 @@ WOLFSSL_SRC_DIRECTORY ?= ""
 WOLFSSL_BUNDLE_FILE ?= ""
 WOLFSSL_BUNDLE_GCS_URI ?= ""
 WOLFSSL_BUNDLE_GCS_TOOL ?= ""
-
-# Enable commercial bundle extraction only when WOLFSSL_SRC or WOLFSSL_SRC_DIRECTORY is configured
-# Set BEFORE inherit so it overrides the class default
-COMMERCIAL_BUNDLE_ENABLED ?= "${@'1' if (d.getVar('WOLFSSL_SRC') or d.getVar('WOLFSSL_SRC_DIRECTORY')) else '0'}"
 COMMERCIAL_BUNDLE_DIR     = "${WOLFSSL_SRC_DIR}"
 COMMERCIAL_BUNDLE_NAME    = "${WOLFSSL_SRC}"
 COMMERCIAL_BUNDLE_FILE    = "${WOLFSSL_BUNDLE_FILE}"
