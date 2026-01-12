@@ -21,7 +21,10 @@ python () {
         flags += f';sha256sum={sha}'
 
     d.setVar('SRC_URI', f"{uri}{flags}")
-    d.setVar('S', f"{d.getVar('WORKDIR')}/{d.getVar('WOLFSSL_SRC')}")
+
+    # Use WOLFSSL_SRC_SUBDIR if set, otherwise fall back to WOLFSSL_SRC
+    src_subdir = d.getVar('WOLFSSL_SRC_SUBDIR') or d.getVar('WOLFSSL_SRC')
+    d.setVar('S', f"{d.getVar('WORKDIR')}/{src_subdir}")
     d.setVar('COMMERCIAL_BUNDLE_ENABLED', '0')
     d.setVar('COMMERCIAL_BUNDLE_DIR', '${DL_DIR}')
 

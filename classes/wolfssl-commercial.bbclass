@@ -125,6 +125,10 @@ COMMERCIAL_BUNDLE_GCS_URI ?= ""
 COMMERCIAL_BUNDLE_SRC_DIR ?= ""
 COMMERCIAL_BUNDLE_ARCHIVE = "${@get_commercial_bundle_archive(d)}"
 
+# Auto-detect extracted directory name from WOLFSSL_VERSION if not explicitly set
+# This handles cases where tarball name differs from extracted directory
+WOLFSSL_SRC_SUBDIR ?= "${@'wolfssl-' + d.getVar('WOLFSSL_VERSION') if d.getVar('WOLFSSL_VERSION') else d.getVar('WOLFSSL_SRC') or ''}"
+
 # Task to extract commercial bundle
 python do_commercial_extract() {
     import os
