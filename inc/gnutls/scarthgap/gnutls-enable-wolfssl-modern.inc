@@ -19,8 +19,8 @@ SRCREV:class-target = "${AUTOREV}"
 S:class-target = "${WORKDIR}/git"
 B:class-target = "${S}"
 
-# Enable FIPS mode
-PACKAGECONFIG:append:class-target = " fips"
+# Enable FIPS mode only if using wolfssl-fips provider
+PACKAGECONFIG:append:class-target = "${@' fips' if d.getVar('PREFERRED_PROVIDER_virtual/wolfssl') == 'wolfssl-fips' else ''}"
 
 # Configure options for wolfSSL backend
 EXTRA_OECONF:class-target = "\
@@ -34,6 +34,7 @@ EXTRA_OECONF:class-target = "\
     --disable-dependency-tracking \
     --enable-srp-authentication \
     --enable-fips140-mode \
+    ${@'--enable-fips140-mode' if d.getVar('PREFERRED_PROVIDER_virtual/wolfssl') == 'wolfssl-fips' else ''} \
 "
 
 TARGET_CFLAGS:append:class-target = " -DGNUTLS_WOLFSSL"
