@@ -49,7 +49,7 @@ make run_fips
 
 ### Expected Output
 
-The gnutls test suite should pass with the wolfSSL backend, each test prints ✔️/❌ and a summary.
+The gnutls test suite should pass with the wolfSSL backend, each test prints PASS/FAIL and a summary.
 It also showcases all the logs of the wrapper whenever some gnutls cryptographic code
 in an application is called.
 

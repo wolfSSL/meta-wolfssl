@@ -1,10 +1,10 @@
-# 📘 **wolfSSL LinuxKM Integration Guide (Updated for New Initramfs API)**
+# wolfSSL LinuxKM Integration Guide (Updated for New Initramfs API)
 
 This document describes how to build and integrate the wolfSSL Linux Kernel Module (LinuxKM) into standard Yocto images and initramfs images, including a complete example for **NVIDIA Tegra-based systems**.
 
 ---
 
-# 🧩 1. Building the wolfSSL Linux Kernel Module
+# 1. Building the wolfSSL Linux Kernel Module
 
 Build the non-FIPS kernel module:
 
@@ -28,7 +28,7 @@ This ensures wolfSSL loads automatically during systemd boot on standard rootfs 
 
 ---
 
-# 🧩 2. Adding wolfSSL LinuxKM to an Initramfs Image
+# 2. Adding wolfSSL LinuxKM to an Initramfs Image
 
 Some systems require wolfSSL to be available **before** the root filesystem is mounted.
 For that purpose, this layer provides:
@@ -113,7 +113,7 @@ ROOTFS_POSTPROCESS_COMMAND += " wolfssl_initramfs_inject_after_kmsg; "
 
 ---
 
-# 🐧 **3. Example: Integrating wolfSSL LinuxKM into Tegra Initramfs**
+# 3. Example: Integrating wolfSSL LinuxKM into Tegra Initramfs
 
 NVIDIA Tegra boards (Jetson Orin, Xavier, Nano, AGX, etc.) commonly use:
 
@@ -156,9 +156,9 @@ wolfSSL now loads **before** the root filesystem is mounted — required for ear
 
 ---
 
-# ✨ 4. How LinuxKM behaves on Tegra (with and without initramfs)
+# 4. How LinuxKM behaves on Tegra (with and without initramfs)
 
-### ✔ Case A — *Without* initramfs integration
+### Case A: Without initramfs integration
 
 * wolfssl-linuxkm is installed into the main rootfs
 * systemd loads it automatically
@@ -166,7 +166,7 @@ wolfSSL now loads **before** the root filesystem is mounted — required for ear
 
 ---
 
-### ✔ Case B — *With* `wolfssl-initramfs`
+### Case B: With `wolfssl-initramfs`
 
 * libwolfssl.ko included inside initramfs
 * `modprobe libwolfssl` runs before mount of rootfs
@@ -179,7 +179,7 @@ wolfSSL now loads **before** the root filesystem is mounted — required for ear
 
 ---
 
-### 💡 Why this matters on Tegra
+### Why this matters on Tegra
 
 Tegra platforms (especially industrial/robotics/ADAS) rely heavily on initramfs-stage drivers and may need wolfSSL *before userspace starts*.
 Placing wolfSSL in initramfs avoids failures due to:
@@ -190,7 +190,7 @@ Placing wolfSSL in initramfs avoids failures due to:
 
 ---
 
-# 🚀 **5. Summary**
+# 5. Summary
 
 | Use Case                                       | Recommended Method                                                |
 | ---------------------------------------------- | ----------------------------------------------------------------- |
