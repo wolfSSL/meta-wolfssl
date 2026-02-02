@@ -4,7 +4,7 @@ The fips186-dsa and dsa-rfc6979 tests are not installed on the system.
 The benchmark tests will hang due to GCM implementation in wolfSSL/libgcrypt port.
 
 Upstream-Status: Inappropriate
-Signed-off-by: wolfSSL
+Signed-off-by: Zackery Backman <support@wolfssl.com>
 
 diff --git a/tests/testdrv.c b/tests/testdrv.c
 index bfca4c23..88fae58f 100644

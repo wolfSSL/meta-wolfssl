@@ -1,5 +1,5 @@
 From 1234567890abcdef1234567890abcdef12345678 Mon Sep 17 00:00:00 2001
-From: Yocto User <yocto@example.com>
+From: support@wolfssl.com
 Date: Wed, 26 Nov 2025 12:00:00 +0000
 Subject: [PATCH] configure.ac: use pkgconfig for libgcrypt detection
 
@@ -7,7 +7,7 @@ Replace AM_PATH_LIBGCRYPT with PKG_CHECK_MODULES to use pkg-config
 instead of libgcrypt-config for detection.
 
 Upstream-Status: Inappropriate [OE-specific]
-Signed-off-by: Yocto User <yocto@example.com>
+Signed-off-by: Zackery Backman <support@wolfssl.com>
 ---
  configure.ac | 12 ++++++------
  1 file changed, 6 insertions(+), 6 deletions(-)

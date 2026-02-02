@@ -1,6 +1,6 @@
 Description: Disable internal keymgmt tests when using FIPS provider (wolfProvider)
 Upstream-Status: Inappropriate [configuration-specific; not suitable for upstream]
-Signed-off-by: WolfSSL Team <info@wolfssl.com>
+Signed-off-by: WolfSSL Team <support@wolfssl.com>
 
 diff --git a/test/recipes/02-test_internal_keymgmt.t b/test/recipes/02-test_internal_keymgmt.t
 index 28f510f164..1a7bbc129a 100644
