@@ -1,46 +1,32 @@
-SUMMARY = "Test program for custom OpenSSL provider 'libwolfprov'"
-DESCRIPTION = "Compiles and runs a test program to verify the functionality of the custom OpenSSL provider libwolfprov."
+SUMMARY = "wolfProvider Unit Test Application"
+DESCRIPTION = "wolfProvider unit test application used to test provider functionality"
 HOMEPAGE = "https://www.wolfssl.com"
+BUGTRACKER = "https://github.com/wolfssl/wolfprovider/issues"
 SECTION = "examples"
-LICENSE = "CLOSED"
-LIC_FILES_CHKSUM = ""
 
-DEPENDS = "openssl pkgconfig-native wolfssl wolfprovider"
-PROVIDES += "wolfprovidertest"
-RPROVIDES_${PN} = "wolfprovidertest"
+LICENSE = "GPL-3.0-only"
+LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/GPL-3.0-only;md5=c79ff39f19dfec6d293b95dea7b07891"
+DEPENDS += "wolfprovider"
 
+inherit wolfssl-compatibility
 
-SRC_URI = "file://wolfprovidertest.c \
-           file://wolfproviderenv.sh \
-          "
+do_configure[noexec] = "1"
+do_compile[noexec] = "1"
 
-S = "${WORKDIR}"
+WOLFPROVIDER_TEST_DIR = "${datadir}/wolfprovider-test"
+WOLFPROVIDER_TEST_INSTALL_DIR = "${D}${WOLFPROVIDER_TEST_DIR}"
+WOLFPROVIDER_TEST_README = "README.txt"
+WOLFPROVIDER_TEST_README_DIR = "${WOLFPROVIDER_TEST_INSTALL_DIR}/${WOLFPROVIDER_TEST_README}"
 
-inherit pkgconfig
-
-do_compile() {
-    ${CC} ${WORKDIR}/wolfprovidertest.c -o wolfprovidertest \
-        ${CFLAGS} ${LDFLAGS} $(pkg-config --cflags --libs openssl) -ldl -lwolfssl -lwolfprov
+do_install_wolfprovidertest_dummy() {
+    bbnote "Installing dummy file for wolfProvider test example"
+    install -m 0755 -d "${WOLFPROVIDER_TEST_INSTALL_DIR}"
+    echo "This is a dummy package" > "${WOLFPROVIDER_TEST_README_DIR}"
 }
 
-do_install() {
-    install -d ${D}${bindir}
-    install -m 0755 ${WORKDIR}/wolfprovidertest ${D}${bindir}/wolfprovidertest
-    install -m 0755 ${WORKDIR}/wolfproviderenv.sh ${D}${bindir}/wolfproviderenv
-}
+addtask do_install_wolfprovidertest_dummy after do_install before do_package
+do_install_wolfprovidertest_dummy[fakeroot] = "1"
 
-FILES_${PN} += "${bindir}/wolfprovidertest \
-                ${bindir}/wolfproviderenv \
-               "
-
-# Dynamic RDEPENDS adjustment for bash
-python() {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    pn = d.getVar('PN', True)
-
-    rdepends_var_name = 'RDEPENDS_' + pn if (distro_version.startswith('2.') or distro_version.startswith('3.')) else 'RDEPENDS:' + pn
-
-    current_rdepends = d.getVar(rdepends_var_name, True) or ""
-    new_rdepends = current_rdepends + " bash"
-    d.setVar(rdepends_var_name, new_rdepends)
+python __anonymous() {
+    wolfssl_varAppend(d, 'FILES', '${PN}', ' ${WOLFPROVIDER_TEST_DIR}/*')
 }

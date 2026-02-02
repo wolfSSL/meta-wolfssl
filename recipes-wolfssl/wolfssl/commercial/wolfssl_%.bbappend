@@ -1,30 +1,33 @@
-BBFILE_PRIORITY='2'
+BBFILE_PRIORITY = "2"
+
 COMMERCIAL_CONFIG_DIR := "${@os.path.dirname(d.getVar('FILE', True))}"
-LICENSE="Proprietary"                                                           
-LIC_FILES_CHKSUM="file://${WOLF_LICENSE};md5=${WOLF_LICENSE_MD5}"
+WOLFSSL_SRC_DIR ?= "${COMMERCIAL_CONFIG_DIR}/files"
+WOLFSSL_BUNDLE_FILE ?= ""
+WOLFSSL_BUNDLE_GCS_URI ?= ""
+WOLFSSL_BUNDLE_GCS_TOOL ?= ""
 
-SRC_URI="file://${COMMERCIAL_CONFIG_DIR}/files/${WOLFSSL_SRC}.7z"
-SRC_URI[sha256sum]="${WOLFSSL_SRC_SHA}"
+LICENSE = "Proprietary"
+LIC_FILES_CHKSUM = "file://${WOLFSSL_LICENSE};md5=${WOLFSSL_LICENSE_MD5}"
 
-DEPENDS += "p7zip-native"
+COMMERCIAL_BUNDLE_ENABLED = "1"
+COMMERCIAL_BUNDLE_DIR = "${WOLFSSL_SRC_DIR}"
+COMMERCIAL_BUNDLE_NAME = "${WOLFSSL_SRC}"
+COMMERCIAL_BUNDLE_FILE = "${WOLFSSL_BUNDLE_FILE}"
+COMMERCIAL_BUNDLE_PASS = "${WOLFSSL_SRC_PASS}"
+COMMERCIAL_BUNDLE_SHA = "${WOLFSSL_SRC_SHA}"
+COMMERCIAL_BUNDLE_TARGET = "${WORKDIR}"
+COMMERCIAL_BUNDLE_GCS_URI = "${WOLFSSL_BUNDLE_GCS_URI}"
+COMMERCIAL_BUNDLE_GCS_TOOL = "${@d.getVar('WOLFSSL_BUNDLE_GCS_TOOL') or 'auto'}"
 
-S = "${WORKDIR}/${WOLFSSL_SRC}"
+SRC_URI = "${@get_commercial_src_uri(d)}"
+S = "${@get_commercial_source_dir(d)}"
 
-do_unpack[depends] += "p7zip-native:do_populate_sysroot"
+inherit wolfssl-commercial wolfssl-compatibility
 
-do_unpack() {
-    cp -f "${COMMERCIAL_CONFIG_DIR}/files/${WOLFSSL_SRC}.7z" "${WORKDIR}"
-    7za x "${WORKDIR}/${WOLFSSL_SRC}.7z" -p"${WOLFSSL_SRC_PASS}" -o"${WORKDIR}" -aoa
+# Ensure autogen.sh never runs for commercial bundles
+do_configure_disable_autogen() {
+    echo -e "#!/bin/sh\nexit 0" > ${S}/autogen.sh
+    chmod +x ${S}/autogen.sh
 }
 
-
-python() {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    autogen_create = 'echo -e "#!/bin/sh\nexit 0" > ${S}/autogen.sh && chmod +x ${S}/autogen.sh'
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        # For Dunfell and earlier
-        d.appendVar('do_configure_prepend', autogen_create)
-    else:
-        # For Kirkstone and later
-        d.appendVar('do_configure:prepend', autogen_create)
-}
+addtask do_configure_disable_autogen after do_unpack before do_configure

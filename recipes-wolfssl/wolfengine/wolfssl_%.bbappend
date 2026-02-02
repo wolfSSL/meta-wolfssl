@@ -1,13 +1,9 @@
+# Conditionally configure wolfssl with wolfengine support
+# This bbappend checks the WOLFSSL_FEATURES and IMAGE_INSTALL variables
 
-python() {
-    # Get the package revision (PR) for wolfssl
-    wolfssl_pr = d.getVar('PR', True)
+inherit wolfssl-helper
+deltask do_wolfssl_check_package
 
-    # Based on the revision, conditionally append to EXTRA_OECONF
-    if wolfssl_pr == 'commerical.fips':
-        d.appendVar('EXTRA_OECONF', ' --enable-engine=fips-v5')
-    elif wolfssl_pr == 'fipsReady':
-        d.appendVar('EXTRA_OECONF', ' --enable-engine=fips-ready')
-    else:
-        d.appendVar('EXTRA_OECONF', ' --enable-engine=no-fips')
+python __anonymous() {
+    wolfssl_conditional_require(d, 'wolfengine', 'inc/wolfengine/wolfssl-enable-wolfengine.inc')
 }

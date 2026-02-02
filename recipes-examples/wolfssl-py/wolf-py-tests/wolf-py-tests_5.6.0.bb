@@ -15,7 +15,9 @@ SRC_URI = "git://github.com/wolfSSL/wolfssl-py.git;nobranch=1;protocol=https;rev
 
 DEPENDS += " wolfssl-py \
              wolfcrypt-py \
-           "  
+           "
+
+inherit wolfssl-compatibility
 
 S = "${WORKDIR}/git"
 
@@ -27,26 +29,15 @@ WOLFCRYPT_TEST_PY_INSTALL_DIR = "${D}${WOLFCRYPT_TEST_PY_DIR}"
 WOLFCRYPT_TEST_PY_README = "README.txt"
 WOLFCRYPT_TEST_PY_README_DIR = "${WOLFCRYPT_TEST_PY_INSTALL_DIR}/${WOLFCRYPT_TEST_PY_README}"
 
-python () {
-    distro_version = d.getVar('DISTRO_VERSION', True)
-    wolfcrypt_test_py_dir = d.getVar('WOLFCRYPT_TEST_PY_DIR', True)
-    wolfcrypt_test_py_install_dir = d.getVar('WOLFCRYPT_TEST_PY_INSTALL_DIR', True)
-    wolfcrypt_test_py_readme_dir = d.getVar('WOLFCRYPT_TEST_PY_README_DIR', True)
+do_install_wolf_py_tests_dummy() {
+    bbnote "Installing dummy file for wolfCrypt test example"
+    install -m 0755 -d "${WOLFCRYPT_TEST_PY_INSTALL_DIR}"
+    echo "This is a dummy package" > "${WOLFCRYPT_TEST_PY_README_DIR}"
+}
 
-    bb.note("Installing dummy file for wolfCrypt test example")
-    installDir = 'install -m 0755 -d "%s"\n' % wolfcrypt_test_py_install_dir
-    makeDummy = 'echo "This is a dummy package" > "%s"\n' % wolfcrypt_test_py_readme_dir
+addtask do_install_wolf_py_tests_dummy after do_install before do_package
+do_install_wolf_py_tests_dummy[fakeroot] = "1"
 
-    d.appendVar('do_install', installDir)
-    d.appendVar('do_install', makeDummy)
-
-    pn = d.getVar('PN', True)
-    if distro_version and (distro_version.startswith('2.') or distro_version.startswith('3.')):
-        files_var_name = 'FILES_' + pn
-    else:
-        files_var_name = 'FILES:' + pn
-    
-    current_files = d.getVar(files_var_name, True) or ""
-    new_files = current_files + ' ' + wolfcrypt_test_py_dir + '/*'
-    d.setVar(files_var_name, new_files)
+python __anonymous() {
+    wolfssl_varAppend(d, 'FILES', '${PN}', ' ${WOLFCRYPT_TEST_PY_DIR}/*')
 }

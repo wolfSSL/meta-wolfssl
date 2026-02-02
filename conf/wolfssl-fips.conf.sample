@@ -1,0 +1,58 @@
+# wolfSSL FIPS Configuration
+#
+# This file contains wolfSSL FIPS bundle settings.
+# Include this file in your local.conf:
+#   require /path/to/meta-wolfssl/conf/wolfssl-fips.conf
+#
+# Instructions:
+# 1. Uncomment and set the variables below with your FIPS bundle details
+# 2. Place your FIPS bundle in recipes-wolfssl/wolfssl/commercial/files/
+#    (or set WOLFSSL_SRC_DIR to a custom location)
+# 3. Build once to get the FIPS_HASH value
+# 4. Set FIPS_HASH and rebuild
+
+# Use wolfSSL FIPS as the wolfSSL provider
+PREFERRED_PROVIDER_virtual/wolfssl = "wolfssl-fips"
+PREFERRED_PROVIDER_wolfssl = "wolfssl-fips"
+
+# Optional: Use wolfSSL FIPS Linux kernel module
+# Uncomment to use the FIPS-validated kernel module instead of the standard one
+#PREFERRED_PROVIDER_virtual/wolfssl-linuxkm = "wolfssl-linuxkm-fips"
+#PREFERRED_PROVIDER_wolfssl-linuxkm = "wolfssl-linuxkm-fips"
+
+# FIPS hash mode: "auto" (QEMU-based extraction) or "manual" (use static FIPS_HASH)
+WOLFSSL_FIPS_HASH_MODE ?= "manual"
+
+# ============================================================================
+# FIPS Bundle Configuration - EDIT THESE VALUES
+# ============================================================================
+
+# Bundle version
+WOLFSSL_VERSION = ""
+
+# Bundle filename (without extension, used as extracted directory)
+WOLFSSL_SRC = ""
+
+# Optional: override archive filename (e.g., .tar.gz instead of .7z)
+#WOLFSSL_BUNDLE_FILE = ""
+
+# Bundle SHA256 checksum
+WOLFSSL_SRC_SHA = ""
+
+# Bundle password (required for .7z archives, leave empty for tarballs)
+WOLFSSL_SRC_PASS = ""
+
+# License file location and MD5
+WOLFSSL_LICENSE ?= "WolfSSL_LicenseAgmt_JAN-2024.pdf"
+WOLFSSL_LICENSE_MD5 ?= ""
+
+# FIPS hash (set after first build - see instructions in commercial/README.md)
+FIPS_HASH = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+
+# Optional: Custom bundle directory (uncomment to override default)
+WOLFSSL_SRC_DIR = ""
+
+# ============================================================================
+# Contact support@wolfssl.com for commercial FIPS bundles
+# See recipes-wolfssl/wolfssl/commercial/README.md for detailed instructions
+# ============================================================================

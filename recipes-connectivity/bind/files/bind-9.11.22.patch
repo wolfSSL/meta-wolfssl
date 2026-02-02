@@ -1,5 +1,5 @@
 From f2f5a90deed996b8f3ff66e0e70bc38b4d2f8bd1 Mon Sep 17 00:00:00 2001
-From: Juliusz Sosinowicz <juliusz@wolfssl.com>
+From: Juliusz Sosinowicz <support@wolfssl.com>
 Date: Tue, 15 Jun 2021 17:14:31 +0200
 Subject: [PATCH] Patch for wolfSSL
 
@@ -31,7 +31,7 @@ make check
 ```
 If any tests fail, please first try compiling with OpenSSL to check if your system is correctly configured to run tests.
 
-Signed-off-by: Juliusz Sosinowicz <juliusz@wolfssl.com>
+Signed-off-by: Juliusz Sosinowicz <support@wolfssl.com>
 ---
  bin/named/Makefile.in         |  6 ++-
  bin/tests/optional/lex_test.c |  2 +-

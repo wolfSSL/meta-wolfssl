@@ -1,3 +1,25 @@
-EXTRA_OECONF += " --enable-opensslcoexist --enable-cmac --enable-keygen --enable-sha --enable-des3 --enable-aesctr --enable-aesccm --enable-x963kdf --enable-compkey --enable-certgen --enable-aeskeywrap --enable-enckeys --enable-base16 "
-CPPFLAGS += " -DHAVE_AES_ECB -DWOLFSSL_AES_DIRECT -DWC_RSA_NO_PADDING -DWOLFSSL_PUBLIC_MP -DECC_MIN_KEY_SZ=192 -DHAVE_PUBLIC_FFDHE -DWOLFSSL_DH_EXTRA -DRSA_MIN_SIZE=1024"
-CPPFLAGS += " ${@'-DWOLFSSL_PSS_LONG_SALT -DWOLFSSL_PSS_SALT_LEN_DISCOVER' if d.getVar('WOLFSSL_TYPE') not in ("fips", "fips-ready") else ''}"
+# Configure wolfSSL to support wolfProvider
+#
+# This bbappend automatically configures wolfssl or wolfssl-fips with the features
+# needed by wolfprovider when 'wolfprovider' is in WOLFSSL_FEATURES or IMAGE_INSTALL
+#
+# Usage in local.conf:
+#   require conf/wolfssl-fips.conf # If FIPS mode is enabled
+#   IMAGE_INSTALL += "wolfprovider"
+
+inherit wolfssl-osp-support
+
+python __anonymous() {
+    # wolfProvider non-FIPS mode
+    wolfssl_conditional_include_ext(
+        d,
+        enable_for='wolfprovider',
+        inc_file='inc/wolfprovider/wolfssl-enable-wolfprovider.inc',
+        allowed_providers=['wolfssl']
+    )
+}
+
+# Disable package check since this is configuration for wolfssl itself
+deltask do_wolfssl_check_package
+
+
