@@ -204,6 +204,51 @@ ptest-runner libgcrypt
 
 ---
 
+### 9. gnutls-image-minimal
+
+**Enable with:**
+```bitbake
+WOLFSSL_DEMOS = "wolfssl-image-minimal gnutls-image-minimal"
+require /path/to/meta-wolfssl/conf/wolfssl-fips.conf
+```
+
+**Provides:**
+- Everything from `wolfssl-image-minimal`
+- wolfSSL FIPS (configured for gnutls support)
+- gnutls with wolfSSL FIPS backend
+- gnutls-dev, gnutls-bin, gnutls-fips
+- wolfssl-gnutls-wrapper
+- nettle, pkgconfig
+
+**Special Requirements:**
+- Requires wolfSSL FIPS commercial bundle
+- Must set `require conf/wolfssl-fips.conf` in `local.conf`
+
+**Description:** Demonstrates gnutls configured to use wolfSSL FIPS as the cryptographic backend. This enables FIPS 140-3 validated cryptography for all applications using gnutls.
+
+**More Information:**
+- [Image-specific README](gnutls-image-minimal/README.md)
+
+---
+
+### 10. gnutls-nonfips-image-minimal
+
+**Enable with:**
+```bitbake
+WOLFSSL_DEMOS = "wolfssl-image-minimal gnutls-nonfips-image-minimal"
+```
+
+**Provides:**
+- Everything from `wolfssl-image-minimal`
+- gnutls with standard wolfSSL backend (non-FIPS)
+- gnutls-dev, gnutls-bin
+- wolfssl-gnutls-wrapper
+- nettle, pkgconfig
+
+**Description:** Demonstrates gnutls configured to use standard wolfSSL (non-FIPS) as the cryptographic backend. Use this for testing gnutls+wolfSSL integration without FIPS requirements.
+
+---
+
 ## Image Structure
 
 All demo images follow this structure:
