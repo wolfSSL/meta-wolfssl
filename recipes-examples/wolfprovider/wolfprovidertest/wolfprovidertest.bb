@@ -2,7 +2,7 @@ SUMMARY = "wolfProvider Unit Test Application"
 DESCRIPTION = "wolfProvider unit test application used to test provider functionality"
 HOMEPAGE = "https://www.wolfssl.com"
 BUGTRACKER = "https://github.com/wolfssl/wolfprovider/issues"
-SECTION = "x11/applications"
+SECTION = "examples"
 
 LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/GPL-3.0-only;md5=c79ff39f19dfec6d293b95dea7b07891"
