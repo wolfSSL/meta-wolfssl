@@ -23,18 +23,6 @@ This layer also provides Open Source Package (OSP):
 - See [Yocto Version Support](#yocto-version-support) for version
 requirements.
 
-**Important Branch Notice**
----------------------------
-
-The `master` branch is intended for development and may contain unstable
-changes. For production use, please switch to a version-specific branch
-that matches your Yocto release for a more stable layer.
-
-If your version of Yocto is not supported by an existing branch, you can
-use the `master` branch, but for dedicated support please contact
-support@wolfssl.com.
-
-
 Table of Contents
 -----------------
 
