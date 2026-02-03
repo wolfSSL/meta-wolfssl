@@ -16,10 +16,9 @@ echo "=========================================="
 echo "Running wolfProvider Unit Test"
 echo "=========================================="
 if [ -f /usr/bin/unit.test ]; then
-    # Create .libs symlink structure in /tmp so the test can find the provider
+    # Use a temp directory for the tests because they expect .libs to be present
     mkdir -p /tmp/.libs
-    ln -sf /usr/lib/libwolfprov.so.0.0.0 /tmp/.libs/libwolfprov.so 2>/dev/null || true
-    
+
     # Verify certificates are installed (CERTS_DIR is compiled to point here)
     echo "Verifying test certificates..."
     if [ -d /usr/share/wolfprovider-test/certs ]; then

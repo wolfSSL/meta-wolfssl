@@ -7,12 +7,6 @@
 REPLACE_DEFAULT_MODE=0
 WOLFSSL_FIPS_MODE=0
 
-# Setup for libwolfprov.so (needed before runtime detection)
-mkdir -p /usr/lib/ssl-3/modules
-if [ ! -L /usr/lib/ssl-3/modules/libwolfprov.so ]; then
-    ln -s /usr/lib/libwolfprov.so.0.0.0 /usr/lib/ssl-3/modules/libwolfprov.so
-fi
-
 # Environment variables (needed before runtime detection)
 export OPENSSL_MODULES=/usr/lib/ssl-3/modules
 export LD_LIBRARY_PATH=/usr/lib:/lib:$LD_LIBRARY_PATH
