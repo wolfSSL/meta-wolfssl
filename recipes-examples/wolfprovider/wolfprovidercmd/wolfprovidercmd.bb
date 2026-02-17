@@ -15,7 +15,7 @@ python __anonymous() {
     wolfssl_varSet(d, 'RDEPENDS', '${PN}', 'bash openssl wolfprovider')
 }
 
-SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=7c85aa0196ba0d3780c3e0285c61227d6c1a2892 \
+SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=046f4ac583ca7612386f4c38ca29a9d191785aa8 \
            file://wolfprovidercmd.sh"
 
 

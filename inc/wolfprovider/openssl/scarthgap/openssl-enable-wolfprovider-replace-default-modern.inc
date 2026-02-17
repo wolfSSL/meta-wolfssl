@@ -68,7 +68,7 @@ RDEPENDS:libcrypto3:append:class-target = " wolfprovider"
 
 # Bring in the replace-default patch (target only)
 SRC_URI:append:class-target = " \
-    git://github.com/wolfSSL/wolfProvider.git;protocol=https;nobranch=1;rev=v1.1.0;destsuffix=git/wolfProvider \
+    git://github.com/wolfSSL/wolfProvider.git;protocol=https;nobranch=1;rev=v1.1.1;destsuffix=git/wolfProvider \
 "
 
 python do_patch:append:class-target () {
