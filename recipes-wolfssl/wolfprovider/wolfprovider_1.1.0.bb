@@ -36,6 +36,11 @@ install_provider_module() {
         exit 1
     fi
 
+    # Create unversioned symlink in libdir (same dir as versioned .so)
+    if [ ! -e ${D}${libdir}/libwolfprov.so ]; then
+        ln -sf ${libdir}/libwolfprov.so.0.0.0 ${D}${libdir}/libwolfprov.so
+    fi
+
     # Create the OpenSSL module directory symlink
     install -d ${D}${libdir}/ssl-3/modules
     if [ ! -e ${D}${libdir}/ssl-3/modules/libwolfprov.so ]; then
@@ -64,4 +69,3 @@ EXTRA_OECONF += " --with-openssl=${STAGING_EXECPREFIXDIR}"
 
 # Keep unversioned .so in the runtime package
 FILES_SOLIBSDEV = ""
-
