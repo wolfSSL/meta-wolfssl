@@ -1,16 +1,29 @@
-# Sign libwolfssl.ko with the kernel's own signing key to prevent
-# "module verification failed: signature and/or required key missing" taint on load.
+# Use the linuxkm Makefile's native signing target to produce libwolfssl.ko.signed,
+# then install it in place of the unsigned libwolfssl.ko.
 
-do_install:append() {
-    KO="${D}${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra/libwolfssl.ko"
-    SIGN_FILE="${STAGING_KERNEL_BUILDDIR}/scripts/sign-file"
-    KEY="${STAGING_KERNEL_BUILDDIR}/certs/signing_key.pem"
-    CERT="${STAGING_KERNEL_BUILDDIR}/certs/signing_key.x509"
-
-    if [ -x "${SIGN_FILE}" ] && [ -f "${KEY}" ] && [ -f "${CERT}" ]; then
-        bbnote "Signing libwolfssl.ko with kernel signing key"
-        "${SIGN_FILE}" sha256 "${KEY}" "${CERT}" "${KO}"
+do_compile() {
+    if [ "${WOLFSSL_FIPS_HASH_MODE_LINUXKM}" = "auto" ]; then
+        bbnote "Auto FIPS hash mode: running 'make module-with-matching-fips-hash'"
+        bbnote "This will build the .ko, compute the FIPS hash, patch it in-place, and sign it."
+        unset LDFLAGS
+        unset CPPFLAGS
+        oe_runmake module-with-matching-fips-hash HOSTCC=$(which ${BUILD_CC})
     else
-        bbwarn "Kernel signing key not found - libwolfssl.ko will taint the kernel on load"
+        oe_runmake
+    fi
+}
+
+do_install() {
+    install -d ${D}${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra
+    KO_SIGNED="${S}/linuxkm/libwolfssl.ko.signed"
+    KO_UNSIGNED="${S}/linuxkm/libwolfssl.ko"
+    if [ -f "${KO_SIGNED}" ]; then
+        bbnote "Installing libwolfssl.ko.signed (signed by linuxkm Makefile)"
+        install -m 0644 "${KO_SIGNED}" \
+            ${D}${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra/libwolfssl.ko
+    else
+        bbwarn "libwolfssl.ko.signed not found - installing unsigned libwolfssl.ko"
+        install -m 0644 "${KO_UNSIGNED}" \
+            ${D}${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra/
     fi
 }
