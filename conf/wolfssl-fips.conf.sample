@@ -23,6 +23,14 @@ PREFERRED_PROVIDER_wolfssl = "wolfssl-fips"
 # FIPS hash mode: "auto" (QEMU-based extraction) or "manual" (use static FIPS_HASH)
 WOLFSSL_FIPS_HASH_MODE ?= "manual"
 
+# Linux kernel module FIPS hash mode:
+#   "manual" - Use FIPS_HASH_LINUXKM from config (two-pass: build once to get hash, set it, rebuild)
+#   "auto"   - Use 'make module-with-matching-fips-hash' to compute and embed hash automatically
+#WOLFSSL_FIPS_HASH_MODE_LINUXKM ?= "auto"
+
+# Kernel module FIPS hash (only needed for manual mode)
+#FIPS_HASH_LINUXKM = ""
+
 # ============================================================================
 # FIPS Bundle Configuration - EDIT THESE VALUES
 # ============================================================================

@@ -88,8 +88,10 @@ EXTRA_OECONF = " \
     --enable-linuxkm \
     --enable-fips=v5.2.4 \
     --with-linux-source=${STAGING_KERNEL_BUILDDIR} \
-    --enable-all-crypto \
     --enable-crypttests \
+    --enable-smallstack \
+    --enable-sp-math-all \
+    --disable-sp \
 "
 
 python __anonymous() {
@@ -107,11 +109,35 @@ do_configure_fips_hash_check() {
             bbwarn "WOLFSSL_FIPS_HASH_MODE_LINUXKM=manual but FIPS_HASH_LINUXKM is not set"
         fi
     else
-        bbnote "Kernel module auto FIPS mode - hash will be determined by build"
+        bbnote "Kernel module auto FIPS mode - will use 'make module-with-matching-fips-hash-no-sign' to compute and embed the correct hash"
     fi
 }
 
 addtask do_configure_fips_hash_check after do_patch before do_configure
+
+do_compile() {
+    if [ "${WOLFSSL_FIPS_HASH_MODE_LINUXKM}" = "auto" ]; then
+        bbnote "Auto FIPS hash mode: running 'make module-with-matching-fips-hash-no-sign'"
+        bbnote "This will build the .ko, compute the FIPS hash, and patch it in-place."
+
+        # The linuxkm Makefile's libwolfssl-user-build step builds a host-native
+        # userspace wolfSSL library (it unsets CC/LD itself, uses host cc), but
+        # Yocto's cross-compilation LDFLAGS (containing --sysroot=...) and CPPFLAGS
+        # would leak through and break the host build. Unset them here — the kernel
+        # module build itself goes through 'make -C $(KERNEL_ROOT)' which is
+        # self-contained.
+        unset LDFLAGS
+        unset CPPFLAGS
+
+        # Run from top-level source dir so that the autotools-generated Makefile
+        # exports KERNEL_ROOT, KERNEL_ARCH, and other configure-derived variables
+        # to the linuxkm/ sub-make. Pass HOSTCC so the patched linuxkm Makefile
+        # uses the correct host-native compiler instead of bare 'cc'.
+        oe_runmake module-with-matching-fips-hash-no-sign HOSTCC=$(which ${BUILD_CC})
+    else
+        oe_runmake
+    fi
+}
 
 do_install() {
     install -d ${D}${nonarch_base_libdir}/modules/${KERNEL_VERSION}/extra
