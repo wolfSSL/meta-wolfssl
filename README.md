@@ -561,8 +561,8 @@ For building commercial bundles of wolfSSL products, view the
 instructions in this
 [README](recipes-wolfssl/wolfssl/commercial/README.md).
 
-For FIPS-Ready builds, view the instructions in this
-[README](recipes-wolfssl/wolfssl/fips-ready/README.md).
+For FIPS-Ready builds, see the [Using wolfssl-fips-ready
+Recipe](#using-wolfssl-fips-ready-recipe) section below.
 
 To gain access to these bundles, contact support@wolfssl.com to get a quote.
 
@@ -578,9 +578,9 @@ between open-source, FIPS, and commercial versions of wolfSSL.
 recipes:
 - `wolfssl` (open-source) - Default provider from meta-networking
 - `wolfssl-fips` (FIPS-validated) - Provided by this layer
+- `wolfssl-fips-ready` (FIPS Ready - emulates FIPS 140-3 requirements
+  without full validation) - Provided by this layer
 - Future: `wolfssl-commercial` - For commercial non-FIPS bundles
-- Future: `wolfssl-fips-ready` - For FIPS Ready bundle builds (Emulates FIPS
-Requirements)
 
 When you set `PREFERRED_PROVIDER_virtual/wolfssl = "wolfssl-fips"`, all
 recipes that depend on `virtual/wolfssl` will automatically use the
@@ -654,6 +654,72 @@ FIPS_HASH = "YOUR_HASH_HERE"
 The `conf/wolfssl-fips.conf` file is automatically ignored by git (via
 `.gitignore`), keeping your bundle password and license information private.
 Only the `.sample` template is tracked in git.
+
+### Using wolfssl-fips-ready Recipe
+
+The `wolfssl-fips-ready` recipe builds wolfSSL from a publicly available
+**FIPS Ready** bundle (`wolfssl-x.x.x-gplv3-fips-ready.zip`, GPLv3). FIPS
+Ready emulates the FIPS 140-3 module layout and self-tests but is **not**
+a certified FIPS build — use it to develop and validate your integration
+before acquiring a commercial FIPS bundle.
+
+A companion recipe, `wolfssl-linuxkm-fips-ready`, builds the wolfSSL FIPS
+kernel module (`libwolfssl.ko`) from the same bundle, suitable for loading
+via initramfs or modprobe.
+
+For a full working integration (RPi5 + QEMU aarch64, with libgcrypt,
+GnuTLS, wolfProvider, and kernel-module loading via initramfs), see the
+[meta-wolfssl-linux-fips](https://github.com/wolfSSL/wolfssl-examples/tree/master/meta-wolfssl-linux-fips)
+example in the `wolfssl-examples` repo.
+
+#### Setup Instructions
+
+1. **Copy the configuration template:**
+   ```bash
+   cd meta-wolfssl
+   cp conf/wolfssl-fips-ready.conf.sample conf/wolfssl-fips-ready.conf
+   ```
+
+2. **Download the FIPS Ready bundle** from
+   [wolfSSL's download page](https://www.wolfssl.com/download/)
+   (`wolfssl-x.x.x-gplv3-fips-ready.zip`) and place it anywhere on disk.
+
+3. **Edit `conf/wolfssl-fips-ready.conf`:**
+   - `WOLFSSL_VERSION` - Bundle version (e.g., `"5.8.4"`)
+   - `WOLFSSL_SRC` - Bundle name without extension
+     (e.g., `"wolfssl-5.8.4-gplv3-fips-ready"`)
+   - `WOLFSSL_BUNDLE_FILE` - Archive filename (`${WOLFSSL_SRC}.zip`)
+   - `WOLFSSL_SRC_SHA` - SHA256 of the `.zip`
+   - `WOLFSSL_SRC_DIR` - Absolute path to the directory containing the `.zip`
+   - `WOLFSSL_LICENSE_MD5` - MD5 of the `COPYING` (GPLv3) file inside the zip
+   - `FIPS_HASH` - Leave as placeholder when using `WOLFSSL_FIPS_HASH_MODE =
+     "auto"` (default); set manually after first build if using `"manual"`
+
+4. **Include the configuration in `build/conf/local.conf`:**
+   ```bitbake
+   require /path/to/meta-wolfssl/conf/wolfssl-fips-ready.conf
+   ```
+
+   This automatically sets
+   `PREFERRED_PROVIDER_virtual/wolfssl = "wolfssl-fips-ready"`.
+
+5. **Build your image:**
+   ```bash
+   bitbake <your-image>
+   ```
+
+   Hash extraction (auto mode) runs transparently via QEMU during the
+   wolfSSL build.
+
+#### Kernel Module (wolfssl-linuxkm-fips-ready)
+
+To additionally build the FIPS Ready kernel module, depend on
+`wolfssl-linuxkm-fips-ready` from an image recipe (typically via an
+initramfs that includes it). The same `wolfssl-fips-ready.conf` values
+apply — no separate bundle is required.
+
+See [README-linuxkm.md](recipes-wolfssl/wolfssl/README-linuxkm.md) for
+module signing and initramfs integration details.
 
 ### Commercial Bundles from Google Cloud Storage
 
@@ -733,8 +799,6 @@ This repository contains additional README files with detailed information:
 ### Commercial/FIPS
 - [recipes-wolfssl/wolfssl/commercial/README.md](recipes-wolfssl/wolfssl/commercial/README.md)
   - Commercial/FIPS bundle instructions
-- [recipes-wolfssl/wolfssl/fips-ready/README.md](recipes-wolfssl/wolfssl/fips-ready/README.md)
-  - FIPS-Ready build instructions
 
 ### OSP Integrations
 - [recipes-support/libgcrypt/README.md](recipes-support/libgcrypt/README.md)

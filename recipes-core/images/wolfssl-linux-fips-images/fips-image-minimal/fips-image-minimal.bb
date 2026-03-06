@@ -9,11 +9,13 @@ python __anonymous() {
     virtual_provider = d.getVar('PREFERRED_PROVIDER_virtual/wolfssl') or ''
     wolfssl_provider = d.getVar('PREFERRED_PROVIDER_wolfssl') or ''
 
-    if virtual_provider != 'wolfssl-fips':
-        bb.fatal("fips-image-minimal requires PREFERRED_PROVIDER_virtual/wolfssl = 'wolfssl-fips'. Current value: '%s'. Please set 'require conf/wolfssl-fips.conf' in local.conf" % virtual_provider)
+    valid_fips_providers = ('wolfssl-fips', 'wolfssl-fips-ready')
 
-    if wolfssl_provider != 'wolfssl-fips':
-        bb.fatal("fips-image-minimal requires PREFERRED_PROVIDER_wolfssl = 'wolfssl-fips'. Current value: '%s'. Please set 'require conf/wolfssl-fips.conf' in local.conf" % wolfssl_provider)
+    if virtual_provider not in valid_fips_providers:
+        bb.fatal("fips-image-minimal requires PREFERRED_PROVIDER_virtual/wolfssl to be one of %s. Current value: '%s'. Please set 'require conf/wolfssl-fips.conf' or 'require conf/wolfssl-fips-ready.conf' in local.conf" % (valid_fips_providers, virtual_provider))
+
+    if wolfssl_provider not in valid_fips_providers:
+        bb.fatal("fips-image-minimal requires PREFERRED_PROVIDER_wolfssl to be one of %s. Current value: '%s'. Please set 'require conf/wolfssl-fips.conf' or 'require conf/wolfssl-fips-ready.conf' in local.conf" % (valid_fips_providers, wolfssl_provider))
 
     wolfssl_varAppendNonOverride(d, 'IMAGE_INSTALL', ' wolfssl libgcrypt libgcrypt-ptest gnutls gnutls-dev gnutls-bin gnutls-fips wolfssl-gnutls-wrapper wolfssl-gnutls-wrapper-dev wolfprovider openssl openssl-bin openssh wolfprovidercmd wolfproviderenv pkgconfig ptest-runner bash make glibc-utils binutils ldd curl librelp-ptest')
 }

@@ -1,0 +1,47 @@
+# wolfSSL FIPS Ready Configuration
+#
+# This file contains wolfSSL FIPS Ready bundle settings.
+# Include this file in your local.conf:
+#   require /path/to/meta-wolfssl/conf/wolfssl-fips-ready.conf
+#
+# Instructions:
+# 1. Set the variables below with your FIPS Ready bundle details
+# 2. Set WOLFSSL_SRC_DIR to the directory containing your .zip bundle
+# 3. Build once to get the FIPS_HASH value (if using manual mode)
+# 4. Set FIPS_HASH and rebuild (if using manual mode)
+
+# Use wolfSSL FIPS Ready as the wolfSSL provider
+PREFERRED_PROVIDER_virtual/wolfssl = "wolfssl-fips-ready"
+PREFERRED_PROVIDER_wolfssl = "wolfssl-fips-ready"
+
+# FIPS hash mode: "auto" (QEMU-based extraction) or "manual" (use static FIPS_HASH)
+WOLFSSL_FIPS_HASH_MODE ?= "auto"
+
+# ============================================================================
+# FIPS Ready Bundle Configuration - EDIT THESE VALUES
+# ============================================================================
+
+# Bundle version
+WOLFSSL_VERSION = ""
+
+# Bundle name (extracted directory name, without extension)
+WOLFSSL_SRC = ""
+
+# Bundle archive filename (including .zip extension)
+WOLFSSL_BUNDLE_FILE = ""
+
+# Bundle SHA256 checksum
+WOLFSSL_SRC_SHA = ""
+
+# Directory containing the .zip bundle (REQUIRED - must be set)
+WOLFSSL_SRC_DIR = ""
+
+# MD5 of the COPYING (GPLv3) license file in the bundle
+WOLFSSL_LICENSE_MD5 ?= ""
+
+# FIPS hash (only needed for manual mode - set after first build)
+FIPS_HASH = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+
+# ============================================================================
+# Contact support@wolfssl.com for commercial FIPS Ready bundles
+# ============================================================================

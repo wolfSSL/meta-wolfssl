@@ -17,7 +17,7 @@ python __anonymous() {
         d,
         feature_name='libgcrypt',
         inc_file='inc/libgcrypt/libgcrypt-enable-wolfssl.inc',
-        allowed_providers=['wolfssl-fips']  # Only FIPS supported for now
+        allowed_providers=['wolfssl-fips', 'wolfssl-fips-ready']
     )
 }
 

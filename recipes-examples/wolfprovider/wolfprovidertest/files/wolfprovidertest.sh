@@ -18,6 +18,8 @@ echo "=========================================="
 if [ -f /usr/bin/unit.test ]; then
     # Use a temp directory for the tests because they expect .libs to be present
     mkdir -p /tmp/.libs
+    # Symlink the installed provider library so the test can find it
+    ln -sf /usr/lib/libwolfprov.so /tmp/.libs/libwolfprov.so
 
     # Verify certificates are installed (CERTS_DIR is compiled to point here)
     echo "Verifying test certificates..."

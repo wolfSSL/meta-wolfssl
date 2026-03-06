@@ -1,7 +1,10 @@
 # libgcrypt with wolfSSL FIPS backend
 #
 # This include file configures libgcrypt to use wolfSSL/wolfCrypt as the crypto backend.
-# Only applied when wolfssl-fips is the active provider.
+# Supports both wolfssl-fips and wolfssl-fips-ready providers.
+
+# Select the git branch based on the active wolfSSL provider
+WOLFSSL_LIBGCRYPT_BRANCH = "${@'libgcrypt-1.11.0-wolfCrypt-fips-ready' if d.getVar('PREFERRED_PROVIDER_virtual/wolfssl') == 'wolfssl-fips-ready' else 'libgcrypt-1.11.0-wolfCrypt'}"
 
 # Override to use custom git repo and version - TARGET ONLY
 
@@ -15,7 +18,7 @@ LIC_FILES_CHKSUM:class-target = "file://COPYING;md5=b234ee4d69f5fce4486a80fdaf4a
                     "
 
 # Override source to use wolfSSL-enabled git repo
-SRC_URI:class-target = "git://github.com/wolfSSL/libgcrypt-wolfssl.git;protocol=https;branch=libgcrypt-1.11.0-wolfCrypt \
+SRC_URI:class-target = "git://github.com/wolfSSL/libgcrypt-wolfssl.git;protocol=https;branch=${WOLFSSL_LIBGCRYPT_BRANCH} \
                         file://run-ptest \
                         file://wc_ptest-fixes.patch \
                         "
@@ -35,6 +38,10 @@ RDEPENDS:${PN}:append:class-target = " wolfssl"
 
 # Add wolfSSL FIPS configuration flag
 EXTRA_OECONF:append:class-target = " --enable-wolfssl-fips --with-wolfssl=${STAGING_EXECPREFIXDIR} --disable-jent-support --disable-doc"
+
+# Additional CFLAGS for fips-ready:
+#   - AES_BLOCK_SIZE is not exported by fips-ready wolfSSL headers
+CFLAGS:append:class-target = "${@' -DAES_BLOCK_SIZE=WC_AES_BLOCK_SIZE' if d.getVar('PREFERRED_PROVIDER_virtual/wolfssl') == 'wolfssl-fips-ready' else ''}"
 
 # In FIPS mode, some tests are excluded - install only tests that were actually built
 do_install_ptest:class-target() {
