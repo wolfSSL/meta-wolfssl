@@ -8,11 +8,11 @@ HOMEPAGE = "https://www.wolfssl.com/products/wolfmqtt"
 BUGTRACKER = "https://github.com/wolfssl/wolfmqtt/issues"
 SECTION = "libs"
 LICENSE = "GPL-2.0-only"
-LIC_FILES_CHKSUM = "file://LICENSE;md5=2c1c00f9d3ed9e24fa69b932b7e7aff2"
+LIC_FILES_CHKSUM = "file://LICENSE;md5=d32239bcb673463ab874e80d47fae504"
 
 DEPENDS += "virtual/wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;nobranch=1;protocol=https;rev=320ed37633f896cf2485c9c5f8bed3400ae8b4d5"
+SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;nobranch=1;protocol=https;rev=0afcd8d342e30c440236482e8a50e909a04c455e"
 
 
 S = "${WORKDIR}/git"
