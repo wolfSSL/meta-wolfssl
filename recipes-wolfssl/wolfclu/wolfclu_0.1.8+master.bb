@@ -12,7 +12,7 @@ RPROVIDES_${PN} = "wolfclu"
 
 DEPENDS += "virtual/wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfclu.git;nobranch=1;protocol=https;rev=439a801afb3b9050af7906479300afb29f7b72ff"
+SRC_URI = "git://github.com/wolfssl/wolfclu.git;nobranch=1;protocol=https;rev=a17667097d253c97d8f7110e214ea90e2be5e1bd"
 
 S = "${WORKDIR}/git"
 
