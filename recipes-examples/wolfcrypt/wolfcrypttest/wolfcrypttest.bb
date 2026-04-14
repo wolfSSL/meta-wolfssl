@@ -6,7 +6,7 @@ BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
 SECTION = "x11/applications"
 
 LICENSE = "GPL-3.0-only"
-LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=928770bfaa2d2704ecffeb131cc7bfd8"
+LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=881a8045bc665f7843d064f4465c360a"
 S = "${WORKDIR}/git/wolfcrypt/test"
 DEPENDS += "virtual/wolfssl"
 
