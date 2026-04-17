@@ -3,7 +3,7 @@ def wolfprovider_get_unittest_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("wolfprovider-enable-unittest.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"wolfprovider-enable-unittest.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -21,7 +21,7 @@ def wolfprovider_get_unittest_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/wolfprovider/wolfprovider-enable-unittest-legacy.inc')
 
-    bb.note("wolfprovider-enable-unittest.inc: Including file: %s" % inc_file)
+    bb.debug(2,"wolfprovider-enable-unittest.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file

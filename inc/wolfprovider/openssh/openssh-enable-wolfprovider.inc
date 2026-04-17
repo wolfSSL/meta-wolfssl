@@ -3,7 +3,7 @@ def openssh_get_wolfprovider_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("openssh-enable-wolfprovider.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"openssh-enable-wolfprovider.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -34,7 +34,7 @@ def openssh_get_wolfprovider_inc(d):
         # If no codename detected, use scarthgap as default
         inc_file = os.path.join(layerdir, 'inc/wolfprovider/openssh/scarthgap/openssh-enable-wolfprovider-%s.inc' % file_type)
 
-    bb.note("openssh-enable-wolfprovider.inc: Including file: %s" % inc_file)
+    bb.debug(2,"openssh-enable-wolfprovider.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file

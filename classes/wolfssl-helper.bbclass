@@ -101,7 +101,7 @@ def wolfssl_conditional_require_mode(d, package_name, mode, inc_file=None):
             bb.debug(2, f"{package_name}: {mode_var_name}='{current_mode_str}' does not contain '{single_mode}' - skipping")
             continue
 
-        bb.note(f"{package_name}: {mode_var_name}='{current_mode_str}' contains '{single_mode}' mode - including {single_inc}")
+        bb.debug(2, f"{package_name}: {mode_var_name}='{current_mode_str}' contains '{single_mode}' mode - including {single_inc}")
         full_inc_file = os.path.join(layerdir, single_inc)
         bb.parse.mark_dependency(d, full_inc_file)
         try:
@@ -157,7 +157,7 @@ def wolfssl_conditional_require_flag(d, flag_name, inc_file):
         return False
 
     # Flag found in list - include the configuration
-    bb.note(f"{package_name}: {flags_var_name}='{current_flags_str}' contains '{flag_name}' flag - including {inc_file}")
+    bb.debug(2, f"{package_name}: {flags_var_name}='{current_flags_str}' contains '{flag_name}' flag - including {inc_file}")
 
     layerdir = d.getVar('WOLFSSL_LAYERDIR')
     if not layerdir:

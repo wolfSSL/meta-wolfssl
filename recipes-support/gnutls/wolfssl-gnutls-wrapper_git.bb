@@ -33,7 +33,8 @@ EXTRA_OEMAKE = " \
 "
 
 python __anonymous() {
-    wolfssl_varAppendNonOverride(d, 'CFLAGS', ' -I${STAGING_INCDIR} -DENABLE_WOLFSSL -fPIC')
+    fips_ready_cflags = ' -DAES_BLOCK_SIZE=WC_AES_BLOCK_SIZE' if d.getVar('PREFERRED_PROVIDER_virtual/wolfssl') == 'wolfssl-fips-ready' else ''
+    wolfssl_varAppendNonOverride(d, 'CFLAGS', ' -I${STAGING_INCDIR} -DENABLE_WOLFSSL -fPIC' + fips_ready_cflags)
     wolfssl_varAppendNonOverride(d, 'LDFLAGS', ' -L${STAGING_LIBDIR} -Wl,-rpath,${libdir} -Wl,-rpath,${WOLFSSL_GNUTLS_PREFIX}/lib -Wl,--no-as-needed -Wl,-z,now')
 }
 

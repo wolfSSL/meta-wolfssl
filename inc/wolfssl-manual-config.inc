@@ -3,7 +3,7 @@ def wolfssl_get_manual_config_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("wolfssl-manual-config.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"wolfssl-manual-config.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -21,7 +21,7 @@ def wolfssl_get_manual_config_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/wolfssl-manual-config-legacy.inc')
 
-    bb.note("wolfssl-manual-config.inc: Including file: %s" % inc_file)
+    bb.debug(2,"wolfssl-manual-config.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file

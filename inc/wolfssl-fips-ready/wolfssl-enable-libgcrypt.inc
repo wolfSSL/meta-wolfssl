@@ -1,9 +1,9 @@
 # Check Yocto version and include appropriate file
-def wolfssl_get_wolfclu_inc(d):
+def wolfssl_get_fips_ready_libgcrypt_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.debug(2,"wolfssl-enable-wolfclu.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"wolfssl-fips-ready/wolfssl-enable-libgcrypt.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -17,12 +17,12 @@ def wolfssl_get_wolfclu_inc(d):
 
     layerdir = d.getVar('WOLFSSL_LAYERDIR')
     if use_modern:
-        inc_file = os.path.join(layerdir, 'inc/wolfclu/wolfssl-enable-wolfclu-modern.inc')
+        inc_file = os.path.join(layerdir, 'inc/wolfssl-fips-ready/wolfssl-enable-libgcrypt-modern.inc')
     else:
-        inc_file = os.path.join(layerdir, 'inc/wolfclu/wolfssl-enable-wolfclu-legacy.inc')
+        inc_file = os.path.join(layerdir, 'inc/wolfssl-fips-ready/wolfssl-enable-libgcrypt-legacy.inc')
 
-    bb.debug(2,"wolfssl-enable-wolfclu.inc: Including file: %s" % inc_file)
+    bb.debug(2,"wolfssl-fips-ready/wolfssl-enable-libgcrypt.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file
-require ${@wolfssl_get_wolfclu_inc(d)}
+require ${@wolfssl_get_fips_ready_libgcrypt_inc(d)}

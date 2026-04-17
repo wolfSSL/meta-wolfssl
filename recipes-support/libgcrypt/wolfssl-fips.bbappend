@@ -14,7 +14,7 @@ python __anonymous() {
     wolfssl_features = d.getVar('WOLFSSL_FEATURES') or ''
     
     if 'libgcrypt' in wolfssl_features.split():
-        bb.note("libgcrypt in WOLFSSL_FEATURES - configuring wolfssl-fips for libgcrypt support")
+        bb.debug(2, "libgcrypt in WOLFSSL_FEATURES - configuring wolfssl-fips for libgcrypt support")
         # Use the helper to include the configuration
         wolfssl_conditional_require(d, 'libgcrypt', 'inc/wolfssl-fips/wolfssl-enable-libgcrypt.inc')
 }

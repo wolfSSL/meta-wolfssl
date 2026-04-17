@@ -3,7 +3,7 @@ def wolfssl_get_wolfengine_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("wolfssl-enable-wolfengine.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"wolfssl-enable-wolfengine.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -21,7 +21,7 @@ def wolfssl_get_wolfengine_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/wolfengine/wolfssl-enable-wolfengine-legacy.inc')
 
-    bb.note("wolfssl-enable-wolfengine.inc: Including file: %s" % inc_file)
+    bb.debug(2,"wolfssl-enable-wolfengine.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file
