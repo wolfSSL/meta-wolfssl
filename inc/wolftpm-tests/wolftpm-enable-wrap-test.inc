@@ -3,7 +3,7 @@ def wolftpm_get_wrap_test_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("wolftpm-enable-wrap-test.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"wolftpm-enable-wrap-test.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -21,7 +21,7 @@ def wolftpm_get_wrap_test_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/wolftpm-tests/wolftpm-enable-wrap-test-legacy.inc')
 
-    bb.note("wolftpm-enable-wrap-test.inc: Including file: %s" % inc_file)
+    bb.debug(2,"wolftpm-enable-wrap-test.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file

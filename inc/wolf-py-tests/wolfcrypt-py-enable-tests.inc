@@ -3,7 +3,7 @@ def wolfcrypt_py_get_tests_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("wolfcrypt-py-enable-tests.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"wolfcrypt-py-enable-tests.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -21,7 +21,7 @@ def wolfcrypt_py_get_tests_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/wolf-py-tests/wolfcrypt-py-enable-tests-legacy.inc')
 
-    bb.note("wolfcrypt-py-enable-tests.inc: Including file: %s" % inc_file)
+    bb.debug(2,"wolfcrypt-py-enable-tests.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file

@@ -3,7 +3,7 @@ def gnutls_get_wolfssl_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("gnutls-enable-wolfssl.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"gnutls-enable-wolfssl.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -23,7 +23,7 @@ def gnutls_get_wolfssl_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/gnutls/%s/gnutls-enable-wolfssl-legacy.inc' % codename)
 
-    bb.note("gnutls-enable-wolfssl.inc: Including file: %s" % inc_file)
+    bb.debug(2,"gnutls-enable-wolfssl.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file

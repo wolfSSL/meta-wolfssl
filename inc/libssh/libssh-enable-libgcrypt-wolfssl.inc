@@ -3,7 +3,7 @@ def libssh_get_libgcrypt_wolfssl_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("libssh-enable-libgcrypt-wolfssl.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"libssh-enable-libgcrypt-wolfssl.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -23,7 +23,7 @@ def libssh_get_libgcrypt_wolfssl_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/libssh/%s/libssh-enable-libgcrypt-wolfssl-legacy.inc' % codename)
 
-    bb.note("libssh-enable-libgcrypt-wolfssl.inc: Including file: %s" % inc_file)
+    bb.debug(2,"libssh-enable-libgcrypt-wolfssl.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file
