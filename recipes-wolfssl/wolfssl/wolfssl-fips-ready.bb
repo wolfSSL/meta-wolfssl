@@ -72,7 +72,4 @@ TARGET_CFLAGS += "-DFP_MAX_BITS=16384"
 EXTRA_OECONF += " \
     --enable-fips=ready \
     --enable-reproducible-build \
-    --enable-smallstack \
-    --enable-sp-math-all \
-    --disable-sp \
 "
