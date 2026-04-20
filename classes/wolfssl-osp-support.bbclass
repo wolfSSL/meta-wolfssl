@@ -74,11 +74,11 @@ def wolfssl_osp_conditional_include(d, feature_name, inc_file, allowed_providers
 
     # Check if current provider is in the allowed list
     if current_provider not in allowed_providers:
-        bb.note(f"{feature_name}: PREFERRED_PROVIDER is '{current_provider}', but only {allowed_providers} are supported - skipping wolfSSL backend")
+        bb.debug(2, f"{feature_name}: PREFERRED_PROVIDER is '{current_provider}', but only {allowed_providers} are supported - skipping wolfSSL backend")
         return False
 
     # Both conditions met - include the configuration
-    bb.note(f"{feature_name}: WOLFSSL_FEATURES enabled + provider '{current_provider}' allowed - enabling wolfSSL backend")
+    bb.debug(2, f"{feature_name}: WOLFSSL_FEATURES enabled + provider '{current_provider}' allowed - enabling wolfSSL backend")
 
     # Resolve full path to include file
     layer_dir = d.getVar('WOLFSSL_LAYERDIR')
@@ -130,11 +130,11 @@ def wolfssl_conditional_include_ext(d, enable_for, inc_file, allowed_providers=N
 
     # Check if current provider is in the allowed list
     if current_provider not in allowed_providers:
-        bb.note(f"{enable_for}: PREFERRED_PROVIDER is '{current_provider}', but only {allowed_providers} are supported - skipping wolfSSL backend")
+        bb.debug(2, f"{enable_for}: PREFERRED_PROVIDER is '{current_provider}', but only {allowed_providers} are supported - skipping wolfSSL backend")
         return False
 
     # All conditions met - include the configuration
-    bb.note(f"{enable_for}: IMAGE_INSTALL/WOLFSSL_FEATURES enabled + provider '{current_provider}' allowed - enabling wolfSSL backend")
+    bb.debug(2, f"{enable_for}: IMAGE_INSTALL/WOLFSSL_FEATURES enabled + provider '{current_provider}' allowed - enabling wolfSSL backend")
 
     # Resolve full path to include file
     layer_dir = d.getVar('WOLFSSL_LAYERDIR')
@@ -213,7 +213,7 @@ def wolfssl_osp_include_if_provider(d, inc_file, allowed_providers):
         bb.debug(2, f"Current provider '{current_provider}' not in {allowed_providers} - skipping configuration")
         return False
 
-    bb.note(f"Provider '{current_provider}' matches - including {inc_file}")
+    bb.debug(2, f"Provider '{current_provider}' matches - including {inc_file}")
 
     # Resolve full path to include file
     layer_dir = d.getVar('WOLFSSL_LAYERDIR')

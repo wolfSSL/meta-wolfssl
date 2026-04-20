@@ -3,7 +3,7 @@ def wolfssl_get_wolfpkcs11_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("wolfssl-enable-wolfpkcs11.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"wolfssl-enable-wolfpkcs11.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -21,7 +21,7 @@ def wolfssl_get_wolfpkcs11_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/wolfpkcs11/wolfssl-enable-wolfpkcs11-legacy.inc')
 
-    bb.note("wolfssl-enable-wolfpkcs11.inc: Including file: %s" % inc_file)
+    bb.debug(2,"wolfssl-enable-wolfpkcs11.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file

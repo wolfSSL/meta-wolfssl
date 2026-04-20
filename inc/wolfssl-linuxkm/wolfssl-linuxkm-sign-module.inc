@@ -3,7 +3,7 @@ def wolfssl_linuxkm_get_sign_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("wolfssl-linuxkm-sign-module.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"wolfssl-linuxkm-sign-module.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     use_modern = False
     codename = None
@@ -22,7 +22,7 @@ def wolfssl_linuxkm_get_sign_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/wolfssl-linuxkm/%s/wolfssl-linuxkm-sign-module-legacy.inc' % codename)
 
-    bb.note("wolfssl-linuxkm-sign-module.inc: Including file: %s" % inc_file)
+    bb.debug(2,"wolfssl-linuxkm-sign-module.inc: Including file: %s" % inc_file)
     return inc_file
 
 require ${@wolfssl_linuxkm_get_sign_inc(d)}

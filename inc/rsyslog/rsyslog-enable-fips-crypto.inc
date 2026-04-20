@@ -3,7 +3,7 @@ def rsyslog_get_fips_crypto_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("rsyslog-enable-fips-crypto.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"rsyslog-enable-fips-crypto.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -23,7 +23,7 @@ def rsyslog_get_fips_crypto_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/rsyslog/%s/rsyslog-enable-fips-crypto-legacy.inc' % codename)
 
-    bb.note("rsyslog-enable-fips-crypto.inc: Including file: %s" % inc_file)
+    bb.debug(2,"rsyslog-enable-fips-crypto.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file

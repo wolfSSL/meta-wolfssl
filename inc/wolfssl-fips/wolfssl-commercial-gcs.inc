@@ -3,7 +3,7 @@ def wolfssl_get_commercial_gcs_inc(d):
     import os
     layerseries = d.getVar('LAYERSERIES_CORENAMES') or ""
 
-    bb.note("wolfssl-commercial-gcs.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
+    bb.debug(2,"wolfssl-commercial-gcs.inc: LAYERSERIES_CORENAMES = %s" % layerseries)
 
     # Check if version is 3.1 or newer (dunfell and later)
     use_modern = False
@@ -21,7 +21,7 @@ def wolfssl_get_commercial_gcs_inc(d):
     else:
         inc_file = os.path.join(layerdir, 'inc/wolfssl-fips/wolfssl-commercial-gcs-legacy.inc')
 
-    bb.note("wolfssl-commercial-gcs.inc: Including file: %s" % inc_file)
+    bb.debug(2,"wolfssl-commercial-gcs.inc: Including file: %s" % inc_file)
     return inc_file
 
 # Include the appropriate file
