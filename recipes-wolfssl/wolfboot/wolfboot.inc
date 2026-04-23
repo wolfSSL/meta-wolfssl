@@ -20,10 +20,10 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=1ebbd3e34237af26da5dc08a4e440464"
 # hal_dts_fixup / MMU-cleanup-before-Linux / SDHCI cold-boot retry path
 # needed for PetaLinux 2025.2 on ZCU102).
 SRC_URI = " \
-    git://github.com/wolfssl/wolfBoot.git;protocol=https;branch=master;name=wolfboot;destsuffix=git \
+    git://github.com/dgarske/wolfBoot.git;protocol=https;branch=zynqmp_bb;name=wolfboot;destsuffix=git \
     git://github.com/wolfssl/wolfssl.git;protocol=https;branch=master;name=wolfssl;destsuffix=git/lib/wolfssl \
 "
-SRCREV_wolfboot ?= "58c2e044a606c1e077483aa09822bb0fa9127967"
+SRCREV_wolfboot ?= "0cecff09ab7ff2aec933bfe94347eed1286be4ac"
 SRCREV_wolfssl  ?= "c4c71eece3e6eae7042a16fffdebf9bd80a4f2a1"
 SRCREV_FORMAT    = "wolfboot_wolfssl"
 
