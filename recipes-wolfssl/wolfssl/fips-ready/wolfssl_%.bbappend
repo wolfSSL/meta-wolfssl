@@ -11,6 +11,7 @@ inherit wolfssl-compatibility
 S = "${WORKDIR}/${WOLFSSL_SRC}"
 
 do_configure_disable_autogen() {
+    mkdir -p ${S}
     echo -e "#!/bin/sh\nexit 0" > ${S}/autogen.sh
     chmod +x ${S}/autogen.sh
 }

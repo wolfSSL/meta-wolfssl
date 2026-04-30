@@ -26,6 +26,7 @@ inherit wolfssl-commercial wolfssl-compatibility
 
 # Ensure autogen.sh never runs for commercial bundles
 do_configure_disable_autogen() {
+    mkdir -p ${S}
     echo -e "#!/bin/sh\nexit 0" > ${S}/autogen.sh
     chmod +x ${S}/autogen.sh
 }
