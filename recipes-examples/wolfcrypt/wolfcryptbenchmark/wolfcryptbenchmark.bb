@@ -7,7 +7,7 @@ SECTION = "x11/applications"
 
 LICENSE = "GPL-3.0-only"
 LIC_FILES_CHKSUM = "file://benchmark.c;beginline=1;endline=20;md5=34cdd4008eba44b62a19f9700e60d888"
-S = "${WORKDIR}/git/wolfcrypt/benchmark"
+S = "${UNPACKDIR}/${BP}/wolfcrypt/benchmark"
 DEPENDS += "virtual/wolfssl"
 
 inherit wolfssl-compatibility

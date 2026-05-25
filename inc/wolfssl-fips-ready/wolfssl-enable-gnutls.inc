@@ -9,7 +9,7 @@ def wolfssl_get_fips_ready_gnutls_inc(d):
     use_modern = False
     if layerseries:
         series_list = layerseries.split()
-        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap', 'wrynose']
         for series in series_list:
             if series in modern_series:
                 use_modern = True

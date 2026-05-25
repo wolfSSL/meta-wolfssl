@@ -10,7 +10,7 @@ def rsyslog_get_fips_crypto_inc(d):
     codename = None
     if layerseries:
         series_list = layerseries.split()
-        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap']
+        modern_series = ['dunfell', 'gatesgarth', 'hardknott', 'honister', 'kirkstone', 'langdale', 'mickledore', 'nanbield', 'scarthgap', 'wrynose']
         for series in series_list:
             codename = series
             if series in modern_series:

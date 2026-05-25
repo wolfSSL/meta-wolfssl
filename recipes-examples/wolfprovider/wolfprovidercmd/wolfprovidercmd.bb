@@ -19,8 +19,6 @@ SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;r
            file://wolfprovidercmd.sh"
 
 
-S = "${WORKDIR}/git"
-
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"
 

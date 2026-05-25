@@ -14,8 +14,6 @@ DEPENDS += "virtual/wolfssl"
 
 SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=1c61ff6c826bfcf8e1094817b44735720ecff160"
 
-S = "${WORKDIR}/git"
-
 inherit autotools pkgconfig wolfssl-helper wolfssl-compatibility
 
 python __anonymous() {

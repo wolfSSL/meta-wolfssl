@@ -22,14 +22,12 @@ DEPENDS += " virtual/wolfssl \
              python3 \ 
            "
 
-RDEPENDS_${PN} += " wolfssl \
+RDEPENDS:${PN} += " wolfssl \
                     python3 \
                     python3-cffi \
                   "
 
 inherit setuptools3  
-
-S = "${WORKDIR}/git"
 
 export USE_LOCAL_WOLFSSL="${STAGING_EXECPREFIXDIR}"
 

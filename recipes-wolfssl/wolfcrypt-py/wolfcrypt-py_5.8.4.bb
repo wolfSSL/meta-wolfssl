@@ -33,8 +33,6 @@ python __anonymous() {
     wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl python3 python3-cffi')
 }
 
-S = "${WORKDIR}/git"
-
 export USE_LOCAL_WOLFSSL="${STAGING_EXECPREFIXDIR}"
 # Add reproducible build flags
 CFLAGS += " -g0 -O2 -ffile-prefix-map=${WORKDIR}=."

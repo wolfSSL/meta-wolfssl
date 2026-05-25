@@ -8,7 +8,7 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
 DEPENDS += "util-linux-native"
 
 PROVIDES += "wolfprovider"
-RPROVIDES_${PN} = "wolfprovider"
+RPROVIDES:${PN} = "wolfprovider"
 
 SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=046f4ac583ca7612386f4c38ca29a9d191785aa8"
 
@@ -25,8 +25,6 @@ python __anonymous() {
     wolfssl_varAppend(d, 'FILES', '${PN}', ' ${sysconfdir}/ssl/openssl.cnf.d/wolfprovider*.conf')
     wolfssl_varAppend(d, 'INSANE_SKIP', '${PN}', ' dev-so')
 }
-
-S = "${WORKDIR}/git"
 
 # Install provider module symlink (autotools already creates libwolfprov.so symlinks)
 install_provider_module() {
