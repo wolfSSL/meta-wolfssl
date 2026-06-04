@@ -19,7 +19,12 @@ DEPENDS += " wolfssl-py \
 
 inherit wolfssl-compatibility
 
-S = "${WORKDIR}/git"
+python () {
+    if d.getVar('UNPACKDIR', False):
+        d.setVar('S', '${UNPACKDIR}/${BP}')
+    else:
+        d.setVar('S', '${WORKDIR}/git')
+}
 
 do_configure[noexec] = "1"
 do_compile[noexec] = "1"

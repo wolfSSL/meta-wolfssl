@@ -89,19 +89,23 @@ def get_commercial_source_dir(d):
     workdir = d.getVar('WORKDIR')
     bundle_name = d.getVar('COMMERCIAL_BUNDLE_NAME')
 
+    # wrynose+ rejects S == bare WORKDIR; fall back to UNPACKDIR where it exists
+    # (the no-bundle parse-time default), keeping WORKDIR on older releases.
+    default_root = d.getVar('UNPACKDIR') or workdir
+
     # Check for direct source directory - return the copy location in WORKDIR
     src_dir = d.getVar('COMMERCIAL_BUNDLE_SRC_DIR')
     if src_dir and src_dir.strip() and not src_dir.startswith('${'):
         # do_commercial_extract will copy to WORKDIR/bundle_name
         if bundle_name and bundle_name.strip() and not bundle_name.startswith('${'):
             return f'{workdir}/{bundle_name}'
-        # Fallback to workdir if bundle_name not set
-        return workdir
+        # Fallback when bundle_name not set
+        return default_root
 
     # Check if bundle_name is actually set (not empty, None, or unexpanded variable)
     if bundle_name and bundle_name.strip() and not bundle_name.startswith('${'):
         return f'{workdir}/{bundle_name}'
-    return workdir
+    return default_root
 
 def get_commercial_bbclassextend(d):
     """Return BBCLASSEXTEND variants only when commercial bundle is configured"""

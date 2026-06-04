@@ -24,4 +24,9 @@ SRCREV_wolfboot ?= "9a667f2a7527da2b8e490ae7923665321af2d3ac"
 SRCREV_wolfssl  ?= "1d363f3adceba9d1478230ede476a37b0dcdef24"
 SRCREV_FORMAT    = "wolfboot_wolfssl"
 
-S = "${WORKDIR}/git"
+python () {
+    if d.getVar('UNPACKDIR', False):
+        d.setVar('S', '${UNPACKDIR}/${BP}')
+    else:
+        d.setVar('S', '${WORKDIR}/git')
+}

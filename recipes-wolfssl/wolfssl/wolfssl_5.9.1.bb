@@ -8,13 +8,21 @@ LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
 DEPENDS += "util-linux-native"
 
 PROVIDES += "wolfssl virtual/wolfssl"
-RPROVIDES_${PN} = "wolfssl"
 
 SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=1d363f3adceba9d1478230ede476a37b0dcdef24"
 
-S = "${WORKDIR}/git"
+python () {
+    if d.getVar('UNPACKDIR', False):
+        d.setVar('S', '${UNPACKDIR}/${BP}')
+    else:
+        d.setVar('S', '${WORKDIR}/git')
+}
 
-inherit autotools pkgconfig wolfssl-helper
+inherit autotools pkgconfig wolfssl-helper wolfssl-compatibility
+
+python __anonymous() {
+    wolfssl_varSet(d, 'RPROVIDES', '${PN}', 'wolfssl')
+}
 
 # Skip the package check for wolfssl itself (it's the base library)
 deltask do_wolfssl_check_package

@@ -22,14 +22,18 @@ DEPENDS += " virtual/wolfssl \
              python3 \ 
            "
 
-RDEPENDS_${PN} += " wolfssl \
-                    python3 \
-                    python3-cffi \
-                  "
+inherit setuptools3 wolfssl-compatibility
 
-inherit setuptools3  
+python __anonymous() {
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl python3 python3-cffi')
+}
 
-S = "${WORKDIR}/git"
+python () {
+    if d.getVar('UNPACKDIR', False):
+        d.setVar('S', '${UNPACKDIR}/${BP}')
+    else:
+        d.setVar('S', '${WORKDIR}/git')
+}
 
 export USE_LOCAL_WOLFSSL="${STAGING_EXECPREFIXDIR}"
 

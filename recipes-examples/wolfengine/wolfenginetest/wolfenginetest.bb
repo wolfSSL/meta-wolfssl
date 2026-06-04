@@ -17,17 +17,24 @@ SRC_URI = "file://wolfenginetest.c \
            file://wolfengineenv.sh \
           "
 
-S = "${WORKDIR}"
+# wrynose+ bitbake forbids S = "${WORKDIR}"; use UNPACKDIR (where file:// unpacks)
+# and fall back to WORKDIR on older releases that don't define it.
+python () {
+    if d.getVar('UNPACKDIR', False):
+        d.setVar('S', '${UNPACKDIR}')
+    else:
+        d.setVar('S', '${WORKDIR}')
+}
 
 do_compile() {
-    ${CC} ${WORKDIR}/wolfenginetest.c -o wolfenginetest \
+    ${CC} ${S}/wolfenginetest.c -o wolfenginetest \
         ${CFLAGS} ${LDFLAGS} $(pkg-config --cflags --libs openssl) -ldl -lwolfssl -lwolfengine
 }
 
 do_install() {
     install -d ${D}${bindir}
-    install -m 0755 ${WORKDIR}/wolfenginetest ${D}${bindir}/wolfenginetest
-    install -m 0755 ${WORKDIR}/wolfengineenv.sh ${D}${bindir}/wolfengineenv
+    install -m 0755 ${S}/wolfenginetest ${D}${bindir}/wolfenginetest
+    install -m 0755 ${S}/wolfengineenv.sh ${D}${bindir}/wolfengineenv
 
 }
 

@@ -24,19 +24,26 @@ SRC_URI = "file://wolfproviderenv.c \
 SRC_URI[provider_conf.sha256sum] = "3ad9e7cf5aefb9d36b9482232365094f42390f3ef03778fa84c3efb39d48e4c2"
 SRC_URI[provider_fips_conf.sha256sum] = "0b2174ab296aefa9a3f1fe40ccf0b988b25d09188ae5abad27fb60923754e98f"
 
-S = "${WORKDIR}"
+# wrynose+ bitbake forbids S = "${WORKDIR}"; use UNPACKDIR (where file:// unpacks)
+# and fall back to WORKDIR on older releases that don't define it.
+python () {
+    if d.getVar('UNPACKDIR', False):
+        d.setVar('S', '${UNPACKDIR}')
+    else:
+        d.setVar('S', '${WORKDIR}')
+}
 
 inherit pkgconfig
 
 do_compile() {
-    ${CC} ${WORKDIR}/wolfproviderenv.c -o wolfproviderverify \
+    ${CC} ${S}/wolfproviderenv.c -o wolfproviderverify \
         ${CFLAGS} ${LDFLAGS} $(pkg-config --cflags --libs openssl) -ldl -lwolfssl -lwolfprov
 }
 
 do_install() {
     install -d ${D}${bindir}
-    install -m 0755 ${WORKDIR}/wolfproviderverify ${D}${bindir}/wolfproviderverify
-    install -m 0755 ${WORKDIR}/wolfproviderenv.sh ${D}${bindir}/wolfproviderenv
+    install -m 0755 ${S}/wolfproviderverify ${D}${bindir}/wolfproviderverify
+    install -m 0755 ${S}/wolfproviderenv.sh ${D}${bindir}/wolfproviderenv
 }
 
 python __anonymous() {

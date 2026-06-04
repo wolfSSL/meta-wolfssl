@@ -15,7 +15,12 @@ DEPENDS += "virtual/wolfssl"
 SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;nobranch=1;protocol=https;rev=88d37edd4569d07ed3896273fdea9e80a117de76"
 
 
-S = "${WORKDIR}/git"
+python () {
+    if d.getVar('UNPACKDIR', False):
+        d.setVar('S', '${UNPACKDIR}/${BP}')
+    else:
+        d.setVar('S', '${WORKDIR}/git')
+}
 
 inherit autotools pkgconfig wolfssl-helper wolfssl-compatibility
 
