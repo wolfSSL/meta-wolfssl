@@ -26,7 +26,12 @@ SRC_URI = "git://github.com/wolfSSL/wolfssl.git;protocol=https;branch=master"
 SRCREV = "569a5e03882c4cdef9e99f3a4cfcee96bc25c2cb"
 
 # After git fetch, S is the git checkout
-S = "${WORKDIR}/git"
+python () {
+    if d.getVar('UNPACKDIR', False):
+        d.setVar('S', '${UNPACKDIR}/${BP}')
+    else:
+        d.setVar('S', '${WORKDIR}/git')
+}
 
 # Build in-tree; wolfSSL's configure expects linuxkm/ under the build dir
 B = "${S}"

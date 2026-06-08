@@ -19,7 +19,12 @@ python __anonymous() {
 SRC_URI = "git://github.com/wolfssl/gnutls-wolfssl.git;protocol=https;branch=main;destsuffix=git"
 SRCREV = "${AUTOREV}"
 
-S = "${WORKDIR}/git/wolfssl-gnutls-wrapper"
+python () {
+    if d.getVar('UNPACKDIR', False):
+        d.setVar('S', '${UNPACKDIR}/${BP}/wolfssl-gnutls-wrapper')
+    else:
+        d.setVar('S', '${WORKDIR}/git/wolfssl-gnutls-wrapper')
+}
 
 # Custom installation prefix
 WOLFSSL_GNUTLS_PREFIX = "/opt/wolfssl-gnutls-wrapper"
