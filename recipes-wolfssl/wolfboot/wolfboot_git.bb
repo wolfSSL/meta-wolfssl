@@ -7,7 +7,7 @@ the second-stage bootloader (FSBL -> PMU FW -> ATF (EL3) -> wolfBoot \
 
 require wolfboot.inc
 
-inherit deploy
+inherit deploy wolfssl-compatibility
 
 # Which config/examples/*.config template to build against. Override in
 # local.conf / image recipe to target a different board or boot medium.
@@ -170,8 +170,13 @@ do_deploy() {
 addtask deploy before do_build after do_compile
 
 # wolfBoot is a bare-metal bootloader -- skip QA checks that assume a
-# hosted Linux binary.
-INSANE_SKIP:${PN} = "ldflags textrel buildpaths"
+# hosted Linux binary. Use the compatibility helpers so the package
+# override resolves to the right separator (colon vs underscore) across
+# Yocto versions -- older releases such as Thud still use underscore
+# overrides and cannot parse the colon syntax.
+python __anonymous() {
+    wolfssl_varSet(d, 'INSANE_SKIP', '${PN}', 'ldflags textrel buildpaths')
+    wolfssl_varSet(d, 'FILES', '${PN}', '/boot/wolfboot.elf')
+}
 
-FILES:${PN} = "/boot/wolfboot.elf"
 SYSROOT_DIRS += "/boot"
