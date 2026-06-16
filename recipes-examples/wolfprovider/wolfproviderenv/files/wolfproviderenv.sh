@@ -80,8 +80,13 @@ if [ -f /etc/wolfssl/fips-enabled ]; then
     fi
 fi
 # Method 2: Check runtime detection for FIPS mode
+# Load the module directly so detection works before openssl.cnf is seeded
+# (first boot); fall back to the provider listing.
 RUNTIME_FIPS=-1
-PROVIDER_FIPS=$(openssl list -providers 2>/dev/null | grep "name:" | grep -i "wolfSSL Provider FIPS")
+PROVIDER_FIPS=$(openssl list -providers -provider libwolfprov 2>/dev/null | grep "name:" | grep -i "wolfSSL Provider FIPS")
+if [ -z "$PROVIDER_FIPS" ]; then
+    PROVIDER_FIPS=$(openssl list -providers 2>/dev/null | grep "name:" | grep -i "wolfSSL Provider FIPS")
+fi
 if [ -n "$PROVIDER_FIPS" ]; then
     RUNTIME_FIPS=1
     echo "Detected wolfSSL FIPS build (runtime detection)"
