@@ -8,7 +8,7 @@ DESCRIPTION = "The wolfSSL SSL/TLS library is a lightweight, portable, \
 HOMEPAGE = "https://www.wolfssl.com/products/wolfssl"
 BUGTRACKER = "https://github.com/wolfSSL/wolfssl-py/issues"
 SECTION = "libs"
-LICENSE = "GPL-2.0-only"
+LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://LICENSING.rst;md5=e4abd0c56c3f6dc95a7a7eed4c77414b"
 
 SRC_URI = "git://github.com/wolfSSL/wolfssl-py.git;nobranch=1;protocol=https;rev=05433e92b6faa37bd584d28f1a898c97cfccb20d"

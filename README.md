@@ -833,7 +833,7 @@ https://www.wolfssl.com
 License
 -------
 
-wolfSSL is open source and dual licensed under both the GPLv2 and a
+wolfSSL is open source and dual licensed under both the GPLv2 or later and a
 standard commercial license. wolfSSL also offers commercial licensing for
 our [FIPS-validated wolfCrypt module](https://www.wolfssl.com/license/fips/).
 For commercial license questions, please contact wolfSSL at

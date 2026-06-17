@@ -2,7 +2,7 @@ SUMMARY = "wolfSSL FIPS Ready Linux kernel module (libwolfssl.ko)"
 DESCRIPTION = "Out-of-tree Linux kernel module for wolfSSL/wolfCrypt with FIPS Ready cryptography"
 
 # FIPS Ready bundles ship under GPL-3.0
-LICENSE = "GPL-3.0-only"
+LICENSE = "GPL-3.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=${WOLFSSL_LICENSE_MD5}"
 
 DEPENDS += "virtual/kernel openssl-native unzip-native"
