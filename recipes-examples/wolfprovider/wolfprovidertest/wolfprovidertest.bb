@@ -5,7 +5,7 @@ BUGTRACKER = "https://github.com/wolfssl/wolfprovider/issues"
 SECTION = "examples"
 
 LICENSE = "GPL-3.0-or-later"
-LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/GPL-3.0-or-later;md5=c79ff39f19dfec6d293b95dea7b07891"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0-or-later;md5=1c76c4cc354acaac30ed4d5eefea7245"
 DEPENDS += "wolfprovider"
 
 inherit wolfssl-compatibility

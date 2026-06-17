@@ -4,8 +4,7 @@ provider and delegates cryptographic operations to wolfSSL."
 HOMEPAGE = "https://github.com/wolfssl/gnutls-wolfssl"
 SECTION = "libs"
 LICENSE = "GPL-3.0-or-later"
-# TODO: update LIC_FILES_CHKSUM md5 to match GPL-3.0-or-later
-LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0-or-later;md5=d32239bcb673463ab874e80d47fae504"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0-or-later;md5=1c76c4cc354acaac30ed4d5eefea7245"
 
 PV = "1.0+git${SRCPV}"
 

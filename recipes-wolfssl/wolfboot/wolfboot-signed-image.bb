@@ -7,7 +7,7 @@ flashing to the OFP_A / OFP_B partitions of an A/B-enabled SD card or QSPI."
 HOMEPAGE = "https://github.com/wolfssl/wolfBoot"
 SECTION = "bootloaders"
 LICENSE = "GPL-3.0-or-later"
-LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0-only;md5=c79ff39f19dfec6d293b95dea7b07891"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0-or-later;md5=1c76c4cc354acaac30ed4d5eefea7245"
 
 inherit deploy
 
