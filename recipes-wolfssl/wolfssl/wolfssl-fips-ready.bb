@@ -8,7 +8,7 @@ HOMEPAGE = "https://www.wolfssl.com/products/wolfssl-fips/"
 BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
 SECTION = "libs"
 
-LICENSE = "GPL-3.0-only"
+LICENSE = "GPL-3.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=${WOLFSSL_LICENSE_MD5}"
 
 DEPENDS += "util-linux-native unzip-native"

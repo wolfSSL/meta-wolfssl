@@ -3,7 +3,7 @@ DESCRIPTION = "wolfPKCS11 is a PKCS#11 library that implements cryptographic alg
 HOMEPAGE = "https://www.wolfssl.com/products/wolfpkcs11"
 BUGTRACKER = "https://github.com/wolfSSL/wolfPKCS11/issues"
 SECTION = "libs"
-LICENSE = "GPL-3.0-only"
+LICENSE = "GPL-3.0-or-later"
 LIC_FILES_CHKSUM = "file://gpl-3.0.txt;md5=d32239bcb673463ab874e80d47fae504"
 
 DEPENDS += "virtual/wolfssl"

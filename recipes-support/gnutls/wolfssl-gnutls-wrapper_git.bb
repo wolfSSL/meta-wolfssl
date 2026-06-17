@@ -3,8 +3,8 @@ DESCRIPTION = "Cryptography wrapper library that registers as a GnuTLS crypto \
 provider and delegates cryptographic operations to wolfSSL."
 HOMEPAGE = "https://github.com/wolfssl/gnutls-wolfssl"
 SECTION = "libs"
-LICENSE = "GPL-3.0-only"
-LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0-only;md5=801f80980d171dd6425610833a22dbe6"
+LICENSE = "GPL-3.0-or-later"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0-or-later;md5=1c76c4cc354acaac30ed4d5eefea7245"
 
 PV = "1.0+git${SRCPV}"
 

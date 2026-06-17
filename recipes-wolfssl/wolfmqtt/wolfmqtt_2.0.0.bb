@@ -7,7 +7,7 @@ DESCRIPTION = "wolfMQTT is a client library implementation of the MQTT \
 HOMEPAGE = "https://www.wolfssl.com/products/wolfmqtt"
 BUGTRACKER = "https://github.com/wolfssl/wolfmqtt/issues"
 SECTION = "libs"
-LICENSE = "GPL-2.0-only"
+LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=d32239bcb673463ab874e80d47fae504"
 
 DEPENDS += "virtual/wolfssl"
