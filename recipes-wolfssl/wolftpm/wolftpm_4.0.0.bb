@@ -12,7 +12,7 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=d32239bcb673463ab874e80d47fae504"
 
 DEPENDS += "virtual/wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=1c61ff6c826bfcf8e1094817b44735720ecff160"
+SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=1a19f639bc9f0be9825be1042687ff12ad44a40b"
 
 python () {
     if d.getVar('UNPACKDIR', False):

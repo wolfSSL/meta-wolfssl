@@ -12,7 +12,7 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=d32239bcb673463ab874e80d47fae504"
 
 DEPENDS += "virtual/wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;nobranch=1;protocol=https;rev=88d37edd4569d07ed3896273fdea9e80a117de76"
+SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;nobranch=1;protocol=https;rev=1358c8ae0cbc7e80e5714cc983d1a3c5b3a1b0dc"
 
 
 python () {
