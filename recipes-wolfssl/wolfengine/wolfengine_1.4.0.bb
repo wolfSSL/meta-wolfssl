@@ -13,6 +13,8 @@ SRC_URI = "git://github.com/wolfssl/wolfengine.git;nobranch=1;protocol=https;rev
 
 
 python () {
+    if d.getVar('WOLFENGINE_TYPE', False):
+        return
     if d.getVar('UNPACKDIR', False):
         d.setVar('S', '${UNPACKDIR}/${BP}')
     else:

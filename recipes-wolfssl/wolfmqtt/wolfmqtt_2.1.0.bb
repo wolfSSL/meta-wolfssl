@@ -16,6 +16,8 @@ SRC_URI = "git://github.com/wolfssl/wolfMQTT.git;nobranch=1;protocol=https;rev=1
 
 
 python () {
+    if d.getVar('WOLFMQTT_TYPE', False):
+        return
     if d.getVar('UNPACKDIR', False):
         d.setVar('S', '${UNPACKDIR}/${BP}')
     else:

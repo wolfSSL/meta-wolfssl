@@ -29,6 +29,8 @@ python () {
 }
 
 python () {
+    if d.getVar('WOLFSSH_TYPE', False):
+        return
     if d.getVar('UNPACKDIR', False):
         d.setVar('S', '${UNPACKDIR}/${BP}')
     else:
