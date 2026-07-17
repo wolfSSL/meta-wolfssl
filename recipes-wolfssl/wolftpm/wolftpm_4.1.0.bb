@@ -12,7 +12,7 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=d32239bcb673463ab874e80d47fae504"
 
 DEPENDS += "virtual/wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=1a19f639bc9f0be9825be1042687ff12ad44a40b"
+SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=09a426befc54e4afdf3eb2844f771b5d17656de7"
 
 python () {
     if d.getVar('UNPACKDIR', False):
@@ -27,7 +27,7 @@ python __anonymous() {
     wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl')
 }
 
-# wolfTPM 4.0.0 added a firmware-TPM (fwTPM) server that is enabled by default on
+# wolfTPM 4.x added a firmware-TPM (fwTPM) server that is enabled by default on
 # Linux x86_64/aarch64. Its fwtpm_command.c/fwtpm_crypto.c require AES-CFB
 # (wc_AesCfb*/TPM2_AesCfb*), which this layer's wolfSSL is not built with, so the
 # fwtpm_server target fails to link. Disable it to keep the pre-4.0.0 scope
@@ -35,6 +35,14 @@ python __anonymous() {
 # fwTPM server is needed.
 EXTRA_OECONF = "--with-wolfcrypt=${STAGING_EXECPREFIXDIR} \
                 --disable-fwtpm"
+
+# wolfTPM's TPM2_AesCfb* code uses the classic macro name AES_BLOCK_SIZE. When
+# wolfSSL is built with OpenSSL coexistence (OPENSSL_COEXIST), aes.h only exposes
+# WC_AES_BLOCK_SIZE and deliberately omits AES_BLOCK_SIZE, so the build fails with
+# "'AES_BLOCK_SIZE' undeclared". Map the classic name to the WC_ name on the command
+# line (equivalent to upstream wolfTPM PR #552). In non-coexist builds aes.h defines
+# AES_BLOCK_SIZE to the same token, so this is a benign identical redefinition.
+export CFLAGS += ' -DAES_BLOCK_SIZE=WC_AES_BLOCK_SIZE'
 
 # Add reproducible build flags
 export CFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'
