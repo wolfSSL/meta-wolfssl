@@ -18,6 +18,16 @@ SRC_URI = "git://github.com/wolfssl/wolfssh.git;nobranch=1;protocol=https;rev=86
            https://github.com/wolfssl/wolfssh/commit/73b10ad26d51309852e87e74cb4e6d27f2faf33b.patch;name=mlkem-fix;apply=yes"
 SRC_URI[mlkem-fix.sha256sum] = "a0f88ff9ad075e670d9ecc7d81a49b98bc881c37744aaf270d66313ec111a9cf"
 
+# The mlkem fix is fetched directly from its upstream commit, so the patch file has
+# no "Upstream-Status:" header. Newer OE (scarthgap/wrynose) runs the patch-status QA
+# as a fatal ERROR (via CHECKLAYER_REQUIRED_TESTS) and greps every applied patch for
+# that header, with no way to attach it to a URL-fetched patch. patch-status is gated
+# by ERROR_QA (not INSANE_SKIP), so drop it via the version-agnostic helper. No-op on
+# older releases where patch-status isn't present.
+python () {
+    wolfssl_varRemoveNonOverride(d, 'ERROR_QA', 'patch-status')
+}
+
 python () {
     if d.getVar('UNPACKDIR', False):
         d.setVar('S', '${UNPACKDIR}/${BP}')
