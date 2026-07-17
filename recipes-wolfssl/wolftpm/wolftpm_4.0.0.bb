@@ -27,7 +27,14 @@ python __anonymous() {
     wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl')
 }
 
-EXTRA_OECONF = "--with-wolfcrypt=${STAGING_EXECPREFIXDIR}"
+# wolfTPM 4.0.0 added a firmware-TPM (fwTPM) server that is enabled by default on
+# Linux x86_64/aarch64. Its fwtpm_command.c/fwtpm_crypto.c require AES-CFB
+# (wc_AesCfb*/TPM2_AesCfb*), which this layer's wolfSSL is not built with, so the
+# fwtpm_server target fails to link. Disable it to keep the pre-4.0.0 scope
+# (library + examples). Enable --enable-aescfb in the wolfSSL config instead if the
+# fwTPM server is needed.
+EXTRA_OECONF = "--with-wolfcrypt=${STAGING_EXECPREFIXDIR} \
+                --disable-fwtpm"
 
 # Add reproducible build flags
 export CFLAGS += ' -g0 -O2 -ffile-prefix-map=${WORKDIR}=.'
