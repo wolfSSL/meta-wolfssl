@@ -15,6 +15,18 @@ LIC_FILES_CHKSUM = "file://LICENSING.rst;md5=d71e0db8cc0e980314b646228d44d3d9"
 
 SRC_URI = "git://github.com/wolfSSL/wolfcrypt-py.git;nobranch=1;protocol=https;rev=f82dbb6e110675118e7ecceda3402df01a8ba694"
 
+# 5.9.2 declares its license the PEP 639 way, which only setuptools >= 77 accepts.
+# Apply the PEP 621 table-form compat patch only on the Yocto releases whose setuptools
+# is in the 61..76 window; kirkstone and older ignore [project], wrynose (>= 77) is
+# native. Gated on the release codename so newer series keep the upstream metadata.
+WOLFCRYPT_PY_LICENSE_COMPAT_SERIES = "langdale mickledore nanbield scarthgap styhead walnascar"
+python () {
+    affected = set((d.getVar('WOLFCRYPT_PY_LICENSE_COMPAT_SERIES') or '').split())
+    series = set((d.getVar('LAYERSERIES_CORENAMES') or '').split())
+    if affected & series:
+        d.appendVar('SRC_URI', ' file://wolfcrypt-py-pyproject-license-compat.patch')
+}
+
 DEPENDS += " virtual/wolfssl \
             python3-pip-native \
             python3-cffi-native \
