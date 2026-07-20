@@ -12,6 +12,8 @@ PROVIDES += "wolfssl virtual/wolfssl"
 SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=ac01707f552c611fbd135cc723b2682b3e7f80f2"
 
 python () {
+    if d.getVar('WOLFSSL_TYPE', False):
+        return
     if d.getVar('UNPACKDIR', False):
         d.setVar('S', '${UNPACKDIR}/${BP}')
     else:

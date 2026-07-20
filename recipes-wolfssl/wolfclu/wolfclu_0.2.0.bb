@@ -14,6 +14,8 @@ DEPENDS += "virtual/wolfssl"
 SRC_URI = "git://github.com/wolfssl/wolfclu.git;nobranch=1;protocol=https;rev=ceefc9953aec4ccce6f921df67903101de28a3a0"
 
 python () {
+    if d.getVar('WOLFCLU_TYPE', False):
+        return
     if d.getVar('UNPACKDIR', False):
         d.setVar('S', '${UNPACKDIR}/${BP}')
     else:

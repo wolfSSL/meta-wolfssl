@@ -27,6 +27,8 @@ python __anonymous() {
 }
 
 python () {
+    if d.getVar('WOLFPROVIDER_TYPE', False):
+        return
     if d.getVar('UNPACKDIR', False):
         d.setVar('S', '${UNPACKDIR}/${BP}')
     else:

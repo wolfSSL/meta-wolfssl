@@ -15,6 +15,8 @@ DEPENDS += "virtual/wolfssl"
 SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=09a426befc54e4afdf3eb2844f771b5d17656de7"
 
 python () {
+    if d.getVar('WOLFTPM_TYPE', False):
+        return
     if d.getVar('UNPACKDIR', False):
         d.setVar('S', '${UNPACKDIR}/${BP}')
     else:
