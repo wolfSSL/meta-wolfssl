@@ -11,7 +11,22 @@ LIC_FILES_CHKSUM = "file://LICENSING;md5=2c2d0ee3db6ceba278dd43212ed03733"
 
 DEPENDS += "virtual/wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfssh.git;nobranch=1;protocol=https;rev=7d4829843625eb7f59216136a9f21e1f986a8c2e"
+# wolfSSL 5.9.2 dropped wolfssl/wolfcrypt/mlkem.h (only wc_mlkem.h remains), which
+# breaks the unconditional include in wolfSSH 1.5.0. Pull the upstream fix directly
+# from its commit at build time instead of vendoring a local patch copy.
+SRC_URI = "git://github.com/wolfssl/wolfssh.git;nobranch=1;protocol=https;rev=8643d7be841184f766374e3b0ed68ced6391543c \
+           https://github.com/wolfssl/wolfssh/commit/73b10ad26d51309852e87e74cb4e6d27f2faf33b.patch;name=mlkem-fix;apply=yes"
+SRC_URI[mlkem-fix.sha256sum] = "a0f88ff9ad075e670d9ecc7d81a49b98bc881c37744aaf270d66313ec111a9cf"
+
+# The mlkem fix is fetched directly from its upstream commit, so the patch file has
+# no "Upstream-Status:" header. Newer OE (scarthgap/wrynose) runs the patch-status QA
+# as a fatal ERROR (via CHECKLAYER_REQUIRED_TESTS) and greps every applied patch for
+# that header, with no way to attach it to a URL-fetched patch. patch-status is gated
+# by ERROR_QA (not INSANE_SKIP), so drop it via the version-agnostic helper. No-op on
+# older releases where patch-status isn't present.
+python () {
+    wolfssl_varRemoveNonOverride(d, 'ERROR_QA', 'patch-status')
+}
 
 python () {
     if d.getVar('UNPACKDIR', False):

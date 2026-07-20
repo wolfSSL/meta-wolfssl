@@ -10,14 +10,22 @@ DESCRIPTION = "wolfCrypt is a lightweight, portable, C-language-based crypto \
 HOMEPAGE = "https://www.wolfssl.com/products/wolfssl"
 BUGTRACKER = "https://github.com/wolfSSL/wolfcrypt-py/issues"
 SECTION = "libs"
-LICENSE = "GPL-2.0-only"
-LIC_FILES_CHKSUM = "file://LICENSING.rst;md5=e4abd0c56c3f6dc95a7a7eed4c77414b"
+LICENSE = "GPL-3.0-only"
+LIC_FILES_CHKSUM = "file://LICENSING.rst;md5=d71e0db8cc0e980314b646228d44d3d9"
 
-SRC_URI = "git://github.com/wolfSSL/wolfcrypt-py.git;nobranch=1;protocol=https;rev=03a8a758880f374d88e0095c0848a1d57eb84bef"
+SRC_URI = "git://github.com/wolfSSL/wolfcrypt-py.git;nobranch=1;protocol=https;rev=f82dbb6e110675118e7ecceda3402df01a8ba694"
 
-SRC_URI[mlkem.sha256sum] = "eb4bc00b66d4844b6c3f3314fe1da657e232e377486ef23c9642c4384f11f3d9"
-
-
+# 5.9.2 declares its license the PEP 639 way, which only setuptools >= 77 accepts.
+# Apply the PEP 621 table-form compat patch only on the Yocto releases whose setuptools
+# is in the 61..76 window; kirkstone and older ignore [project], wrynose (>= 77) is
+# native. Gated on the release codename so newer series keep the upstream metadata.
+WOLFCRYPT_PY_LICENSE_COMPAT_SERIES = "langdale mickledore nanbield scarthgap styhead walnascar"
+python () {
+    affected = set((d.getVar('WOLFCRYPT_PY_LICENSE_COMPAT_SERIES') or '').split())
+    series = set((d.getVar('LAYERSERIES_CORENAMES') or '').split())
+    if affected & series:
+        d.appendVar('SRC_URI', ' file://wolfcrypt-py-pyproject-license-compat.patch')
+}
 
 DEPENDS += " virtual/wolfssl \
             python3-pip-native \

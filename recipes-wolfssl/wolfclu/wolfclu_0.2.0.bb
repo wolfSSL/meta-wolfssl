@@ -11,7 +11,7 @@ PROVIDES += "wolfclu"
 
 DEPENDS += "virtual/wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfclu.git;nobranch=1;protocol=https;rev=a17667097d253c97d8f7110e214ea90e2be5e1bd"
+SRC_URI = "git://github.com/wolfssl/wolfclu.git;nobranch=1;protocol=https;rev=ceefc9953aec4ccce6f921df67903101de28a3a0"
 
 python () {
     if d.getVar('UNPACKDIR', False):

@@ -115,3 +115,21 @@ def wolfssl_varAppendNonOverride(d, var_name, value):
         value: Value to append
     """
     d.appendVar(var_name, value)
+
+def wolfssl_varRemoveNonOverride(d, var_name, value):
+    """
+    Removes one or more whitespace-delimited tokens from a list-style variable
+    (e.g. ERROR_QA, WARN_QA). Edits the datastore directly, so it is version-agnostic
+    and needs no colon/underscore override syntax (unlike ERROR_QA:remove / _remove).
+    No-op if a token is not present.
+
+    Args:
+        d: BitBake data store
+        var_name: Variable name (e.g., 'ERROR_QA', 'WARN_QA')
+        value: Whitespace-delimited token(s) to remove (e.g., 'patch-status')
+    """
+    tokens = (d.getVar(var_name) or '').split()
+    remove = set(value.split())
+    filtered = [t for t in tokens if t not in remove]
+    if filtered != tokens:
+        d.setVar(var_name, ' '.join(filtered))

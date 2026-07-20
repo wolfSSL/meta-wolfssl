@@ -1,0 +1,41 @@
+From f930b96aab38fa19eacda6e6262fbd7f7c2cdb8c Mon Sep 17 00:00:00 2001
+From: night1rider <backman23@live.com>
+Date: Fri, 17 Jul 2026 18:05:08 -0600
+Subject: [PATCH] pyproject: use PEP 621 table license for older setuptools
+ compatibility
+
+wolfcrypt-py 5.9.2 declares the license using the PEP 639 form
+(license = "<SPDX expression>" plus license-files), which is only
+accepted by setuptools >= 77.0.0. setuptools 61..76 parse and validate
+[project] but only accept the PEP 621 license table ({text = ...} or
+{file = ...}), so building with them fails with:
+
+  configuration error: `project.license` must be valid exactly by one
+  definition ... GIVEN VALUE: "GPL-3.0-or-later OR LicenseRef-WolfSSL"
+
+Use the {text = ...} table form, which is accepted by setuptools 61..76
+and remains valid (deprecated) on newer setuptools, and drop the
+PEP-639-only license-files key.
+
+Upstream-Status: Pending
+---
+ pyproject.toml | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/pyproject.toml b/pyproject.toml
+index e227c7a..1f33403 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -6,8 +6,7 @@ requires-python = ">=3.10"
+ authors = [
+     {name = "wolfSSL Inc.", email="info@wolfssl.com"},
+ ]
+-license = "GPL-3.0-or-later OR LicenseRef-WolfSSL"
+-license-files = ["LICENSING.rst"]
++license = {text = "GPL-3.0-or-later OR LicenseRef-WolfSSL"}
+ keywords = ["wolfssl", "wolfcrypt", "security", "cryptography"]
+ classifiers = [
+     "Operating System :: OS Independent",
+-- 
+2.47.3
+
