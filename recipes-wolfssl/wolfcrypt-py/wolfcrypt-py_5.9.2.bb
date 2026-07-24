@@ -28,13 +28,17 @@ python () {
 }
 
 # wolfcrypt-py imports typing_extensions.override (needs typing-extensions >= 4.4).
-# These releases ship an older version, so patch in a no-op fallback decorator.
+# Releases listed here ship an older version (or none at all), so patch in a
+# no-op fallback decorator instead of depending on the package. Newer releases
+# build unpatched and get the real runtime dependency.
 WOLFCRYPT_PY_TYPING_COMPAT_SERIES = "sumo thud warrior zeus dunfell gatesgarth hardknott honister kirkstone langdale"
 python () {
     affected = set((d.getVar('WOLFCRYPT_PY_TYPING_COMPAT_SERIES') or '').split())
     series = set((d.getVar('LAYERSERIES_CORENAMES') or '').split())
     if affected & series:
         d.appendVar('SRC_URI', ' file://wolfcrypt-py-typing-extensions-compat.patch')
+    else:
+        wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' python3-typing-extensions')
 }
 
 DEPENDS += " virtual/wolfssl \
@@ -48,7 +52,7 @@ DEPENDS += " virtual/wolfssl \
 inherit setuptools3 wolfssl-compatibility
 
 python __anonymous() {
-    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl python3 python3-cffi python3-typing-extensions')
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl python3 python3-cffi')
 }
 
 python () {
