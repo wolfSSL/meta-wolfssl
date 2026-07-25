@@ -12,7 +12,8 @@ DEPENDS = "openssl virtual/wolfssl wolfprovider"
 inherit wolfssl-compatibility
 
 python __anonymous() {
-    wolfssl_varSet(d, 'RDEPENDS', '${PN}', 'bash openssl wolfprovider')
+    # wrapper sources wolfproviderenv and runs the openssl CLI at runtime
+    wolfssl_varSet(d, 'RDEPENDS', '${PN}', 'bash openssl openssl-bin wolfprovider wolfproviderenv')
 }
 
 SRC_URI = "git://github.com/wolfssl/wolfProvider.git;nobranch=1;protocol=https;rev=046f4ac583ca7612386f4c38ca29a9d191785aa8 \
@@ -48,6 +49,7 @@ do_install() {
 
     # Copy env setup script to scripts/
     install -m 0755 ${S}/scripts/env-setup ${WOLFPROV_CMD_TEST_INSTALL_DIR}/scripts/
+    install -m 0755 ${S}/scripts/utils-general.sh ${WOLFPROV_CMD_TEST_INSTALL_DIR}/scripts/
 
     # Copy provider configuration files to root of test dir
     install -m 0644 ${S}/provider.conf ${WOLFPROV_CMD_TEST_INSTALL_DIR}/
