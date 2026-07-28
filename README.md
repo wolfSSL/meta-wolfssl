@@ -12,6 +12,8 @@ This layer currently provides recipes for the following wolfSSL products:
 - [wolfSSH lightweight SSH library](https://www.wolfssl.com/products/wolfssh/)
 - [wolfMQTT lightweight MQTT client library](https://www.wolfssl.com/products/wolfmqtt/)
 - [wolfTPM portable TPM 2.0 library](https://www.wolfssl.com/products/wolftpm/)
+- [wolfHSM hardware security module framework](https://www.wolfssl.com/products/wolfhsm/)
+  (source staging only, see `recipes-wolfssl/wolfhsm/README.md`)
 - [wolfSSL-py A Python wrapper for the wolfSSL library](https://github.com/wolfSSL/wolfssl-py)
 - [wolfCrypt-py A Python Wrapper for the wolfCrypt API](https://github.com/wolfSSL/wolfcrypt-py)
 - [wolfPKCS11 A PKCS#11 implementation using wolfSSL](https://github.com/wolfSSL/wolfpkcs11)
