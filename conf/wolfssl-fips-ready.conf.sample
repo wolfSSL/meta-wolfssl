@@ -6,9 +6,20 @@
 #
 # Instructions:
 # 1. Set the variables below with your FIPS Ready bundle details
-# 2. Set WOLFSSL_SRC_DIR to the directory containing your .zip bundle
+# 2. Say where the bundle comes from: WOLFSSL_SRC_URL to have bitbake download
+#    it, or WOLFSSL_SRC_DIR if the .zip is already staged on the build host
 # 3. Build once to get the FIPS_HASH value (if using manual mode)
 # 4. Set FIPS_HASH and rebuild (if using manual mode)
+#
+# The GPLv3 FIPS Ready bundles are published openly, so the URL route needs no
+# credentials and nothing staged by hand. A worked example:
+#
+#   WOLFSSL_VERSION     = "5.9.2"
+#   WOLFSSL_SRC         = "wolfssl-5.9.2-gplv3-fips-ready"
+#   WOLFSSL_BUNDLE_FILE = "wolfssl-5.9.2-gplv3-fips-ready.zip"
+#   WOLFSSL_SRC_URL     = "https://www.wolfssl.com/${WOLFSSL_BUNDLE_FILE}"
+#   WOLFSSL_SRC_SHA     = "e3941a3dd38f054ec041b8146c737bde6fa34cda0300708c8207ab3c4e0ab1ad"
+#   WOLFSSL_LICENSE_MD5 = "d32239bcb673463ab874e80d47fae504"
 
 # Use wolfSSL FIPS Ready as the wolfSSL provider
 PREFERRED_PROVIDER_virtual/wolfssl = "wolfssl-fips-ready"
@@ -33,7 +44,13 @@ WOLFSSL_BUNDLE_FILE = ""
 # Bundle SHA256 checksum
 WOLFSSL_SRC_SHA = ""
 
-# Directory containing the .zip bundle (REQUIRED - must be set)
+# Where the bundle comes from. Set exactly one of these.
+#
+# URL bitbake downloads the archive from (no manual staging required).
+WOLFSSL_SRC_URL = ""
+#
+# Directory on the build host already holding the .zip, for hosts with no
+# outbound network access.
 WOLFSSL_SRC_DIR = ""
 
 # MD5 of the COPYING (GPLv3) license file in the bundle
