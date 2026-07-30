@@ -25,6 +25,11 @@ compile in-tree; it does not build a library. See the note below."
 
 require wolfhsm.inc
 
+# For wolfssl_varSet(): the package variables below have to be written with
+# either ':' or '_' depending on the Yocto release, and this layer still
+# supports both (LAYERSERIES_COMPAT reaches back to sumo).
+inherit wolfssl-compatibility
+
 SRC_URI += "file://wolfhsm.mk"
 
 # Which port/ directories to stage. wolfHSM ships ports for posix, skeleton,
@@ -73,16 +78,20 @@ do_install() {
 # the staging behaviour this recipe depends on is visible at a glance.
 SYSROOT_DIRS += "${datadir}/wolfhsm"
 
-# Everything lands in -dev. wolfHSM source has no business in a target rootfs:
-# it is a build input, not a runtime artifact. FILES:${PN} is emptied because
-# the default value claims ${datadir}/${BPN}, which is exactly our staging dir.
-FILES:${PN} = ""
-FILES:${PN}-dev = "${datadir}/wolfhsm ${includedir}/wolfhsm"
+python __anonymous() {
+    # Everything lands in -dev. wolfHSM source has no business in a target
+    # rootfs: it is a build input, not a runtime artifact. FILES for ${PN} is
+    # emptied because the default value claims ${datadir}/${BPN}, which is
+    # exactly our staging dir.
+    wolfssl_varSet(d, 'FILES', '${PN}', '')
+    wolfssl_varSet(d, 'FILES', '${PN}-dev',
+                   d.expand('${datadir}/wolfhsm ${includedir}/wolfhsm'))
 
-# bitbake.conf defaults RDEPENDS:${PN}-dev to "${PN} (= ${EXTENDPKGV})". With
-# no files in ${PN} that package is never produced, which would leave
-# wolfhsm-dev with an unsatisfiable runtime dependency at rootfs/SDK install
-# time. There is nothing at runtime to depend on, so clear it.
-RDEPENDS:${PN}-dev = ""
+    # bitbake.conf defaults RDEPENDS for ${PN}-dev to "${PN} (= ${EXTENDPKGV})".
+    # With no files in ${PN} that package is never produced, which would leave
+    # wolfhsm-dev with an unsatisfiable runtime dependency at rootfs/SDK
+    # install time. There is nothing at runtime to depend on, so clear it.
+    wolfssl_varSet(d, 'RDEPENDS', '${PN}-dev', '')
+}
 
 BBCLASSEXTEND = "native nativesdk"

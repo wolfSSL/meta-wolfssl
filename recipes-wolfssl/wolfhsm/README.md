@@ -65,12 +65,17 @@ than a silent no-op.
 
 ## Packaging
 
-Everything lands in `wolfhsm-dev`; `FILES:${PN}` is explicitly emptied so the
-default `${datadir}/${BPN}` claim cannot pull the staging directory into a
+Everything lands in `wolfhsm-dev`; `FILES` for `${PN}` is explicitly emptied so
+the default `${datadir}/${BPN}` claim cannot pull the staging directory into a
 runtime package. wolfHSM source is a build input, not a runtime artifact, and
-should never appear in a target rootfs. `RDEPENDS:${PN}-dev` is cleared for the
-same reason: bitbake's default would make `wolfhsm-dev` depend on a runtime
-`wolfhsm` package that is deliberately never produced.
+should never appear in a target rootfs. `RDEPENDS` for `${PN}-dev` is cleared
+for the same reason: bitbake's default would make `wolfhsm-dev` depend on a
+runtime `wolfhsm` package that is deliberately never produced.
+
+Both are set from an anonymous python function via `wolfssl_varSet()` from
+`wolfssl-compatibility.bbclass`, because the colon override syntax
+(`FILES:${PN}`) does not parse on releases older than honister, which this
+layer still supports.
 
 To cross-compile a wolfHSM consumer from an SDK, have the consumer's own `-dev`
 package pull the headers in:
@@ -92,3 +97,7 @@ TOOLCHAIN_TARGET_TASK:append = " wolfhsm-dev"
 ```bitbake
 SRCREV:pn-wolfhsm = "<sha>"
 ```
+
+The snippets above use the colon override syntax of honister and later. On
+sumo through hardknott, write them with underscores instead
+(`RDEPENDS_${PN}-dev`, `TOOLCHAIN_TARGET_TASK_append`, `SRCREV_pn-wolfhsm`).
