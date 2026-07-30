@@ -83,6 +83,47 @@ Artifacts deployed to `tmp/deploy/images/<MACHINE>/`:
 Note: the private signing key is **not** deployed — it stays on the
 workstation / secrets store you pointed `WOLFBOOT_SIGNING_KEY` at.
 
+## Using an existing wolfSSL source tree
+
+By default `wolfboot.inc` fetches a pinned wolfSSL (`SRCREV_wolfssl`) into
+`lib/wolfssl` alongside wolfBoot. To build wolfCrypt from a tree you already
+have instead, set an absolute path in `local.conf`:
+
+```
+WOLFBOOT_WOLFSSL_SRC = "/path/to/wolfssl"
+```
+
+This drops the wolfSSL entry from `SRC_URI` entirely — nothing is downloaded
+and `SRCREV_wolfssl` is unused. Both `wolfboot_git.bb` and
+`wolfboot-keytools-native_git.bb` pick it up, so the bootloader and the
+signing tools stay on one wolfCrypt version.
+
+Things worth knowing:
+
+- **It is a source tree, not a library.** wolfBoot compiles the wolfCrypt
+  sources into a `-nostdlib` bare-metal image; it cannot link the target
+  `libwolfssl.so` that the `wolfssl` recipe builds. Point this at wolfSSL
+  *sources*.
+- **The tree is copied into `${WORKDIR}` before use**, by the
+  `do_stage_external_wolfssl` task. wolfBoot writes its object files next to
+  the wolfCrypt sources, so an in-place build would dirty your tree. The
+  original may therefore be read-only or shared, but the copy is a full one —
+  prefer a clean source tree over a working directory with a large `.git` and
+  build output in it.
+- **Prebuilt objects are excluded** from that copy (`*.o`, `*.a`, `*.lo`,
+  `*.la`, `*.so*`, `.libs`, `.git`). Without this, a natively configured tree
+  (`./configure && make`) would hand the cross build host x86 objects that
+  `make` considers newer than their sources.
+- **Changes to the tree do trigger a rebuild.** The recipe fingerprints every
+  file's path, size and mtime into the task hashes, since BitBake would
+  otherwise hash only the `WOLFBOOT_WOLFSSL_SRC` string and happily reuse a
+  stale `wolfboot.elf`.
+- The path must be absolute. wolfBoot's `Makefile` abspaths
+  `WOLFBOOT_LIB_WOLFSSL` only for its own default; a command-line override —
+  how the recipe passes it — reaches every sub-makefile verbatim. The recipe
+  rejects relative paths rather than let them resolve against whichever
+  directory each sub-make runs in.
+
 ## SD card layout (wolfBoot A/B scheme)
 
 | Partition | Size | Type | Contents |

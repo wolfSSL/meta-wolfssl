@@ -28,8 +28,14 @@
 #
 # Optional format variables:
 #   COMMERCIAL_BUNDLE_FILE - Bundle filename including extension (defaults to <NAME>.7z)
+#   COMMERCIAL_BUNDLE_URL - URL bitbake fetches the bundle from, e.g. an https://
+#       link to a publicly downloadable GPLv3 FIPS Ready release. Avoids having to
+#       stage the archive on every build host.
 #   COMMERCIAL_BUNDLE_GCS_URI - gs:// path to the protected bundle
 #   COMMERCIAL_BUNDLE_SRC_DIR - Direct path to already-extracted source directory (skips fetch/extract)
+#
+# Resolution order in get_commercial_src_uri: SRC_DIR (no fetch), then URL, then
+# GCS_URI, then a local file under COMMERCIAL_BUNDLE_DIR.
 
 # Commercial bundles already ship generated configure scripts, so skip autoreconf
 AUTOTOOLS_AUTORECONF = "no"
@@ -67,11 +73,17 @@ def get_commercial_src_uri(d):
     gcs_uri = d.getVar('COMMERCIAL_BUNDLE_GCS_URI')
     placeholder = d.getVar('COMMERCIAL_BUNDLE_PLACEHOLDER') or ''
 
-    if gcs_uri and bundle_archive:
+    # A plain download URL and a gs:// path are handled identically here: both
+    # are just a URI bitbake's fetcher understands. COMMERCIAL_BUNDLE_URL takes
+    # precedence so a recipe can offer the public download as its default while
+    # still allowing a GCS override.
+    remote_uri = d.getVar('COMMERCIAL_BUNDLE_URL') or gcs_uri
+
+    if remote_uri and bundle_archive:
         unpack_flag = ';unpack=false' if bundle_archive.endswith('.7z') else ''
         sha_flag = f';sha256sum={bundle_sha}' if bundle_sha else ''
         filename_flag = f';downloadfilename={bundle_archive}'
-        return f'{gcs_uri}{filename_flag}{unpack_flag}{sha_flag}'
+        return f'{remote_uri}{filename_flag}{unpack_flag}{sha_flag}'
 
     bundle_dir = d.getVar('COMMERCIAL_BUNDLE_DIR')
 
@@ -126,6 +138,7 @@ COMMERCIAL_BUNDLE_SHA ?= ""
 COMMERCIAL_BUNDLE_TARGET ?= "${WORKDIR}"
 COMMERCIAL_BUNDLE_PLACEHOLDER ?= "${WOLFSSL_LAYERDIR}/recipes-wolfssl/wolfssl/commercial/files/README.md"
 COMMERCIAL_BUNDLE_GCS_URI ?= ""
+COMMERCIAL_BUNDLE_URL ?= ""
 COMMERCIAL_BUNDLE_SRC_DIR ?= ""
 COMMERCIAL_BUNDLE_ARCHIVE = "${@get_commercial_bundle_archive(d)}"
 

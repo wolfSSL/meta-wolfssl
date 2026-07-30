@@ -133,6 +133,21 @@ do_compile() {
     # the resulting AArch64 binary on the x86_64 build host. Point it at
     # the native keygen from wolfboot-keytools-native instead.
     NATIVE_KEYGEN="$(command -v wolfboot-keygen)"
+
+    # Build wolfCrypt from a caller-supplied wolfSSL tree when asked.
+    # WOLFBOOT_LIB_WOLFSSL is wolfBoot's way to set an external wolfSSL source
+    # location. Leaving it unset keeps the in-tree lib/wolfssl fetched
+    # by wolfboot.inc. Always point it at the WORKDIR copy staged by
+    # do_stage_external_wolfssl, never at the caller's tree because the build
+    # needs to write object files into this directory. Unquoted below so it
+    # vanishes when empty.
+    WOLFSSL_LIB_ARG=""
+    if [ -n "${WOLFBOOT_WOLFSSL_SRC}" ]; then
+        WOLFSSL_LIB_ARG="WOLFBOOT_LIB_WOLFSSL=${WOLFBOOT_WOLFSSL_STAGED_SRC}"
+        bbnote "wolfBoot: building wolfCrypt from ${WOLFBOOT_WOLFSSL_SRC}" \
+               "(staged at ${WOLFBOOT_WOLFSSL_STAGED_SRC})"
+    fi
+
     make wolfboot.elf \
         CROSS_COMPILE=${TARGET_PREFIX} \
         CC="${TARGET_PREFIX}gcc $SYSROOT_FLAG" \
@@ -140,6 +155,7 @@ do_compile() {
         USER_PRIVATE_KEY="${WOLFBOOT_SIGNING_KEY}" \
         USER_PUBLIC_KEY="$PUBKEY_FOR_MAKE" \
         KEYGEN_TOOL="$NATIVE_KEYGEN" \
+        $WOLFSSL_LIB_ARG \
         ${WOLFBOOT_EXTRA_MAKE_FLAGS} \
         V=1
 }

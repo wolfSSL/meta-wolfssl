@@ -33,16 +33,30 @@ DEFAULT_PREFERENCE = "-1"
 #   WOLFSSL_VERSION = "x.x.x"
 #   WOLFSSL_SRC = "wolfssl-x.x.x-commercial-fips-ready"
 #   WOLFSSL_SRC_SHA = "sha256sum of bundle"
-#   WOLFSSL_SRC_DIR = "/path/to/directory/containing/zip"
 #   WOLFSSL_BUNDLE_FILE = "wolfssl-x.x.x-commercial-fips-ready.zip"
 #   WOLFSSL_LICENSE_MD5 = "md5sum of COPYING file"
 #   FIPS_HASH = "hash value after first build" (for FIPS validation, if using manual mode)
+# plus one of WOLFSSL_SRC_URL / WOLFSSL_SRC_DIR / WOLFSSL_SRC_DIRECTORY to say
+# where the bundle comes from; see the block below.
 
-# Commercial bundle configuration
-# WOLFSSL_SRC_DIR must be set in local.conf to the directory containing the .zip bundle
-# Optionally set WOLFSSL_SRC_DIRECTORY to point directly to already-extracted source
+# Bundle configuration. Three ways to supply the FIPS Ready sources, in the
+# order the class resolves them:
+#
+#   1. WOLFSSL_SRC_DIRECTORY - an already-extracted source tree. No fetch.
+#   2. WOLFSSL_SRC_URL       - a URL bitbake downloads the archive from. The
+#                              GPLv3 FIPS Ready bundles are published openly, so
+#                              this needs no credentials and no manual staging:
+#                                WOLFSSL_VERSION = "5.9.2"
+#                                WOLFSSL_SRC_URL = "https://www.wolfssl.com/${WOLFSSL_SRC}.zip"
+#                              Set WOLFSSL_SRC_SHA to the archive's sha256sum.
+#   3. WOLFSSL_SRC_DIR       - a local directory holding the archive, for build
+#                              hosts with no outbound network access.
+#
+# Left unset, the recipe parses but does not build, which is what keeps it out
+# of the way of unrelated bitbake invocations.
 WOLFSSL_SRC_DIR ?= ""
 WOLFSSL_SRC_DIRECTORY ?= ""
+WOLFSSL_SRC_URL ?= ""
 WOLFSSL_BUNDLE_FILE ?= ""
 
 # Map to commercial class variables
@@ -52,6 +66,7 @@ COMMERCIAL_BUNDLE_FILE = "${WOLFSSL_BUNDLE_FILE}"
 COMMERCIAL_BUNDLE_PASS = ""
 COMMERCIAL_BUNDLE_SHA = "${WOLFSSL_SRC_SHA}"
 COMMERCIAL_BUNDLE_TARGET = "${WORKDIR}"
+COMMERCIAL_BUNDLE_URL = "${WOLFSSL_SRC_URL}"
 COMMERCIAL_BUNDLE_GCS_URI = ""
 COMMERCIAL_BUNDLE_GCS_TOOL = ""
 COMMERCIAL_BUNDLE_SRC_DIR = "${WOLFSSL_SRC_DIRECTORY}"
