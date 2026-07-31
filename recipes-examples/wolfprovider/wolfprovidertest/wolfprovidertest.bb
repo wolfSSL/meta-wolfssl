@@ -29,4 +29,5 @@ do_install_wolfprovidertest_dummy[fakeroot] = "1"
 
 python __anonymous() {
     wolfssl_varAppend(d, 'FILES', '${PN}', ' ${WOLFPROVIDER_TEST_DIR}/*')
+    wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfproviderenv')
 }
