@@ -69,8 +69,23 @@ local_conf_header:
     IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark "
 ```
 
-Save the fragment as `wolfssl-fcs.yml`. Kas configurations can be combined
-without changing the GSRD's supplied `kas.yml`.
+The same fragment is supplied as `agilex5/kas-wolfssl.yml`. Kas
+configurations can be combined without changing the GSRD's supplied
+`kas.yml`:
+
+```sh
+cp meta-wolfssl/recipes-support/libfcs/agilex5/kas-wolfssl.yml ./kas-wolfssl.yml
+kas build kas.yml:kas/image/gsrd-console-image.yaml:kas-wolfssl.yml
+```
+
+Kas requires concatenated files to come from one checkout. Keep the copied
+file local and untracked; do not commit private signing settings or generated
+machine paths.
+
+The validation fragment pins the matching wolfSSL Agilex 5 port commit while
+that wolfSSL change is under review. After the wolfSSL port is merged, replace
+the temporary fork URL and revision with the corresponding upstream commit;
+do not silently test a stock wolfSSL release and call it an offload build.
 
 For a local `meta-wolfssl` checkout under the GSRD Yocto directory, replace the
 repository URL and branch with:
