@@ -16,9 +16,16 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=1ebbd3e34237af26da5dc08a4e440464"
 # upstream evolves. Downstream users can override via local.conf:
 #   SRCREV_wolfboot:pn-wolfboot = "<sha>"
 #   SRCREV_wolfboot:pn-wolfboot-keytools-native = "<sha>"
+WOLFBOOT_REPO ?= "git://github.com/wolfssl/wolfBoot.git"
+WOLFBOOT_BRANCH ?= "master"
+WOLFBOOT_PROTOCOL ?= "https"
+WOLFBOOT_WOLFSSL_REPO ?= "git://github.com/wolfssl/wolfssl.git"
+WOLFBOOT_WOLFSSL_BRANCH ?= "master"
+WOLFBOOT_WOLFSSL_PROTOCOL ?= "https"
+
 SRC_URI = " \
-    git://github.com/wolfssl/wolfBoot.git;protocol=https;branch=master;name=wolfboot;destsuffix=git \
-    git://github.com/wolfssl/wolfssl.git;protocol=https;branch=master;name=wolfssl;destsuffix=git/lib/wolfssl \
+    ${WOLFBOOT_REPO};protocol=${WOLFBOOT_PROTOCOL};branch=${WOLFBOOT_BRANCH};name=wolfboot;destsuffix=git \
+    ${WOLFBOOT_WOLFSSL_REPO};protocol=${WOLFBOOT_WOLFSSL_PROTOCOL};branch=${WOLFBOOT_WOLFSSL_BRANCH};name=wolfssl;destsuffix=git/lib/wolfssl \
 "
 SRCREV_wolfboot ?= "9a667f2a7527da2b8e490ae7923665321af2d3ac"
 SRCREV_wolfssl  ?= "1d363f3adceba9d1478230ede476a37b0dcdef24"

@@ -37,6 +37,10 @@ WOLFBOOT_IMAGE_VERSION ?= "1"
 # linux-xlnx on ZynqMP / Versal.
 WOLFBOOT_FIT_IMAGE ?= "fitImage"
 
+# wolfboot-sign removes the input filename extension when naming its output
+# (for example, kernel.itb becomes kernel_v1_signed.bin).
+WOLFBOOT_SIGNED_BASENAME ?= "${@d.getVar('WOLFBOOT_FIT_IMAGE').rsplit('.', 1)[0]}"
+
 # Validate WOLFBOOT_SIGNING_KEY only when this recipe actually builds
 # (see wolfboot_git.bb for the rationale re: parse-time vs task-time).
 python check_wolfboot_signing_key() {
@@ -74,8 +78,8 @@ do_compile() {
 
     # Sign the FIT image with RSA4096 + SHA3-384 using the user-supplied
     # signing key. wolfboot-sign emits the output NEXT TO the input file,
-    # naming it <input>_v<version>_signed.bin. Run from ${B} with a
-    # relative path so the output lands inside ${B} predictably.
+    # naming it <input-without-extension>_v<version>_signed.bin. Run from
+    # ${B} with a relative path so the output lands inside ${B} predictably.
     cd ${B}
     wolfboot-sign --rsa4096 --sha3 \
         ${WOLFBOOT_FIT_IMAGE} \
@@ -87,7 +91,7 @@ do_install[noexec] = "1"
 
 do_deploy() {
     install -d ${DEPLOYDIR}
-    install -m 0644 ${B}/${WOLFBOOT_FIT_IMAGE}_v${WOLFBOOT_IMAGE_VERSION}_signed.bin \
+    install -m 0644 ${B}/${WOLFBOOT_SIGNED_BASENAME}_v${WOLFBOOT_IMAGE_VERSION}_signed.bin \
         ${DEPLOYDIR}/image_v${WOLFBOOT_IMAGE_VERSION}_signed.bin
 }
 

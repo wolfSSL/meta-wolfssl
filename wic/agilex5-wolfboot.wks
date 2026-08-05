@@ -1,0 +1,8 @@
+# short-description: Agilex 5 SD image with wolfBoot A/B partitions
+# long-description: Keeps the Altera FAT boot partition, initializes both
+# wolfBoot raw firmware slots, and places the Linux root filesystem in p4.
+
+part --source bootimg-partition --ondisk mmcblk --fstype=vfat --mkfs-extraopts "-F 32" --label boot --active --align 1024 --fixed-size 128M --system-id b
+part --source rawcopy --sourceparams="file=image_v1_signed.bin" --ondisk mmcblk --fstype=none --align 1024 --fixed-size 200M
+part --source rawcopy --sourceparams="file=image_v1_signed.bin" --ondisk mmcblk --fstype=none --align 1024 --fixed-size 200M
+part / --source rootfs --ondisk mmcblk --fstype=ext4 --label root --align 1024 --fixed-size 1500M
