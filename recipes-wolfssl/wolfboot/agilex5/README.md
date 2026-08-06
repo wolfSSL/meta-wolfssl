@@ -40,6 +40,11 @@ WOLFBOOT_SIGNING_KEY = "/secure/path/wolfboot_signing_private_key.der"
 WOLFBOOT_PUBLIC_KEY = "/secure/path/wolfboot_signing_public_key.der"
 ```
 
+Before a cold-boot FCS test, repeat the development-board virtual-owner
+provisioning procedure in `recipes-support/libfcs/agilex5/README.md`. It uses
+Quartus Programmer and a recoverable virtual key; it is separate from the
+wolfBoot signing key and any permanent SDM/eFuse provisioning.
+
 ## Build with Kas
 
 Append both meta-wolfSSL fragments to the normal GSRD build:
