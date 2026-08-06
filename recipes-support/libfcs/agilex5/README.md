@@ -18,6 +18,17 @@ the board loses power and must be reapplied before each cold-boot test. Once an
 owner key is active, boot and FPGA configuration artifacts must be signed by
 that owner.
 
+### Development-board virtual-owner provisioning
+
+Before a cold-boot FCS test, provision a recoverable SDM virtual owner key and
+load the matching signed HPS image using the platform team’s Quartus/JTAG
+procedure. Keep keys, signed RBF files, and machine-specific scripts outside
+this repository; never use permanent eFuse provisioning for development tests.
+Virtual provisioning is cleared by power loss, so it must be repeated before
+each cold-boot test. Acceptance requires `/sys/kernel/fcs_sysfs` and a
+`wolfcrypttest` result containing `ALTERA-FCS test passed!`; a skipped test or
+SDM error 133 is not hardware validation.
+
 Run BitBake on a Linux build server with the memory and storage required by the
 GSRD release. Do not run BitBake on the target board.
 
@@ -116,7 +127,7 @@ same `gsrd-console-image` target documented by Altera:
 
 ```sh
 source venv/bin/activate
-kas build kas.yml:wolfssl-fcs.yml gsrd-console-image
+kas build kas.yml:kas-wolfssl.yml gsrd-console-image
 ```
 
 With the Kas container, run the equivalent command from the same directory:
@@ -125,7 +136,7 @@ With the Kas container, run the equivalent command from the same directory:
 docker run --rm --user "$(id -u):$(id -g)" \
     -e HOME=/work -v "$PWD:/work" -w /work \
     ghcr.io/siemens/kas/kas:4.8 \
-    build kas.yml:wolfssl-fcs.yml gsrd-console-image
+    build kas.yml:kas-wolfssl.yml gsrd-console-image
 ```
 
 The expected SD card image is:
@@ -171,7 +182,7 @@ When the image was built with the Kas container, run the same checks through
 docker run --rm --user "$(id -u):$(id -g)" \
     -e HOME=/work -v "$PWD:/work" -w /work \
     ghcr.io/siemens/kas/kas:4.8 \
-    shell kas.yml:wolfssl-fcs.yml -c '
+    shell kas.yml:kas-wolfssl.yml -c '
         image=tmp/deploy/images/agilex5e_013b/\
 gsrd-console-image-agilex5e_013b.rootfs.wic
         native="$(find "$PWD/tmp/work" -type d \
