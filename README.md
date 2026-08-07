@@ -784,7 +784,7 @@ This repository contains additional README files with detailed information:
 - [recipes-connectivity/README.md](recipes-connectivity/README.md) - BIND,
   OpenSSH, Socat
 - [recipes-support/README.md](recipes-support/README.md) - curl, libssh2,
-  strongSwan, tcpdump
+  strongSwan, tcpdump, libfcs (Altera Agilex 5 SDM)
 - [recipes-protocols/README.md](recipes-protocols/README.md) - net-snmp
 - [recipes-extended/README.md](recipes-extended/README.md) - rsyslog
 

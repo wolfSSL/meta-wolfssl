@@ -1,9 +1,8 @@
 SUMMARY = "wolfBoot secure bootloader"
 DESCRIPTION = "wolfBoot is a portable, OS-agnostic secure bootloader for \
 32-bit and 64-bit targets. It provides verified secure boot with A/B \
-update / rollback support. On AMD/Xilinx ZynqMP it replaces U-Boot as \
-the second-stage bootloader (FSBL -> PMU FW -> ATF (EL3) -> wolfBoot \
-(EL2) -> signed Linux kernel)."
+update and rollback support. On supported Arm platforms it runs as BL33 \
+after the platform first stage and TF-A."
 
 require wolfboot.inc
 
@@ -32,6 +31,10 @@ WOLFBOOT_SIGNING_KEY ?= ""
 # private key in-memory to populate src/keystore.c. Only set this if you
 # want to pin a public key independent of the private key file (e.g. HSM).
 WOLFBOOT_PUBLIC_KEY ?= ""
+
+# Algorithm used to turn WOLFBOOT_PUBLIC_KEY into wolfBoot's compiled-in
+# keystore. Keep this aligned with wolfboot-signed-image.bb.
+WOLFBOOT_KEYGEN_OPTIONS ?= "--rsa4096"
 
 # keytools-native provides wolfboot-keygen (used only when deriving the
 # public half from a supplied private key) and wolfboot-sign (used by
@@ -100,7 +103,7 @@ do_compile() {
             ${S}/.config
     fi
 
-    # Cross-compile wolfboot.elf.
+    # Cross-compile wolfboot.elf and its flat binary payload.
     # wolfBoot is a bare-metal bootloader (-nostdlib -ffreestanding), so we
     # use raw make (not oe_runmake) to prevent Yocto's CC/CFLAGS/LDFLAGS
     # from overriding wolfBoot's own toolchain settings. The Yocto cross
@@ -128,12 +131,20 @@ do_compile() {
 
     unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS
     SYSROOT_FLAG="--sysroot=${RECIPE_SYSROOT}"
-    # KEYGEN_TOOL override: wolfBoot's Makefile otherwise tries to build
-    # tools/keytools/keygen using the target cross-compiler and then run
-    # the resulting AArch64 binary on the x86_64 build host. Point it at
-    # the native keygen from wolfboot-keytools-native instead.
+    # Generate src/keystore.c before the target build. Although wolfBoot's
+    # Makefile accepts KEYGEN_TOOL, its user-public-key rule still depends on
+    # keytools_check, which would cross-build host tools with TARGET_PREFIX.
+    # Running the native tool here makes that rule up to date and prevents a
+    # target binary from being built or executed on the build host.
     NATIVE_KEYGEN="$(command -v wolfboot-keygen)"
-    make wolfboot.elf \
+    if [ -z "$NATIVE_KEYGEN" ] || [ ! -x "$NATIVE_KEYGEN" ]; then
+        bbfatal "wolfboot-keygen was not found in PATH; ensure wolfboot-keytools-native is available"
+    fi
+    cd ${S}
+    "$NATIVE_KEYGEN" ${WOLFBOOT_KEYGEN_OPTIONS} --force \
+        -i "$PUBKEY_FOR_MAKE"
+
+    make wolfboot.bin wolfboot.elf \
         CROSS_COMPILE=${TARGET_PREFIX} \
         CC="${TARGET_PREFIX}gcc $SYSROOT_FLAG" \
         LD="${TARGET_PREFIX}gcc $SYSROOT_FLAG" \
@@ -145,15 +156,17 @@ do_compile() {
 }
 
 do_install() {
-    # Install wolfboot.elf into sysroot for xilinx-bootbin BIF consumption
-    # (BIF_PARTITION_IMAGE[wolfboot] points at ${RECIPE_SYSROOT}/boot/wolfboot.elf).
+    # The ELF is consumed by Xilinx bootgen. The flat binary is consumed by
+    # the SoCFPGA FIT generator as its BL33 loadable.
     install -d ${D}/boot
     install -m 0644 ${S}/wolfboot.elf ${D}/boot/wolfboot.elf
+    install -m 0644 ${S}/wolfboot.bin ${D}/boot/wolfboot.bin
 }
 
 do_deploy() {
     install -d ${DEPLOYDIR}
     install -m 0644 ${S}/wolfboot.elf ${DEPLOYDIR}/wolfboot.elf
+    install -m 0644 ${S}/wolfboot.bin ${DEPLOYDIR}/wolfboot.bin
     # Optionally deploy the public signing key (safe to publish). This is
     # the verifying key embedded in wolfboot.elf; having it in DEPLOYDIR
     # lets CI and downstream tooling verify signed images without access
@@ -176,7 +189,7 @@ addtask deploy before do_build after do_compile
 # overrides and cannot parse the colon syntax.
 python __anonymous() {
     wolfssl_varSet(d, 'INSANE_SKIP', '${PN}', 'ldflags textrel buildpaths')
-    wolfssl_varSet(d, 'FILES', '${PN}', '/boot/wolfboot.elf')
+    wolfssl_varSet(d, 'FILES', '${PN}', '/boot/wolfboot.elf /boot/wolfboot.bin')
 }
 
 SYSROOT_DIRS += "/boot"

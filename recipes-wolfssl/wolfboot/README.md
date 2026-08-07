@@ -11,10 +11,16 @@ portable secure bootloader, as part of a Yocto / OpenEmbedded image.
 | `wolfboot_git.bb` | Cross-compiles `wolfboot.elf` (bare-metal, AArch64 / AArch32 / RISC-V). Picks a config from `${S}/config/examples/` per the `WOLFBOOT_CONFIG` variable. Consumes a user-supplied signing key via `WOLFBOOT_SIGNING_KEY` (see "Signing-key provisioning" below). |
 | `wolfboot-signed-image.bb` | Signs the kernel FIT image (default `fitImage`) with RSA4096+SHA3-384 and emits `image_v${WOLFBOOT_IMAGE_VERSION}_signed.bin` into `DEPLOY_DIR_IMAGE`. |
 
-A companion `recipes-bsp/bootbin/xilinx-bootbin_%.bbappend` overrides the
-AMD/Xilinx `xilinx-bootbin` recipe to swap U-Boot for `wolfboot.elf` in
-`BOOT.BIN` on ZynqMP. It only activates when `WOLFBOOT_ENABLE = "1"` is
-set in configuration (`local.conf` or a machine `.conf`).
+Companion BSP integrations replace only the platform BL33 payload when
+`WOLFBOOT_ENABLE = "1"` is set in configuration:
+
+- `recipes-bsp/bootbin/xilinx-bootbin_%.bbappend` places `wolfboot.elf`
+  in the ZynqMP `BOOT.BIN`.
+- `recipes-bsp/u-boot-socfpga/u-boot-socfpga_%.bbappend` places
+  `wolfboot.bin` in the Agilex 5 TF-A FIT while retaining U-Boot SPL,
+  BL31 and the board DTB.
+
+See `agilex5/README.md` for the tested Agilex 5 GSRD customer flow.
 
 ## Signing-key provisioning (required)
 
@@ -77,6 +83,7 @@ Artifacts deployed to `tmp/deploy/images/<MACHINE>/`:
 
 - `BOOT.BIN`                           - FSBL + PMUFW + ATF + wolfBoot.elf
 - `wolfboot.elf`                       - bare-metal bootloader
+- `wolfboot.bin`                       - flat BL33 payload
 - `wolfboot_signing_public_key.der`    - verifying key (safe to publish; only if `WOLFBOOT_PUBLIC_KEY` is set)
 - `image_v1_signed.bin`                - signed FIT image (for OFP_A partition)
 
@@ -164,18 +171,9 @@ two non-obvious points:
    stays at EL2 before jumping to Linux, which matches standard PetaLinux
    U-Boot behavior. See the comments in the template.
 
-## Future work
+## Provider selection
 
-- **`PROVIDES += "virtual/bootloader"`** — On vanilla Yocto where U-Boot
-  is the sole bootloader, `PREFERRED_PROVIDER_virtual/bootloader = "wolfboot"`
-  would be a cleaner selector than `WOLFBOOT_ENABLE = "1"` plus the
-  `xilinx-bootbin` bbappend. We deliberately do not declare that PROVIDES
-  yet, because on AMD/Xilinx ZynqMP — the only target this layer has been
-  validated against — it does not actually simplify the integration:
-  `xilinx-bootbin` references U-Boot by PN (`u-boot-xlnx`) inside its BIF
-  generation rather than going through `virtual/bootloader`, and
-  `IMAGE_BOOT_FILES` lists U-Boot artifacts by literal name. The current
-  bbappend rewrites the BIF entry surgically; that swap would still be
-  required regardless of who provides `virtual/bootloader`. The right
-  time to add this PROVIDES is when a non-Xilinx BSP integration lands,
-  so the contract can be tested end-to-end.
+The platform first-stage recipe remains the provider of
+`virtual/bootloader`. This is intentional on both supported families. The
+Xilinx recipe still creates `BOOT.BIN`, and the SoCFPGA recipe still creates
+SPL plus `u-boot.itb`; wolfBoot replaces only their BL33 payload.

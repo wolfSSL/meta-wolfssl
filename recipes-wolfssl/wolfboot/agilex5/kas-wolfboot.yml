@@ -1,0 +1,32 @@
+header:
+  version: 17
+
+repos:
+  meta-wolfssl:
+    path: meta-wolfssl
+    layers:
+      .:
+
+local_conf_header:
+  wolfssl-altera-fcs: |
+    WOLFSSL_ALTERA_FCS = "1"
+    WOLFSSL_FCS_PROVIDER = "gsrd-intel-fcs-lib"
+    IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark"
+    SRC_URI:pn-wolfssl = "git://github.com/aidangarske/wolfssl.git;protocol=https;nobranch=1"
+    SRCREV:pn-wolfssl = "0ffd8501323463011dfd769967b847e7bcf12281"
+
+  wolfboot-agilex5: |
+    WOLFBOOT_ENABLE = "1"
+    WOLFBOOT_CONFIG = "agilex5_013b_sdcard.config"
+    WOLFBOOT_LINUX_BOOTARGS_ROOT = "/dev/mmcblk0p4"
+    WOLFBOOT_IMAGE_VERSION = "1"
+    WOLFBOOT_FIT_IMAGE = "kernel.itb"
+    KERNEL_PN = "linux-socfpga-lts"
+
+    WKS_FILE = "agilex5-wolfboot.wks"
+    EXTRA_IMAGEDEPENDS:append = " wolfboot wolfboot-signed-image"
+    do_image_wic[depends] += "wolfboot:do_deploy wolfboot-signed-image:do_deploy"
+
+    WOLFBOOT_REPO = "git://github.com/aidangarske/wolfBoot.git"
+    WOLFBOOT_BRANCH = "agilex5-tfa-port"
+    SRCREV_wolfboot:pn-wolfboot = "69dcac173cd9c5bc18e11ef542d87d574b1303f7"
