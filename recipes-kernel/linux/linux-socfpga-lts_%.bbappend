@@ -16,7 +16,7 @@ do_deploy:append() {
                 -e 's#Image\.lzma#Image#g' \
                 -e 's/compression = "lzma"/compression = "none"/g' \
                 "$fit_its"
-            mkimage -f "$fit_its" "${B}/kernel.itb"
+            (cd "${B}" && mkimage -f "$(basename "$fit_its")" "${B}/kernel.itb")
             install -m 0644 "${B}/kernel.itb" "${DEPLOYDIR}/kernel.itb"
         else
             bbfatal "wolfBoot FIT rebuild requires ${LINUXDEPLOYDIR}/Image and $fit_its"
