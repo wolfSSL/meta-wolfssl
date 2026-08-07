@@ -3,6 +3,10 @@
 # wolfBoot raw firmware slots, and places the Linux root filesystem in p4.
 
 part --source bootimg-partition --ondisk mmcblk --fstype=vfat --mkfs-extraopts "-F 32" --label boot --active --align 1024 --fixed-size 128M --system-id b
-part --source rawcopy --sourceparams="file=image_v1_signed.bin" --ondisk mmcblk --fstype=none --align 1024 --fixed-size 200M
-part --source rawcopy --sourceparams="file=image_v1_signed.bin" --ondisk mmcblk --fstype=none --align 1024 --fixed-size 200M
+# WOLFBOOT_IMAGE_VERSION is supplied by the Kas/image configuration so an
+# update version cannot silently leave the A/B slots at version 1.
+part --source rawcopy --sourceparams="file=image_v${WOLFBOOT_IMAGE_VERSION}_signed.bin" --ondisk mmcblk --fstype=none --align 1024 --fixed-size 200M
+part --source rawcopy --sourceparams="file=image_v${WOLFBOOT_IMAGE_VERSION}_signed.bin" --ondisk mmcblk --fstype=none --align 1024 --fixed-size 200M
+# Keep the rootfs cap: the Agilex SD contract reserves exactly 1.5 GiB for p4
+# and the resulting WIC geometry is part of the documented deployment flow.
 part / --source rootfs --ondisk mmcblk --fstype=ext4 --label root --align 1024 --fixed-size 1500M

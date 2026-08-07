@@ -17,22 +17,24 @@ python __anonymous() {
                  depends + ' wolfboot:do_deploy')
 }
 
-do_configure:append() {
+do_compile:prepend() {
     if [ "${WOLFBOOT_ENABLE}" = "1" ]; then
         fit_dtsi="${S}/arch/arm/dts/socfpga_soc64_fit-u-boot.dtsi"
         if [ ! -f "$fit_dtsi" ]; then
             bbfatal "SoCFPGA FIT description not found: $fit_dtsi"
         fi
 
+        # Keep the source tree pristine. The backup/trap covers both normal
+        # completion and compile failures, including workdirs reused from
+        # sstate, while still letting U-Boot's normal FIT build consume the
+        # generated description.
+        fit_dtsi_backup="${B}/socfpga_soc64_fit-u-boot.dtsi.orig"
+        install -m 0644 "$fit_dtsi" "$fit_dtsi_backup"
+        trap 'install -m 0644 "$fit_dtsi_backup" "$fit_dtsi"; rm -f "$fit_dtsi_backup"' EXIT
         sed -i \
             -e 's/description = "U-Boot SoC64";/description = "wolfBoot secure boot";/' \
             -e 's/filename = "u-boot-nodtb.bin";/filename = "wolfboot.bin";/' \
             "$fit_dtsi"
-    fi
-}
-
-do_compile:prepend() {
-    if [ "${WOLFBOOT_ENABLE}" = "1" ]; then
         wolfboot_payload="${DEPLOY_DIR_IMAGE}/wolfboot.bin"
         if [ ! -f "$wolfboot_payload" ]; then
             bbfatal "wolfBoot BL33 payload not found: $wolfboot_payload"

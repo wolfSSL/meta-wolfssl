@@ -137,11 +137,14 @@ do_compile() {
     # Running the native tool here makes that rule up to date and prevents a
     # target binary from being built or executed on the build host.
     NATIVE_KEYGEN="$(command -v wolfboot-keygen)"
+    if [ -z "$NATIVE_KEYGEN" ] || [ ! -x "$NATIVE_KEYGEN" ]; then
+        bbfatal "wolfboot-keygen was not found in PATH; ensure wolfboot-keytools-native is available"
+    fi
     cd ${S}
     "$NATIVE_KEYGEN" ${WOLFBOOT_KEYGEN_OPTIONS} --force \
         -i "$PUBKEY_FOR_MAKE"
 
-    make wolfboot.bin \
+    make wolfboot.bin wolfboot.elf \
         CROSS_COMPILE=${TARGET_PREFIX} \
         CC="${TARGET_PREFIX}gcc $SYSROOT_FLAG" \
         LD="${TARGET_PREFIX}gcc $SYSROOT_FLAG" \
