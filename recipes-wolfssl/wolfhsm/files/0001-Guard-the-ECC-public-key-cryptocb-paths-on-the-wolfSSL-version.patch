@@ -1,0 +1,219 @@
+Subject: [PATCH] Guard the ECC public-key cryptocb paths on the wolfSSL version
+
+wolfHSM 1.5.0 (August 2026) added remote ECC public-key export and public-key
+validation, upstream PRs #346 and #458, "public key export for cached
+asymmetric keys, including returning the public key from cached key
+generation". Both need crypto callback entries on the wolfSSL side:
+
+  WC_PK_TYPE_EC_MAKE_PUB       + wc_CryptoInfo.pk.ecc_make_pub
+  WC_PK_TYPE_EC_CHECK_PUB_KEY  + wc_CryptoInfo.pk.ecc_check_pub
+
+wolfSSL 5.9.2 has none of the four.
+
+  error: 'WC_PK_TYPE_EC_MAKE_PUB' undeclared (first use in this function)
+  error: 'struct <anonymous>' has no member named 'ecc_make_pub'
+
+Compile both features' paths; cryptocb dispatch, client request/response,
+server handler, out when LIBWOLFSSL_VERSION_HEX is 5.9.2 or older. That is
+the pre-1.5.0 feature set: the wire protocol gains no request type it did not
+already have, and the local wc_ecc_make_pub_ex() call inside the key-generation
+handler is untouched.
+
+Two deliberate details:
+
+- The guard is a version test, not a new configuration macro. The paths return
+  by themselves as soon as a newer wolfSSL bundle lands, so a patch left applied
+  by mistake cannot silently keep the features disabled.
+
+- In wh_client_cryptocb.c only the WC_PK_TYPE_EC_CHECK_PUB_KEY case is guarded,
+  not the whole HAVE_ECC_CHECK_KEY block: that block also holds the
+  WC_PK_TYPE_EC_CHECK_PRIV_KEY case, whose request type 5.9.2 does have. This
+  is why the platform does not simply build with -DNO_ECC_CHECK_KEY, which
+  would take the private-key case with it.
+
+Upstream-Status: Inappropriate [version-pair workaround; the real fix is a
+wolfSSL release carrying the cryptocb entries wolfHSM 1.5.0 expects]
+---
+--- a/src/wh_client_cryptocb.c
++++ b/src/wh_client_cryptocb.c
+@@ -27,6 +27,16 @@
+ #include "wolfhsm/wh_client.h"
+ 
+ #include "wolfssl/wolfcrypt/settings.h"
++/* wolfSSL grew two ECC crypto callback entries after the 5.9.2 release: the
++ * WC_PK_TYPE_EC_MAKE_PUB / WC_PK_TYPE_EC_CHECK_PUB_KEY request types, and the
++ * wc_CryptoInfo.pk.ecc_make_pub / .ecc_check_pub union members that carry them.
++ * wolfHSM 1.5.0 uses all four, so it does not compile against 5.9.2 or older.
++ * Compile the remote make-public and check-public-key paths out in that case;
++ * they come back on their own once wolfSSL is new enough. */
++#include "wolfssl/version.h"
++#if LIBWOLFSSL_VERSION_HEX > 0x05009002
++#define WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB
++#endif
+ #include "wolfssl/wolfcrypt/types.h"
+ #include "wolfssl/wolfcrypt/error-crypt.h"
+ #include "wolfssl/wolfcrypt/cryptocb.h"
+@@ -363,6 +373,7 @@
+         } break;
+ #endif /* HAVE_ECC_VERIFY */
+ 
++#ifdef WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB
+         case WC_PK_TYPE_EC_MAKE_PUB: {
+             /* Extract info parameters */
+             ecc_key* key         = info->pk.ecc_make_pub.key;
+@@ -392,8 +403,10 @@
+                 ret = BUFFER_E;
+             }
+         } break;
++#endif /* WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB */
+ 
+ #ifdef HAVE_ECC_CHECK_KEY
++#ifdef WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB
+         case WC_PK_TYPE_EC_CHECK_PUB_KEY: {
+             /* Extract info parameters */
+             ecc_key*       key = info->pk.ecc_check_pub.key;
+@@ -415,6 +428,7 @@
+                 }
+             }
+         } break;
++#endif /* WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB */
+ 
+         case WC_PK_TYPE_EC_CHECK_PRIV_KEY: {
+             ret = CRYPTOCB_UNAVAILABLE;
+--- a/src/wh_client_crypto.c
++++ b/src/wh_client_crypto.c
+@@ -34,6 +34,16 @@
+ #include "wolfhsm/wh_comm.h"
+ #if !defined(WOLFHSM_CFG_NO_CRYPTO)
+ #include "wolfssl/wolfcrypt/settings.h"
++/* wolfSSL grew two ECC crypto callback entries after the 5.9.2 release: the
++ * WC_PK_TYPE_EC_MAKE_PUB / WC_PK_TYPE_EC_CHECK_PUB_KEY request types, and the
++ * wc_CryptoInfo.pk.ecc_make_pub / .ecc_check_pub union members that carry them.
++ * wolfHSM 1.5.0 uses all four, so it does not compile against 5.9.2 or older.
++ * Compile the remote make-public and check-public-key paths out in that case;
++ * they come back on their own once wolfSSL is new enough. */
++#include "wolfssl/version.h"
++#if LIBWOLFSSL_VERSION_HEX > 0x05009002
++#define WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB
++#endif
+ #include "wolfssl/wolfcrypt/types.h"
+ #include "wolfssl/wolfcrypt/error-crypt.h"
+ #include "wolfssl/wolfcrypt/wc_port.h"
+@@ -2893,6 +2903,7 @@
+     return ret;
+ }
+ 
++#ifdef WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB
+ /* Response half for ECC make-public.  Single-shot receive: returns
+  * WH_ERROR_NOTREADY if the reply has not arrived yet. */
+ static int _EccMakePubResponse(whClientContext* ctx, uint8_t* pubOut,
+@@ -3027,8 +3038,9 @@
+     WH_DEBUG_CLIENT_VERBOSE("ret:%d\n", ret);
+     return ret;
+ }
++#endif /* WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB */
+ 
+-#ifdef HAVE_ECC_CHECK_KEY
++#if defined(HAVE_ECC_CHECK_KEY) && defined(WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB)
+ /* Response half for ECC key validation.  The verdict is the response code
+  * itself: 0 when the key is valid, a wolfCrypt error when it is not. */
+ static int _EccCheckPubKeyResponse(whClientContext* ctx)
+@@ -3174,7 +3186,7 @@
+     WH_DEBUG_CLIENT_VERBOSE("ret:%d\n", ret);
+     return ret;
+ }
+-#endif /* HAVE_ECC_CHECK_KEY */
++#endif /* HAVE_ECC_CHECK_KEY && WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB */
+ 
+ #endif /* HAVE_ECC */
+ 
+--- a/src/wh_server_crypto.c
++++ b/src/wh_server_crypto.c
+@@ -23,6 +23,16 @@
+ #include <string.h>  /* For memset, memcpy */
+ 
+ #include "wolfssl/wolfcrypt/settings.h"
++/* wolfSSL grew two ECC crypto callback entries after the 5.9.2 release: the
++ * WC_PK_TYPE_EC_MAKE_PUB / WC_PK_TYPE_EC_CHECK_PUB_KEY request types, and the
++ * wc_CryptoInfo.pk.ecc_make_pub / .ecc_check_pub union members that carry them.
++ * wolfHSM 1.5.0 uses all four, so it does not compile against 5.9.2 or older.
++ * Compile the remote make-public and check-public-key paths out in that case;
++ * they come back on their own once wolfSSL is new enough. */
++#include "wolfssl/version.h"
++#if LIBWOLFSSL_VERSION_HEX > 0x05009002
++#define WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB
++#endif
+ #include "wolfssl/wolfcrypt/types.h"
+ #include "wolfssl/wolfcrypt/error-crypt.h"
+ #include "wolfssl/wolfcrypt/asn.h"
+@@ -136,15 +146,17 @@
+                             const void* cryptoDataIn, uint16_t inSize,
+                             void* cryptoDataOut, uint16_t* outSize);
+ #endif /* HAVE_ECC_VERIFY */
++#ifdef WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB
+ static int _HandleEccMakePub(whServerContext* ctx, uint16_t magic, int devId,
+                              const void* cryptoDataIn, uint16_t inSize,
+                              void* cryptoDataOut, uint16_t* outSize);
+-#ifdef HAVE_ECC_CHECK_KEY
++#endif /* WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB */
++#if defined(HAVE_ECC_CHECK_KEY) && defined(WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB)
+ static int _HandleEccCheckPubKey(whServerContext* ctx, uint16_t magic,
+                                  int devId, const void* cryptoDataIn,
+                                  uint16_t inSize, void* cryptoDataOut,
+                                  uint16_t* outSize);
+-#endif /* HAVE_ECC_CHECK_KEY */
++#endif /* HAVE_ECC_CHECK_KEY && WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB */
+ #endif /* HAVE_ECC */
+ 
+ #ifdef HAVE_CURVE25519
+@@ -1804,6 +1816,7 @@
+ }
+ #endif /* HAVE_ECC_VERIFY */
+ 
++#ifdef WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB
+ static int _HandleEccMakePub(whServerContext* ctx, uint16_t magic, int devId,
+                              const void* cryptoDataIn, uint16_t inSize,
+                              void* cryptoDataOut, uint16_t* outSize)
+@@ -1877,8 +1890,9 @@
+     }
+     return ret;
+ }
++#endif /* WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB */
+ 
+-#ifdef HAVE_ECC_CHECK_KEY
++#if defined(HAVE_ECC_CHECK_KEY) && defined(WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB)
+ static int _HandleEccCheckPubKey(whServerContext* ctx, uint16_t magic,
+                                  int devId, const void* cryptoDataIn,
+                                  uint16_t inSize, void* cryptoDataOut,
+@@ -1975,7 +1989,7 @@
+     }
+     return ret;
+ }
+-#endif /* HAVE_ECC_CHECK_KEY */
++#endif /* HAVE_ECC_CHECK_KEY && WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB */
+ #endif /* HAVE_ECC */
+ 
+ 
+@@ -6102,18 +6116,20 @@
+                                            &cryptoOutSize);
+                     break;
+ #endif /* HAVE_ECC_VERIFY */
++#ifdef WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB
+                 case WC_PK_TYPE_EC_MAKE_PUB:
+                     ret = _HandleEccMakePub(ctx, magic, devId, cryptoDataIn,
+                                             cryptoInSize, cryptoDataOut,
+                                             &cryptoOutSize);
+                     break;
+-#ifdef HAVE_ECC_CHECK_KEY
++#endif /* WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB */
++#if defined(HAVE_ECC_CHECK_KEY) && defined(WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB)
+                 case WC_PK_TYPE_EC_CHECK_PUB_KEY:
+                     ret = _HandleEccCheckPubKey(ctx, magic, devId, cryptoDataIn,
+                                                 cryptoInSize, cryptoDataOut,
+                                                 &cryptoOutSize);
+                     break;
+-#endif /* HAVE_ECC_CHECK_KEY */
++#endif /* HAVE_ECC_CHECK_KEY && WH_HAVE_WOLFSSL_EC_PUB_CRYPTOCB */
+ #endif /* HAVE_ECC */
+ 
+ #ifdef HAVE_CURVE25519
