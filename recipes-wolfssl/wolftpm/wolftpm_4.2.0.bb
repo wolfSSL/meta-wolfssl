@@ -8,11 +8,11 @@ HOMEPAGE = "https://www.wolfssl.com/products/wolftpm"
 BUGTRACKER = "https://github.com/wolfssl/wolftpm/issues"
 SECTION = "libs"
 LICENSE = "GPL-3.0-only"
-LIC_FILES_CHKSUM = "file://LICENSE;md5=d32239bcb673463ab874e80d47fae504"
+LIC_FILES_CHKSUM = "file://LICENSE;md5=ca791bd6e0c766a108d55da2dc9eb00c"
 
 DEPENDS += "virtual/wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=09a426befc54e4afdf3eb2844f771b5d17656de7"
+SRC_URI = "git://github.com/wolfssl/wolfTPM.git;nobranch=1;protocol=https;rev=c3c0621333f6bf8795eace065b3903d54289adc8"
 
 python () {
     if d.getVar('WOLFTPM_TYPE', False):
