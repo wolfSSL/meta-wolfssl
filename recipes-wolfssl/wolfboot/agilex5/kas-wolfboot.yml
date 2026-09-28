@@ -23,7 +23,7 @@ local_conf_header:
     WOLFBOOT_FIT_IMAGE = "kernel.itb"
     KERNEL_PN = "linux-socfpga-lts"
 
-    WKS_FILE = "agilex5-wolfboot.wks"
+    WKS_FILE = "agilex5-wolfboot.wks.in"
     WKS_SEARCH_PATH:append = ":${WOLFSSL_LAYERDIR}/files/wic"
     EXTRA_IMAGEDEPENDS:append = " wolfboot wolfboot-signed-image"
     do_image_wic[depends] += "wolfboot:do_deploy wolfboot-signed-image:do_deploy"
