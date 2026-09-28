@@ -30,4 +30,4 @@ local_conf_header:
 
     WOLFBOOT_REPO = "git://github.com/aidangarske/wolfBoot.git"
     WOLFBOOT_BRANCH = "agilex5-tfa-port"
-    SRCREV_wolfboot:pn-wolfboot = "58a0b886ec15fa17dc5d4bd26a115393b7ed7374"
+    SRCREV_wolfboot:pn-wolfboot = "decd4b29b0388346ddaaa15029363f9ff8daa72a"
