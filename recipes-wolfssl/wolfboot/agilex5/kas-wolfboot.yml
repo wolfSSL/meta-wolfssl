@@ -24,6 +24,7 @@ local_conf_header:
     KERNEL_PN = "linux-socfpga-lts"
 
     WKS_FILE = "agilex5-wolfboot.wks"
+    WKS_SEARCH_PATH:append = ":${WOLFSSL_LAYERDIR}/files/wic"
     EXTRA_IMAGEDEPENDS:append = " wolfboot wolfboot-signed-image"
     do_image_wic[depends] += "wolfboot:do_deploy wolfboot-signed-image:do_deploy"
 
