@@ -13,7 +13,7 @@ local_conf_header:
     WOLFSSL_FCS_PROVIDER = "gsrd-intel-fcs-lib"
     IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark"
     SRC_URI:pn-wolfssl = "git://github.com/aidangarske/wolfssl.git;protocol=https;nobranch=1"
-    SRCREV:pn-wolfssl = "0ffd8501323463011dfd769967b847e7bcf12281"
+    SRCREV:pn-wolfssl = "fdf3b71c5ca0ef9256f6c09511ec4109f1eec90e"
 
   wolfboot-agilex5: |
     WOLFBOOT_ENABLE = "1"
@@ -29,4 +29,4 @@ local_conf_header:
 
     WOLFBOOT_REPO = "git://github.com/aidangarske/wolfBoot.git"
     WOLFBOOT_BRANCH = "agilex5-tfa-port"
-    SRCREV_wolfboot:pn-wolfboot = "69dcac173cd9c5bc18e11ef542d87d574b1303f7"
+    SRCREV_wolfboot:pn-wolfboot = "58a0b886ec15fa17dc5d4bd26a115393b7ed7374"
