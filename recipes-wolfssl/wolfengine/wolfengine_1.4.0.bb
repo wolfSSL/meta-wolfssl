@@ -3,7 +3,7 @@ DESCRIPTION = "wolfEngine is an OpenSSL 1.X.X engine backed by wolfSSL's wolfCry
 HOMEPAGE = "https://github.com/wolfSSL/wolfEngine"
 BUGTRACKER = "https://github.com/wolfSSL/wolfEngine/issues"
 SECTION = "libs"
-LICENSE = "GPL-3.0-only"
+LICENSE = "GPL-3.0-or-later"
 LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
 DEPENDS += "util-linux-native"
 

@@ -10,7 +10,7 @@ DESCRIPTION = "wolfCrypt is a lightweight, portable, C-language-based crypto \
 HOMEPAGE = "https://www.wolfssl.com/products/wolfssl"
 BUGTRACKER = "https://github.com/wolfSSL/wolfcrypt-py/issues"
 SECTION = "libs"
-LICENSE = "GPL-3.0-only"
+LICENSE = "GPL-3.0-or-later"
 LIC_FILES_CHKSUM = "file://LICENSING.rst;md5=d71e0db8cc0e980314b646228d44d3d9"
 
 SRC_URI = "git://github.com/wolfSSL/wolfcrypt-py.git;nobranch=1;protocol=https;rev=f82dbb6e110675118e7ecceda3402df01a8ba694"

@@ -9,7 +9,7 @@
 HOMEPAGE = "https://github.com/wolfssl/wolfBoot"
 BUGTRACKER = "https://github.com/wolfssl/wolfBoot/issues"
 SECTION = "bootloaders"
-LICENSE = "GPL-3.0-only"
+LICENSE = "GPL-3.0-or-later"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=1ebbd3e34237af26da5dc08a4e440464"
 
 # --- Optional: build against an existing wolfSSL source tree ----------------
