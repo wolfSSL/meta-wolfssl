@@ -42,11 +42,11 @@ SRC_URI += "file://wolfhsm.mk"
 
 # wolfHSM 1.5.0 uses two ECC crypto callback entries (WC_PK_TYPE_EC_MAKE_PUB
 # and WC_PK_TYPE_EC_CHECK_PUB_KEY, with their wc_CryptoInfo.pk members) that
-# wolfSSL 5.9.2 does not have yet, so the staged sources fail to compile
-# against this layer's wolfSSL with "'WC_PK_TYPE_EC_MAKE_PUB' undeclared".
-# The patch compiles those paths out when LIBWOLFSSL_VERSION_HEX is 5.9.2 or
-# older; they return on their own once a newer wolfSSL bundle lands, at which
-# point this patch can be dropped.
+# wolfSSL 5.9.2 and older do not have, so the staged sources fail to compile
+# against them with "'WC_PK_TYPE_EC_MAKE_PUB' undeclared". wolfSSL 5.9.4 has
+# them. The patch compiles those paths out only when LIBWOLFSSL_VERSION_HEX is
+# 5.9.2 or older, so it changes nothing against this layer's wolfSSL. It is
+# kept for FIPS and commercial wolfSSL bundles still based on 5.9.2 or older.
 SRC_URI += "file://0001-Guard-the-ECC-public-key-cryptocb-paths-on-the-wolfSSL-version.patch"
 
 # Which port/ directories to stage. wolfHSM ships ports for posix, skeleton,
