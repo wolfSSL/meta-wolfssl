@@ -86,3 +86,9 @@ Zeus, Dunfell, and Gatesgarth
     
     Then just compile the image that use's `tcpdumb` and include the `wolfSSL`
     package or preform `bitbake tcpdumb`
+
+libfcs (Altera Agilex 5 SDM crypto)
+-----
+
+See [libfcs/agilex5/README.md](libfcs/agilex5/README.md) for the complete
+Agilex 5 integration, image deployment, and on-target test procedure.
