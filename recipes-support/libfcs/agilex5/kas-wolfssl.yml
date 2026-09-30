@@ -1,0 +1,17 @@
+header:
+  version: 17
+
+repos:
+  meta-wolfssl:
+    path: meta-wolfssl
+    layers:
+      .:
+
+local_conf_header:
+  wolfssl-altera-fcs: |
+    WOLFSSL_ALTERA_FCS = "1"
+    WOLFSSL_FCS_PROVIDER = "gsrd-intel-fcs-lib"
+    IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark"
+    # Use the matching wolfSSL Agilex 5 port until that change is merged.
+    SRC_URI:pn-wolfssl = "git://github.com/aidangarske/wolfssl.git;protocol=https;nobranch=1"
+    SRCREV:pn-wolfssl = "fdf3b71c5ca0ef9256f6c09511ec4109f1eec90e"
