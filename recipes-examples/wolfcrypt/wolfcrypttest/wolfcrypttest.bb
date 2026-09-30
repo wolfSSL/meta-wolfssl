@@ -21,7 +21,7 @@ python __anonymous() {
     wolfssl_varAppend(d, 'RDEPENDS', '${PN}', ' wolfssl')
 }
 
-SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=ac01707f552c611fbd135cc723b2682b3e7f80f2"
+SRC_URI = "git://github.com/wolfSSL/wolfssl.git;nobranch=1;protocol=https;rev=3c5eead44904df64e6a5a1f4ebdce377d35a849a"
 
 
 do_configure[noexec] = "1"

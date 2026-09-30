@@ -24,7 +24,8 @@ get_current() {
 }
 
 get_new() {
-    NEW=$(curl -s "https://api.github.com/repos/wolfssl/$1/releases/latest" | jq -r '.tag_name' | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
+    NEW_TAG=$(curl -s "https://api.github.com/repos/wolfssl/$1/releases/latest" | jq -r '.tag_name')
+    NEW=$(echo "$NEW_TAG" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
 }
 
 
@@ -36,10 +37,8 @@ update() {
 
     if [ "$CURRENT" != "$NEW" ]; then
         printf "Updating from %s to %s for %s...\n" "$CURRENT" "$NEW" "$1"
-        TAG="v$NEW-stable"
-        if [ "$1" = "wolfmqtt" ] || [ "$1" == "wolftpm" ] || [ "$1" == "wolfprovider" ]; then
-            TAG="v$NEW"
-        fi
+        # Use the release's actual tag name; projects differ (v1.2.3 vs v1.2.3-stable)
+        TAG="$NEW_TAG"
 
         # Clone the new version repository
         if ! git clone --depth 1 -b "$TAG" "git@github.com:wolfssl/$1" &> /dev/null; then
@@ -76,6 +75,7 @@ update() {
             printf "Error updating .bb file for %s to version %s. File not found after move.\n" "$1" "$NEW"
             return
         fi
+        printf "\tUpdated %s to %s (rev %s)\n" "$1" "$TAG" "$REV"
 
         # Additional steps for wolfSSL
         if [ "$1" = "wolfssl" ]; then
