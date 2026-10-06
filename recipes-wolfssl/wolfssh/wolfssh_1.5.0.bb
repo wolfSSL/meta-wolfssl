@@ -6,7 +6,7 @@ DESCRIPTION = "wolfSSH is a lightweight SSHv2 library written in ANSI C and \
 HOMEPAGE = "https://www.wolfssl.com/products/wolfssh"
 BUGTRACKER = "https://github.com/wolfssl/wolfssh/issues"
 SECTION = "libs"
-LICENSE = "GPL-3.0-only"
+LICENSE = "GPL-3.0-or-later"
 LIC_FILES_CHKSUM = "file://LICENSING;md5=2c2d0ee3db6ceba278dd43212ed03733"
 
 DEPENDS += "virtual/wolfssl"

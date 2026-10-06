@@ -1,6 +1,6 @@
 SUMMARY = "wolfSSL Linux kernel module (libwolfssl.ko)"
 DESCRIPTION = "Out-of-tree Linux kernel module for wolfSSL/wolfCrypt"
-LICENSE = "GPL-3.0-only"
+LICENSE = "GPL-3.0-or-later"
 DEPENDS += "virtual/kernel openssl-native"
 LIC_FILES_CHKSUM = "file://COPYING;md5=d32239bcb673463ab874e80d47fae504"
 

@@ -5,7 +5,7 @@ HOMEPAGE = "https://www.wolfssl.com"
 BUGTRACKER = "https://github.com/wolfssl/wolfssl/issues"
 SECTION = "x11/applications"
 
-LICENSE = "GPL-3.0-only"
+LICENSE = "GPL-3.0-or-later"
 LIC_FILES_CHKSUM = "file://test.c;beginline=1;endline=20;md5=881a8045bc665f7843d064f4465c360a"
 python () {
     if d.getVar('UNPACKDIR', False):
