@@ -37,8 +37,11 @@ WOLFBOOT_WOLFSSL_STAGED_SRC = "${WORKDIR}/wolfssl-external"
 # upstream evolves. Downstream users can override via local.conf:
 #   SRCREV_wolfboot:pn-wolfboot = "<sha>"
 #   SRCREV_wolfboot:pn-wolfboot-keytools-native = "<sha>"
+# Repository and branch; override in local.conf to build a fork or branch.
+WOLFBOOT_GIT_URI ?= "git://github.com/wolfssl/wolfBoot.git;protocol=https"
+WOLFBOOT_GIT_BRANCH ?= "master"
 SRC_URI = " \
-    git://github.com/wolfssl/wolfBoot.git;protocol=https;branch=master;name=wolfboot;destsuffix=git \
+    ${WOLFBOOT_GIT_URI};branch=${WOLFBOOT_GIT_BRANCH};name=wolfboot;destsuffix=git \
     ${@'' if d.getVar('WOLFBOOT_WOLFSSL_SRC') else 'git://github.com/wolfssl/wolfssl.git;protocol=https;branch=master;name=wolfssl;destsuffix=git/lib/wolfssl'} \
 "
 SRCREV_wolfboot ?= "9a667f2a7527da2b8e490ae7923665321af2d3ac"

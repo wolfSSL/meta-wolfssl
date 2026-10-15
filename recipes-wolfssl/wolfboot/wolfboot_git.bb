@@ -56,6 +56,10 @@ WOLFBOOT_EXTRA_MAKE_FLAGS ?= ""
 # coexist with the template's own CFLAGS_EXTRA lines.
 WOLFBOOT_EXTRA_CONFIG_LINES ?= ""
 
+# Link with -nostdlib: for configs built for an ABI the sysroot's libgcc does
+# not match (PolarFire SoC M-mode is soft-float lp64 on an lp64d toolchain).
+WOLFBOOT_NOSTDLIB ?= "0"
+
 COMPATIBLE_MACHINE = ".*"
 PACKAGE_ARCH = "${MACHINE_ARCH}"
 
@@ -80,8 +84,8 @@ python check_wolfboot_signing_key() {
     pub = d.getVar('WOLFBOOT_PUBLIC_KEY') or ''
     if not pub:
         bb.fatal("WOLFBOOT_PUBLIC_KEY is not set. Extract the public half "
-                 "from the private key with: openssl rsa -in <privkey>.der "
-                 "-inform DER -pubout -outform DER -out <pubkey>.der")
+                 "from the private key (RSA: openssl rsa -pubout; ECC: the "
+                 "first Qx||Qy bytes, see recipes-wolfssl/wolfboot/README.md).")
     if not os.path.isfile(pub):
         bb.fatal("WOLFBOOT_PUBLIC_KEY='%s' does not exist or is not a "
                  "regular file." % pub)
@@ -89,6 +93,14 @@ python check_wolfboot_signing_key() {
 do_compile[prefuncs] += "check_wolfboot_signing_key"
 
 do_compile() {
+    # A re-run of do_compile keeps the tree; drop objects built with the
+    # previous .config (make tracks sources, not flags).
+    find ${S} \( -name '*.o' -o -name '*.d' \) -not -path '*/.git/*' -delete
+    if [ -n "${WOLFBOOT_WOLFSSL_SRC}" ] && [ -d "${WOLFBOOT_WOLFSSL_STAGED_SRC}" ]; then
+        find ${WOLFBOOT_WOLFSSL_STAGED_SRC} \( -name '*.o' -o -name '*.d' \) -delete
+    fi
+    rm -f ${S}/wolfboot.elf ${S}/wolfboot.map ${S}/src/keystore.c
+
     # Seed wolfBoot's Makefile with the requested example .config.
     if [ ! -f ${S}/config/examples/${WOLFBOOT_CONFIG} ]; then
         bbfatal "WOLFBOOT_CONFIG='${WOLFBOOT_CONFIG}' not found under ${S}/config/examples/"
@@ -110,8 +122,8 @@ do_compile() {
     # wolfBoot is a bare-metal bootloader (-nostdlib -ffreestanding), so we
     # use raw make (not oe_runmake) to prevent Yocto's CC/CFLAGS/LDFLAGS
     # from overriding wolfBoot's own toolchain settings. The Yocto cross
-    # compiler still needs --sysroot to find headers and libgcc; we embed
-    # it in CC so it applies to both compilation and linking.
+    # compiler still needs --sysroot to find headers and libgcc; it is
+    # appended to the .config below so it applies to compilation and linking.
     #
     # USER_PRIVATE_KEY + USER_PUBLIC_KEY tell wolfBoot's Makefile to use a
     # pre-generated key pair instead of regenerating one inside the build
@@ -125,20 +137,54 @@ do_compile() {
     # Both must be supplied by the user (generate via wolfboot-keygen).
     if [ -z "${WOLFBOOT_PUBLIC_KEY}" ] || [ ! -f "${WOLFBOOT_PUBLIC_KEY}" ]; then
         bbfatal "WOLFBOOT_PUBLIC_KEY is not set or the file does not exist. " \
-                "Generate both keys with 'wolfboot-keygen --rsa4096 -g <privkey>.der' " \
-                "then extract the public half with 'openssl rsa -in <privkey>.der " \
-                "-inform DER -pubout -outform DER -out <pubkey>.der'. Point both " \
-                "WOLFBOOT_SIGNING_KEY and WOLFBOOT_PUBLIC_KEY at the respective files."
+                "Generate the key pair with wolfboot-keygen and extract the public " \
+                "half (RSA: openssl rsa -pubout; ECC: the first Qx||Qy bytes), see " \
+                "recipes-wolfssl/wolfboot/README.md. Point WOLFBOOT_SIGNING_KEY and " \
+                "WOLFBOOT_PUBLIC_KEY at the respective files."
     fi
     PUBKEY_FOR_MAKE=${WOLFBOOT_PUBLIC_KEY}
 
     unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS
     SYSROOT_FLAG="--sysroot=${RECIPE_SYSROOT}"
-    # KEYGEN_TOOL override: wolfBoot's Makefile otherwise tries to build
-    # tools/keytools/keygen using the target cross-compiler and then run
-    # the resulting AArch64 binary on the x86_64 build host. Point it at
-    # the native keygen from wolfboot-keytools-native instead.
+
+    # glibc's <gnu/stubs.h> includes a per-ABI stubs-<abi>.h; when wolfBoot's
+    # -mabi differs from the sysroot's that file is missing. It only lists
+    # libc stubs, meaningless to a -nostdlib image, so supply empty ones.
+    LIBC_STUBS="${WORKDIR}/libc-stubs"
+    rm -rf "$LIBC_STUBS"; mkdir -p "$LIBC_STUBS/gnu"
+    for abi in lp64 lp64d ilp32 ilp32d 64 32 soft hard; do
+        if [ ! -e "${RECIPE_SYSROOT}/usr/include/gnu/stubs-$abi.h" ]; then
+            : > "$LIBC_STUBS/gnu/stubs-$abi.h"
+        fi
+    done
+    SYSROOT_FLAG="$SYSROOT_FLAG -isystem $LIBC_STUBS"
+
+    # Toolchain flags go through .config (CFLAGS_EXTRA / LDFLAGS_EXTRA are
+    # additive there); CC/LD on the make command line would leak the cross
+    # compiler into the sub-makes that build the host tools. No PIE and no
+    # build-id note: the image is linked at fixed addresses from its boot vector.
+    echo "CFLAGS_EXTRA+=$SYSROOT_FLAG -fno-pie" >> ${S}/.config
+    LD_EXTRA="$SYSROOT_FLAG -no-pie -Wl,--build-id=none"
+    if [ "${WOLFBOOT_NOSTDLIB}" = "1" ]; then
+        LD_EXTRA="$LD_EXTRA -nostdlib"
+    fi
+    # A wolfBoot without the LDFLAGS_EXTRA consumer (options.mk) gets the link
+    # flags the old way, as CC and LD overrides on the command line.  Both,
+    # not just LD: such a wolfBoot also builds its in-tree keytools, whose
+    # sub-make inherits the command-line variables, and the host objects it
+    # compiles with its own CC do not link with the cross LD.
+    CC_ARG=""
+    LD_ARG=""
+    if grep -Eq 'LDFLAGS[[:space:]]*\+=[[:space:]]*\$\(LDFLAGS_EXTRA\)' ${S}/options.mk; then
+        echo "LDFLAGS_EXTRA+=$LD_EXTRA" >> ${S}/.config
+    else
+        CC_ARG="CC=${TARGET_PREFIX}gcc $SYSROOT_FLAG"
+        LD_ARG="LD=${TARGET_PREFIX}gcc $LD_EXTRA"
+    fi
+
+    # Native keytools; with both given, wolfBoot skips its in-tree build.
     NATIVE_KEYGEN="$(command -v wolfboot-keygen)"
+    NATIVE_SIGN="$(command -v wolfboot-sign)"
 
     # Build wolfCrypt from a caller-supplied wolfSSL tree when asked.
     # WOLFBOOT_LIB_WOLFSSL is wolfBoot's way to set an external wolfSSL source
@@ -156,11 +202,12 @@ do_compile() {
 
     make wolfboot.elf \
         CROSS_COMPILE=${TARGET_PREFIX} \
-        CC="${TARGET_PREFIX}gcc $SYSROOT_FLAG" \
-        LD="${TARGET_PREFIX}gcc $SYSROOT_FLAG" \
+        ${CC_ARG:+"$CC_ARG"} \
+        ${LD_ARG:+"$LD_ARG"} \
         USER_PRIVATE_KEY="${WOLFBOOT_SIGNING_KEY}" \
         USER_PUBLIC_KEY="$PUBKEY_FOR_MAKE" \
         KEYGEN_TOOL="$NATIVE_KEYGEN" \
+        SIGN_TOOL="$NATIVE_SIGN" \
         $WOLFSSL_LIB_ARG \
         ${WOLFBOOT_EXTRA_MAKE_FLAGS} \
         V=1

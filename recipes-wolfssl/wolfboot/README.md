@@ -7,9 +7,9 @@ portable secure bootloader, as part of a Yocto / OpenEmbedded image.
 
 | Recipe | Purpose |
 |---|---|
-| `wolfboot-keytools-native_git.bb` | Host-side `wolfboot-keygen` and `wolfboot-sign` utilities (RSA4096 key generation, RSA4096+SHA3-384 image signing). |
+| `wolfboot-keytools-native_git.bb` | Host-side `wolfboot-keygen` and `wolfboot-sign` utilities (key generation and image signing: RSA4096+SHA3-384 by default, ECC384+SHA-384 for the PolarFire config). |
 | `wolfboot_git.bb` | Cross-compiles `wolfboot.elf` (bare-metal, AArch64 / AArch32 / RISC-V). Picks a config from `${S}/config/examples/` per the `WOLFBOOT_CONFIG` variable. Consumes a user-supplied signing key via `WOLFBOOT_SIGNING_KEY` (see "Signing-key provisioning" below). |
-| `wolfboot-signed-image.bb` | Signs the kernel FIT image (default `fitImage`) with RSA4096+SHA3-384 and emits `image_v${WOLFBOOT_IMAGE_VERSION}_signed.bin` into `DEPLOY_DIR_IMAGE`. |
+| `wolfboot-signed-image.bb` | Signs the kernel FIT image (default `fitImage`) with `WOLFBOOT_SIGN_ALGO` + `WOLFBOOT_HASH_ALGO` (RSA4096+SHA3-384 by default) and emits `image_v${WOLFBOOT_IMAGE_VERSION}_signed.bin` into `DEPLOY_DIR_IMAGE`. |
 
 A companion `recipes-bsp/bootbin/xilinx-bootbin_%.bbappend` overrides the
 AMD/Xilinx `xilinx-bootbin` recipe to swap U-Boot for `wolfboot.elf` in
@@ -19,7 +19,9 @@ set in configuration (`local.conf` or a machine `.conf`).
 ## Signing-key provisioning (required)
 
 `wolfboot_git.bb` and `wolfboot-signed-image.bb` both require you to
-supply a pre-generated RSA4096 private key via `WOLFBOOT_SIGNING_KEY`.
+supply a pre-generated private key via `WOLFBOOT_SIGNING_KEY` (RSA4096 by
+default; ECC384 for the PolarFire config, see the PolarFire SoC quick start
+below).
 The recipes will **not** auto-generate one — that would leak the
 private half through sstate and DEPLOY_DIR_IMAGE.
 
@@ -82,6 +84,51 @@ Artifacts deployed to `tmp/deploy/images/<MACHINE>/`:
 
 Note: the private signing key is **not** deployed — it stays on the
 workstation / secrets store you pointed `WOLFBOOT_SIGNING_KEY` at.
+
+## Quick start (Microchip PolarFire SoC, standalone M-mode, SD-card boot)
+
+On PolarFire SoC wolfBoot can replace the Hart Software Services (HSS) entirely: it boots from eNVM on the E51, initialises the PLL and LPDDR4, loads a signed Linux FIT from the SD card and hands off to S-mode (`polarfire_mpfs250_m.config`). The eNVM image is programmed with Microchip's `mpfsBootmodeProgrammer`, so the recipe deploys `wolfboot.elf` and leaves the eNVM programming to the user.
+
+Three things differ from the ZynqMP flow:
+
+- The M-mode build needs the Libero design's `fpga_design_config` header directory (DDR, clock and SEG settings). Pass it through `WOLFBOOT_EXTRA_MAKE_FLAGS`; the build has no way to generate it.
+- The PolarFire example config signs with ECC384 / SHA-384, so the signing key is an ECC384 pair from `wolfboot-keygen --ecc384 -g <key>.der`. The private file keygen writes is `Qx || Qy || d`; the public half for `WOLFBOOT_PUBLIC_KEY` is its first 96 bytes (`head -c 96 <key>.der > <pub>.der`), which `keygen -i` reads as a raw public key.
+- Partitions 1 and 2 of the SD card are the raw A/B slots (`BOOT_PART_A = 0`, `BOOT_PART_B = 1`); `files/wic/mpfs-wolfboot.wks` fills slot A with the signed FIT, leaves slot B empty, keeps the rootfs at partition 3 and moves the BSP's GUID-tagged HSS payload to partition 4, so the same card still boots under HSS + U-Boot if the eNVM is reprogrammed.
+- The PolarFire config is in wolfBoot v2.10.0 and later, and the link flags the recipe adds need wolfBoot's `LDFLAGS_EXTRA` (wolfSSL/wolfBoot#921; on older revisions the recipe falls back to `CC` and `LD` overrides). Point `SRCREV_wolfboot` at a revision with both, as shown below.
+
+```bitbake
+WOLFBOOT_CONFIG = "polarfire_mpfs250_m.config"
+WOLFBOOT_SIGNING_KEY = "/secure/path/wolfboot_signing_private_key.der"
+WOLFBOOT_PUBLIC_KEY  = "/secure/path/wolfboot_signing_public_key.der"
+WOLFBOOT_EXTRA_MAKE_FLAGS = "LIBERO_FPGA_CONFIG_DIR=/path/to/boards/mpfs-video-kit/fpga_design_config"
+# The M-mode image is soft-float lp64; the Linux toolchain's libgcc is lp64d
+# and cannot be linked, and wolfBoot needs nothing from it on this target.
+WOLFBOOT_NOSTDLIB = "1"
+# The Microchip BSP builds its FIT with a gzip-compressed kernel.
+WOLFBOOT_EXTRA_CONFIG_LINES = "GZIP=1"
+
+# Match the config's SIGN / HASH.
+WOLFBOOT_SIGN_ALGO = "ecc384"
+WOLFBOOT_HASH_ALGO = "sha384"
+KERNEL_PN:pn-wolfboot-signed-image = "linux-mchp"
+
+EXTRA_IMAGEDEPENDS:append = " wolfboot wolfboot-signed-image"
+WKS_FILE = "mpfs-wolfboot.wks"
+WKS_FILE_DEPENDS:append = " wolfboot-signed-image"
+# Releases before wrynose search <layer>/wic, not <layer>/files/wic, for .wks files.
+WKS_SEARCH_PATH:prepend = "${WOLFSSL_LAYERDIR}/files/wic:"
+```
+
+Build with `MACHINE=mpfs-video-kit bitbake mchp-base-image`. The `.wic` is written to the SD card as-is; `wolfboot.elf` goes to eNVM with `mpfsBootmodeProgrammer.jar --bootmode 1`.
+
+To build a wolfBoot branch that is not on `wolfssl/wolfBoot` master, point the fetcher at it instead of editing the recipe:
+
+```bitbake
+WOLFBOOT_GIT_URI = "git://github.com/<fork>/wolfBoot.git;protocol=https"
+WOLFBOOT_GIT_BRANCH = "<branch>"
+SRCREV_wolfboot = "<full commit sha on that branch>"
+SRCREV_wolfssl  = "<the branch's lib/wolfssl submodule commit>"
+```
 
 ## Using an existing wolfSSL source tree
 

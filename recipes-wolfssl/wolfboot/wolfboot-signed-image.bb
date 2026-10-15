@@ -1,8 +1,8 @@
 SUMMARY = "wolfBoot signed kernel FIT image"
 DESCRIPTION = "Signs the kernel FIT image (fitImage / image.ub) with \
-wolfBoot RSA4096+SHA3-384 for verified secure boot. The signed output is \
-placed in DEPLOY_DIR_IMAGE as image_v<version>_signed.bin, ready for \
-flashing to the OFP_A / OFP_B partitions of an A/B-enabled SD card or QSPI."
+wolfBoot (RSA4096+SHA3-384 by default) for verified secure boot. The signed \
+output is placed in DEPLOY_DIR_IMAGE as image_v<version>_signed.bin, ready \
+for flashing to the OFP_A / OFP_B partitions of an A/B-enabled SD card or QSPI."
 
 HOMEPAGE = "https://github.com/wolfssl/wolfBoot"
 SECTION = "bootloaders"
@@ -44,6 +44,11 @@ WOLFBOOT_IMAGE_VERSION ?= "1"
 # linux-xlnx on ZynqMP / Versal.
 WOLFBOOT_FIT_IMAGE ?= "fitImage"
 
+# wolfboot-sign algorithm options (no dashes); must match the config's
+# SIGN / HASH and the key type.
+WOLFBOOT_SIGN_ALGO ?= "rsa4096"
+WOLFBOOT_HASH_ALGO ?= "sha3"
+
 # Validate WOLFBOOT_SIGNING_KEY only when this recipe actually builds
 # (see wolfboot_git.bb for the rationale re: parse-time vs task-time).
 python check_wolfboot_signing_key() {
@@ -79,12 +84,12 @@ do_compile() {
     # leaves publishing to do_deploy below.
     cp "$fit_image" ${B}/${WOLFBOOT_FIT_IMAGE}
 
-    # Sign the FIT image with RSA4096 + SHA3-384 using the user-supplied
-    # signing key. wolfboot-sign emits the output NEXT TO the input file,
-    # naming it <input>_v<version>_signed.bin. Run from ${B} with a
-    # relative path so the output lands inside ${B} predictably.
+    # Sign the FIT image with the configured algorithms using the
+    # user-supplied signing key. wolfboot-sign emits the output NEXT TO the
+    # input file, naming it <input>_v<version>_signed.bin. Run from ${B}
+    # with a relative path so the output lands inside ${B} predictably.
     cd ${B}
-    wolfboot-sign --rsa4096 --sha3 \
+    wolfboot-sign --${WOLFBOOT_SIGN_ALGO} --${WOLFBOOT_HASH_ALGO} \
         ${WOLFBOOT_FIT_IMAGE} \
         ${WOLFBOOT_SIGNING_KEY} \
         ${WOLFBOOT_IMAGE_VERSION}
@@ -96,6 +101,9 @@ do_deploy() {
     install -d ${DEPLOYDIR}
     install -m 0644 ${B}/${WOLFBOOT_FIT_IMAGE}_v${WOLFBOOT_IMAGE_VERSION}_signed.bin \
         ${DEPLOYDIR}/image_v${WOLFBOOT_IMAGE_VERSION}_signed.bin
+    # Version-independent name for wic layouts (WOLFBOOT_IMAGE_VERSION is not
+    # visible in the image recipe's datastore).
+    ln -sf image_v${WOLFBOOT_IMAGE_VERSION}_signed.bin ${DEPLOYDIR}/image_signed.bin
 }
 
 addtask deploy before do_build after do_compile

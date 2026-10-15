@@ -1,0 +1,15 @@
+# short-description: PolarFire SoC SD card for standalone M-mode wolfBoot
+# long-description: Partitions 1 and 2 are wolfBoot's raw A/B slots
+# (polarfire_mpfs250_m.config: BOOT_PART_A=0, BOOT_PART_B=1); partition 1 is
+# filled with the signed FIT (image_signed.bin, the version-independent link
+# wolfboot-signed-image deploys) and partition 2 is left empty for updates.
+# The rootfs stays partition 3 as in the BSP layout. Partition 4 keeps the HSS
+# payload, found by its GUID, so the same card still boots under HSS + U-Boot
+# if the eNVM is reprogrammed.
+
+part --source rawcopy --sourceparams="file=image_signed.bin" --ondisk mmcblk0 --part-name boot --fixed-size 65536K --align 4096
+part --ondisk mmcblk0 --part-name update --fixed-size 65536K --align 4096
+part / --source rootfs --ondisk mmcblk0 --fstype=ext4 --label root --align 4096
+part --source rawcopy --sourceparams="file=payload.bin" --ondisk mmcblk0 --part-name hssboot --fixed-size 8192K --align 1 --part-type 21686148-6449-6E6F-744E-656564454649
+
+bootloader --ptable gpt
