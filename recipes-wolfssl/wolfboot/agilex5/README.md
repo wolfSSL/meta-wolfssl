@@ -89,12 +89,18 @@ Before writing removable media, record the revisions and image hash, then
 inspect the artifacts:
 
 ```sh
-# GSRD separates libc-specific output under tmp-glibc.
-deploy=build/tmp-glibc/deploy/images/agilex5e_013b
-fdtdump "$deploy/u-boot.itb"
-fdisk -l "$deploy/gsrd-console-image-agilex5e_013b.rootfs.wic"
-sha256sum "$deploy/gsrd-console-image-agilex5e_013b.rootfs.wic"
+(
+    set -e
+    source poky/oe-init-build-env build >/dev/null
+    deploy="$(bitbake-getvar --value DEPLOY_DIR_IMAGE)"
+    fdtdump "$deploy/u-boot.itb"
+    fdisk -l "$deploy/gsrd-console-image-agilex5e_013b.rootfs.wic"
+    sha256sum "$deploy/gsrd-console-image-agilex5e_013b.rootfs.wic"
+)
 ```
+
+`TMPDIR` is `build/tmp` or `build/tmp-glibc` depending on the Kas version, so
+ask BitBake for `DEPLOY_DIR_IMAGE` rather than assuming either.
 
 Require the FIT to retain its `atf` and `fdt-0` nodes, identify the BL33
 loadable as wolfBoot, and keep its load address at `0x80200000`. Require four
