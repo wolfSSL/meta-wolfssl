@@ -12,8 +12,9 @@ local_conf_header:
     WOLFSSL_ALTERA_FCS = "1"
     WOLFSSL_FCS_PROVIDER = "gsrd-intel-fcs-lib"
     IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark"
-    SRC_URI:pn-wolfssl = "git://github.com/aidangarske/wolfssl.git;protocol=https;nobranch=1"
-    SRCREV:pn-wolfssl = "fdf3b71c5ca0ef9256f6c09511ec4109f1eec90e"
+    # Remove after the first wolfSSL release that contains the Agilex 5 port.
+    SRC_URI:pn-wolfssl = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https"
+    SRCREV:pn-wolfssl = "c177f861d0ecba3a998e1cae3d18d21103572aed"
 
   wolfboot-agilex5: |
     WOLFBOOT_ENABLE = "1"
@@ -28,6 +29,8 @@ local_conf_header:
     EXTRA_IMAGEDEPENDS:append = " wolfboot wolfboot-signed-image"
     do_image_wic[depends] += "wolfboot:do_deploy wolfboot-signed-image:do_deploy"
 
-    WOLFBOOT_REPO = "git://github.com/aidangarske/wolfBoot.git"
-    WOLFBOOT_BRANCH = "agilex5-tfa-port"
-    SRCREV_wolfboot:pn-wolfboot = "decd4b29b0388346ddaaa15029363f9ff8daa72a"
+    # wolfBoot master with the Agilex 5 port and its lib/wolfssl submodule.
+    SRCREV_wolfboot:pn-wolfboot = "bd3b0c81015fe36e0477d8ea27081fbab956f88a"
+    SRCREV_wolfssl:pn-wolfboot = "f99453320ff306fe5bfb10788117f18c9bfeaf6b"
+    SRCREV_wolfboot:pn-wolfboot-keytools-native = "bd3b0c81015fe36e0477d8ea27081fbab956f88a"
+    SRCREV_wolfssl:pn-wolfboot-keytools-native = "f99453320ff306fe5bfb10788117f18c9bfeaf6b"

@@ -13,4 +13,5 @@ local_conf_header:
     WOLFSSL_FCS_PROVIDER = "gsrd-intel-fcs-lib"
     IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark"
     # Remove after the first wolfSSL release that contains the Agilex 5 port.
-    SRC_URI:pn-wolfssl = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=c177f861d0ecba3a998e1cae3d18d21103572aed"
+    SRC_URI:pn-wolfssl = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https"
+    SRCREV:pn-wolfssl = "c177f861d0ecba3a998e1cae3d18d21103572aed"

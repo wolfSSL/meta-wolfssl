@@ -87,7 +87,8 @@ local_conf_header:
     WOLFSSL_FCS_PROVIDER = "gsrd-intel-fcs-lib"
     IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark "
     # Remove after the first wolfSSL release that contains the Agilex 5 port.
-    SRC_URI:pn-wolfssl = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=c177f861d0ecba3a998e1cae3d18d21103572aed"
+    SRC_URI:pn-wolfssl = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https"
+    SRCREV:pn-wolfssl = "c177f861d0ecba3a998e1cae3d18d21103572aed"
 ```
 
 The same fragment is supplied as `agilex5/kas-wolfssl.yml`. Kas
@@ -140,12 +141,16 @@ master commit containing the port:
 
 ```bitbake
 # Remove after the first wolfSSL release that contains the Agilex 5 port.
-SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=c177f861d0ecba3a998e1cae3d18d21103572aed"
+SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https"
+SRCREV = "c177f861d0ecba3a998e1cae3d18d21103572aed"
 ```
 
-The same assignment can be placed in `local.conf` or a Kas `local_conf_header`
-as `SRC_URI:pn-wolfssl`. Without it, `do_configure` fails on the unrecognized
-option.
+Keep the revision in `SRCREV`, not as `rev=` in the URL. The `%` append also
+matches meta-openembedded's `wolfssl` recipe, which sets its own `SRCREV`, and a
+`rev=` parameter would then conflict with it during parsing. The same two
+assignments can be placed in `local.conf` or a Kas `local_conf_header` as
+`SRC_URI:pn-wolfssl` and `SRCREV:pn-wolfssl`. Without them, `do_configure`
+fails on the unrecognized option.
 
 ## Build the Agilex 5 image
 
