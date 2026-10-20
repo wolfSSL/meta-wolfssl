@@ -9,7 +9,7 @@ DEPENDS += "util-linux-native"
 
 PROVIDES += "wolfssl virtual/wolfssl"
 
-SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=ac01707f552c611fbd135cc723b2682b3e7f80f2"
+SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=3c5eead44904df64e6a5a1f4ebdce377d35a849a"
 
 python () {
     if d.getVar('WOLFSSL_TYPE', False):

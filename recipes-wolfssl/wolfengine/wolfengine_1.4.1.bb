@@ -9,7 +9,7 @@ DEPENDS += "util-linux-native"
 
 PROVIDES += "wolfengine"
 
-SRC_URI = "git://github.com/wolfssl/wolfengine.git;nobranch=1;protocol=https;rev=02c18e78d59c1e5a029c171a3879e99a145737ca"
+SRC_URI = "git://github.com/wolfssl/wolfengine.git;nobranch=1;protocol=https;rev=07cf7b7e2d0dee693590874a3b0122194a1965d5"
 
 
 python () {

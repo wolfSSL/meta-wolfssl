@@ -37,17 +37,12 @@ WOLFBOOT_WOLFSSL_STAGED_SRC = "${WORKDIR}/wolfssl-external"
 # upstream evolves. Downstream users can override via local.conf:
 #   SRCREV_wolfboot:pn-wolfboot = "<sha>"
 #   SRCREV_wolfboot:pn-wolfboot-keytools-native = "<sha>"
-WOLFBOOT_REPO ?= "git://github.com/wolfssl/wolfBoot.git"
-WOLFBOOT_BRANCH ?= "master"
-WOLFBOOT_PROTOCOL ?= "https"
-WOLFBOOT_WOLFSSL_REPO ?= "git://github.com/wolfssl/wolfssl.git"
-WOLFBOOT_WOLFSSL_BRANCH ?= "master"
-WOLFBOOT_WOLFSSL_PROTOCOL ?= "https"
-WOLFBOOT_WOLFSSL_URI = "${WOLFBOOT_WOLFSSL_REPO};protocol=${WOLFBOOT_WOLFSSL_PROTOCOL};branch=${WOLFBOOT_WOLFSSL_BRANCH};name=wolfssl;destsuffix=git/lib/wolfssl"
-
+# Repository and branch; override in local.conf to build a fork or branch.
+WOLFBOOT_GIT_URI ?= "git://github.com/wolfssl/wolfBoot.git;protocol=https"
+WOLFBOOT_GIT_BRANCH ?= "master"
 SRC_URI = " \
-    ${WOLFBOOT_REPO};protocol=${WOLFBOOT_PROTOCOL};branch=${WOLFBOOT_BRANCH};name=wolfboot;destsuffix=git \
-    ${@'' if d.getVar('WOLFBOOT_WOLFSSL_SRC') else d.getVar('WOLFBOOT_WOLFSSL_URI')} \
+    ${WOLFBOOT_GIT_URI};branch=${WOLFBOOT_GIT_BRANCH};name=wolfboot;destsuffix=git \
+    ${@'' if d.getVar('WOLFBOOT_WOLFSSL_SRC') else 'git://github.com/wolfssl/wolfssl.git;protocol=https;branch=master;name=wolfssl;destsuffix=git/lib/wolfssl'} \
 "
 SRCREV_wolfboot ?= "9a667f2a7527da2b8e490ae7923665321af2d3ac"
 SRCREV_wolfssl  ?= "1d363f3adceba9d1478230ede476a37b0dcdef24"
