@@ -1,6 +1,5 @@
 # Altera Agilex 5 SDM crypto offload; needs an FCS provisioned device at
-# runtime. GSRD stacks that already build the library can point this at
-# their own recipe, e.g. WOLFSSL_FCS_PROVIDER = "gsrd-intel-fcs-lib".
+# runtime. WOLFSSL_FCS_PROVIDER names the recipe that supplies libfcs.
 
 def wolfssl_fcs_is_target(d):
     return (d.getVar('WOLFSSL_ALTERA_FCS') == '1' and

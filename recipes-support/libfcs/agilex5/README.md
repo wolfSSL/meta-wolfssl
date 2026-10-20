@@ -8,7 +8,15 @@ packaged wolfCrypt test on the board.
 
 - An Agilex 5 GSRD Yocto build configured for the exact board and release.
 - This `meta-wolfssl` layer in `BBLAYERS`.
-- A kernel exposing `/sys/kernel/fcs_sysfs`.
+- A layer that builds Altera's libfcs. The 26.1 GSRD's `meta-altera-fpga`
+  provides `gsrd-intel-fcs-lib`, and `meta-intel-fpga-refdes` provides
+  `socfpga-intel-fcs-lib`. A user recipe that installs the libfcs headers and
+  `libFCS.so` also works.
+- A wolfSSL revision that contains the Agilex 5 port. wolfSSL 5.9.4 predates
+  it; see [Use a wolfSSL revision with the Agilex 5 port](#use-a-wolfssl-revision-with-the-agilex-5-port).
+- A kernel exposing `/sys/kernel/fcs_sysfs/platform`. libfcs reads that file
+  during initialization. Older Altera kernels such as linux-socfpga 6.12.19
+  create `/sys/kernel/fcs_sysfs` without it, and libfcs then fails to start.
 - An owner root key hash provisioned in the SDM.
 
 Provisioning is outside this layer's scope. Follow Altera's device-security
@@ -78,6 +86,8 @@ local_conf_header:
     WOLFSSL_ALTERA_FCS = "1"
     WOLFSSL_FCS_PROVIDER = "gsrd-intel-fcs-lib"
     IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark "
+    # Remove after the first wolfSSL release that contains the Agilex 5 port.
+    SRC_URI:pn-wolfssl = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=c177f861d0ecba3a998e1cae3d18d21103572aed"
 ```
 
 The same fragment is supplied as `agilex5/kas-wolfssl.yml`. Kas
@@ -93,10 +103,9 @@ Kas requires concatenated files to come from one checkout. Keep the copied
 file local and untracked; do not commit private signing settings or generated
 machine paths.
 
-The validation fragment pins the matching wolfSSL Agilex 5 port commit while
-that wolfSSL change is under review. After the wolfSSL port is merged, replace
-the temporary fork URL and revision with the corresponding upstream commit;
-do not silently test a stock wolfSSL release and call it an offload build.
+The fragment pins wolfSSL to a master commit that contains the Agilex 5 port;
+see [Use a wolfSSL revision with the Agilex 5 port](#use-a-wolfssl-revision-with-the-agilex-5-port).
+Do not test a stock wolfSSL release and call it an offload build.
 
 For a local `meta-wolfssl` checkout under the GSRD Yocto directory, replace the
 repository URL and branch with:
@@ -108,17 +117,35 @@ repository URL and branch with:
       .:
 ```
 
-The 26.1 GSRD already provides the required headers and versioned runtime
-library through `gsrd-intel-fcs-lib`. This layer adds the unversioned
-`libFCS.so` linker name required by dependent recipes. Selecting the GSRD
-provider prevents two recipes from installing the same library. A non-GSRD
-build can omit the override and use meta-wolfssl's `libfcs` recipe instead.
+meta-wolfssl does not build libfcs itself. `WOLFSSL_FCS_PROVIDER` names the
+recipe that does, and defaults to the 26.1 GSRD's `gsrd-intel-fcs-lib`. Altera's
+recipes install only the versioned runtime library, so this layer appends the
+unversioned `libFCS.so` linker name to `gsrd-intel-fcs-lib` and
+`socfpga-intel-fcs-lib`. Builds using `meta-intel-fpga-refdes` select its
+recipe instead:
 
 ```bitbake
-WOLFSSL_FCS_PROVIDER = "gsrd-intel-fcs-lib"
+WOLFSSL_FCS_PROVIDER = "socfpga-intel-fcs-lib"
 ```
 
-Use only one provider for `libFCS.so`.
+A user supplied recipe must install `libFCS.so` itself. The port has been
+validated with libfcs 3.01, the revision built by the 26.1 GSRD.
+
+## Use a wolfSSL revision with the Agilex 5 port
+
+The `--enable-alterafcs` option this layer passes exists only in wolfSSL
+releases after 5.9.4. Until the next release, add a bbappend to your own layer,
+for example `recipes-wolfssl/wolfssl/wolfssl_%.bbappend`, that builds a wolfSSL
+master commit containing the port:
+
+```bitbake
+# Remove after the first wolfSSL release that contains the Agilex 5 port.
+SRC_URI = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https;rev=c177f861d0ecba3a998e1cae3d18d21103572aed"
+```
+
+The same assignment can be placed in `local.conf` or a Kas `local_conf_header`
+as `SRC_URI:pn-wolfssl`. Without it, `do_configure` fails on the unrecognized
+option.
 
 ## Build the Agilex 5 image
 
@@ -139,76 +166,65 @@ docker run --rm --user "$(id -u):$(id -g)" \
     build kas.yml:kas-wolfssl.yml gsrd-console-image
 ```
 
-The expected SD card image is:
-
-```text
-build/tmp/deploy/images/agilex5e_013b/gsrd-console-image-agilex5e_013b.rootfs.wic
-```
-
-Fail the validation if that file is absent or empty:
-
-```sh
-test -s build/tmp/deploy/images/agilex5e_013b/\
-gsrd-console-image-agilex5e_013b.rootfs.wic
-sha256sum build/tmp/deploy/images/agilex5e_013b/\
-gsrd-console-image-agilex5e_013b.rootfs.wic
-```
-
-Inspect the partition table and the installed test from an initialized
-OpenEmbedded shell:
+The SD card image is written to BitBake's `DEPLOY_DIR_IMAGE`. Its parent
+`TMPDIR` depends on the distribution: Kas 4.x selects `poky` and uses
+`build/tmp`, while Kas 5.x defaults to `nodistro` and uses `build/tmp-glibc`.
+Ask BitBake for the directory instead of assuming either. From the same
+`software/yocto_linux` directory, inspect the image and the installed test in an
+initialized OpenEmbedded shell:
 
 ```sh
 (
-    source poky/oe-init-build-env build
-    image=tmp/deploy/images/agilex5e_013b/\
-gsrd-console-image-agilex5e_013b.rootfs.wic
-    native="$(find "$PWD/tmp/work" -type d \
-        -path '*/gsrd-console-image/*/recipe-sysroot-native' \
-        -print -quit)"
-    test -n "$native"
+    set -e
+    source poky/oe-init-build-env build >/dev/null
+    deploy="$(bitbake-getvar --value DEPLOY_DIR_IMAGE)"
+    image="$deploy/gsrd-console-image-agilex5e_013b.rootfs.wic"
+    test -s "$image"
+    sha256sum "$image"
+    native="$(bitbake-getvar -r gsrd-console-image --value RECIPE_SYSROOT_NATIVE)"
+    test -d "$native"
     wic ls -n "$native" "$image"
     wolfcrypt_bins="$(wic ls -n "$native" "$image:2/usr/bin/")"
     printf '%s\n' "$wolfcrypt_bins"
     printf '%s\n' "$wolfcrypt_bins" | grep -q 'wolfcrypttest'
     printf '%s\n' "$wolfcrypt_bins" | grep -q 'wolfcryptbenchmark'
     oe-pkgdata-util find-path /usr/bin/wolfcrypttest
+    printf 'image=%s\n' "$image"
 )
 ```
 
-When the image was built with the Kas container, run the same checks through
-`kas shell` so Yocto's native tools retain the `/work` path used at build time:
+When the image was built with the Kas container, run the same commands, without
+the `source` line, through `kas shell` so Yocto's native tools retain the
+`/work` path used at build time:
 
 ```sh
 docker run --rm --user "$(id -u):$(id -g)" \
     -e HOME=/work -v "$PWD:/work" -w /work \
     ghcr.io/siemens/kas/kas:4.8 \
     shell kas.yml:kas-wolfssl.yml -c '
-        image=tmp/deploy/images/agilex5e_013b/\
-gsrd-console-image-agilex5e_013b.rootfs.wic
-        native="$(find "$PWD/tmp/work" -type d \
-            -path "*/gsrd-console-image/*/recipe-sysroot-native" \
-            -print -quit)"
-        test -n "$native"
+        set -e
+        deploy="$(bitbake-getvar --value DEPLOY_DIR_IMAGE)"
+        image="$deploy/gsrd-console-image-agilex5e_013b.rootfs.wic"
+        test -s "$image"
+        sha256sum "$image"
+        native="$(bitbake-getvar -r gsrd-console-image \
+            --value RECIPE_SYSROOT_NATIVE)"
+        test -d "$native"
         wic ls -n "$native" "$image"
         wolfcrypt_bins="$(wic ls -n "$native" "$image:2/usr/bin/")"
         printf "%s\n" "$wolfcrypt_bins"
         printf "%s\n" "$wolfcrypt_bins" | grep -q wolfcrypttest
         printf "%s\n" "$wolfcrypt_bins" | grep -q wolfcryptbenchmark
         oe-pkgdata-util find-path /usr/bin/wolfcrypttest
+        printf "image=%s\n" "$image"
     '
 ```
 
-The image must contain a FAT boot partition and an ext4 root partition. The
-second `wic ls` command must show both `wolfcrypttest` and
-`wolfcryptbenchmark`, and the package lookup must report `wolfssl`.
-
-Confirm that BitBake also staged the packaged test:
-
-```sh
-test -n "$(find build/tmp/work \
-    -path '*/wolfssl/*/packages-split/*/usr/bin/wolfcrypttest' \
-    -print -quit)"
-```
+The container reports paths under `/work`, which is the current directory on
+the host. Either block must exit with status 0. The image must contain a FAT
+boot partition and an ext4 root partition, the second `wic ls` command must
+show both `wolfcrypttest` and `wolfcryptbenchmark`, and the package lookup must
+report `wolfssl`. Keep the printed `image` path and SHA-256 for deployment.
 
 ## Deploy the image
 
@@ -216,11 +232,11 @@ Power off the board and remove its microSD card. Attach the card to the build
 server, identify the whole device by its capacity, and unmount any mounted
 partitions. Device names vary: USB readers commonly appear as `/dev/sdX`, while
 built-in readers may appear as `/dev/mmcblkN`. The example below uses the
-device observed on the build server; replace it only after checking `lsblk`:
+device observed on the build server; replace it only after checking `lsblk`.
+Set `image` to the absolute path printed by the inspection step:
 
 ```sh
-image=build/tmp/deploy/images/agilex5e_013b/\
-gsrd-console-image-agilex5e_013b.rootfs.wic
+image=/path/printed/by/inspection/gsrd-console-image-agilex5e_013b.rootfs.wic
 card=/dev/mmcblk0
 
 lsblk -o NAME,SIZE,TYPE,TRAN,RM,MODEL,MOUNTPOINTS
@@ -266,8 +282,12 @@ Boot the deployed image and confirm that its packaged files are present:
 ```sh
 test -x /usr/bin/wolfcrypttest
 /lib/ld-linux-aarch64.so.1 --list /usr/bin/wolfcrypttest
-test -e /sys/kernel/fcs_sysfs
+test -r /sys/kernel/fcs_sysfs/platform
 ```
+
+If `/sys/kernel/fcs_sysfs/platform` is missing, the kernel is too old for the
+libfcs build in the image. libfcs fails to initialize and `wolfcrypttest`
+skips the hardware test, so a zero exit status alone does not prove offload.
 
 The DHCP address can change after booting a replacement image. Use the serial
 console, the DHCP server's leases, or a local subnet scan to find the target
@@ -293,7 +313,8 @@ The Altera subtests require successful hardware operations for RNG, SHA-256,
 and AES. They cannot pass solely through wolfSSL software fallback. Device
 resident ECDSA and ECDH keys and HMAC verification are also exercised.
 
-If only the Altera test fails, check SDM provisioning status `0x85`. Status
+If the marker is missing, first confirm `/sys/kernel/fcs_sysfs/platform`
+exists. If only the Altera test fails, check SDM provisioning status `0x85`. Status
 `0x84` indicates session exhaustion and requires a board power cycle.
 
 ## Developer-only smoke test
