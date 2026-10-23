@@ -1,9 +1,8 @@
 SUMMARY = "wolfBoot secure bootloader"
 DESCRIPTION = "wolfBoot is a portable, OS-agnostic secure bootloader for \
 32-bit and 64-bit targets. It provides verified secure boot with A/B \
-update / rollback support. On AMD/Xilinx ZynqMP it replaces U-Boot as \
-the second-stage bootloader (FSBL -> PMU FW -> ATF (EL3) -> wolfBoot \
-(EL2) -> signed Linux kernel)."
+update and rollback support. On supported Arm platforms it runs as BL33 \
+after the platform first stage and TF-A."
 
 require wolfboot.inc
 
@@ -118,7 +117,7 @@ do_compile() {
             ${S}/.config
     fi
 
-    # Cross-compile wolfboot.elf.
+    # Cross-compile wolfboot.elf and its flat binary payload.
     # wolfBoot is a bare-metal bootloader (-nostdlib -ffreestanding), so we
     # use raw make (not oe_runmake) to prevent Yocto's CC/CFLAGS/LDFLAGS
     # from overriding wolfBoot's own toolchain settings. The Yocto cross
@@ -200,7 +199,7 @@ do_compile() {
                "(staged at ${WOLFBOOT_WOLFSSL_STAGED_SRC})"
     fi
 
-    make wolfboot.elf \
+    make wolfboot.bin wolfboot.elf \
         CROSS_COMPILE=${TARGET_PREFIX} \
         ${CC_ARG:+"$CC_ARG"} \
         ${LD_ARG:+"$LD_ARG"} \
@@ -214,15 +213,17 @@ do_compile() {
 }
 
 do_install() {
-    # Install wolfboot.elf into sysroot for xilinx-bootbin BIF consumption
-    # (BIF_PARTITION_IMAGE[wolfboot] points at ${RECIPE_SYSROOT}/boot/wolfboot.elf).
+    # The ELF is consumed by Xilinx bootgen. The flat binary is consumed by
+    # the SoCFPGA FIT generator as its BL33 loadable.
     install -d ${D}/boot
     install -m 0644 ${S}/wolfboot.elf ${D}/boot/wolfboot.elf
+    install -m 0644 ${S}/wolfboot.bin ${D}/boot/wolfboot.bin
 }
 
 do_deploy() {
     install -d ${DEPLOYDIR}
     install -m 0644 ${S}/wolfboot.elf ${DEPLOYDIR}/wolfboot.elf
+    install -m 0644 ${S}/wolfboot.bin ${DEPLOYDIR}/wolfboot.bin
     # Optionally deploy the public signing key (safe to publish). This is
     # the verifying key embedded in wolfboot.elf; having it in DEPLOYDIR
     # lets CI and downstream tooling verify signed images without access
@@ -245,7 +246,7 @@ addtask deploy before do_build after do_compile
 # overrides and cannot parse the colon syntax.
 python __anonymous() {
     wolfssl_varSet(d, 'INSANE_SKIP', '${PN}', 'ldflags textrel buildpaths')
-    wolfssl_varSet(d, 'FILES', '${PN}', '/boot/wolfboot.elf')
+    wolfssl_varSet(d, 'FILES', '${PN}', '/boot/wolfboot.elf /boot/wolfboot.bin')
 }
 
 SYSROOT_DIRS += "/boot"

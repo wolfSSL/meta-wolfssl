@@ -44,6 +44,10 @@ WOLFBOOT_IMAGE_VERSION ?= "1"
 # linux-xlnx on ZynqMP / Versal.
 WOLFBOOT_FIT_IMAGE ?= "fitImage"
 
+# wolfboot-sign removes the input filename extension when naming its output
+# (for example, kernel.itb becomes kernel_v1_signed.bin).
+WOLFBOOT_SIGNED_BASENAME ?= "${@d.getVar('WOLFBOOT_FIT_IMAGE').rsplit('.', 1)[0]}"
+
 # wolfboot-sign algorithm options (no dashes); must match the config's
 # SIGN / HASH and the key type.
 WOLFBOOT_SIGN_ALGO ?= "rsa4096"
@@ -86,8 +90,8 @@ do_compile() {
 
     # Sign the FIT image with the configured algorithms using the
     # user-supplied signing key. wolfboot-sign emits the output NEXT TO the
-    # input file, naming it <input>_v<version>_signed.bin. Run from ${B}
-    # with a relative path so the output lands inside ${B} predictably.
+    # input file, naming it <input-without-extension>_v<version>_signed.bin.
+    # Run from ${B} with a relative path so the output lands inside ${B}.
     cd ${B}
     wolfboot-sign --${WOLFBOOT_SIGN_ALGO} --${WOLFBOOT_HASH_ALGO} \
         ${WOLFBOOT_FIT_IMAGE} \
@@ -99,7 +103,7 @@ do_install[noexec] = "1"
 
 do_deploy() {
     install -d ${DEPLOYDIR}
-    install -m 0644 ${B}/${WOLFBOOT_FIT_IMAGE}_v${WOLFBOOT_IMAGE_VERSION}_signed.bin \
+    install -m 0644 ${B}/${WOLFBOOT_SIGNED_BASENAME}_v${WOLFBOOT_IMAGE_VERSION}_signed.bin \
         ${DEPLOYDIR}/image_v${WOLFBOOT_IMAGE_VERSION}_signed.bin
     # Version-independent name for wic layouts (WOLFBOOT_IMAGE_VERSION is not
     # visible in the image recipe's datastore).
