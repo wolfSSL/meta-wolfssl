@@ -7,7 +7,7 @@ DESCRIPTION = "wolfTPM is a portable TPM 2.0 project, designed for embedded \
 HOMEPAGE = "https://www.wolfssl.com/products/wolftpm"
 BUGTRACKER = "https://github.com/wolfssl/wolftpm/issues"
 SECTION = "libs"
-LICENSE = "GPL-3.0-only"
+LICENSE = "GPL-3.0-or-later"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=ca791bd6e0c766a108d55da2dc9eb00c"
 
 DEPENDS += "virtual/wolfssl"
