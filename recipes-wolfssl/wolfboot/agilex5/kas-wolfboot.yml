@@ -1,0 +1,36 @@
+header:
+  version: 17
+
+repos:
+  meta-wolfssl:
+    path: meta-wolfssl
+    layers:
+      .:
+
+local_conf_header:
+  wolfssl-altera-fcs: |
+    WOLFSSL_ALTERA_FCS = "1"
+    WOLFSSL_FCS_PROVIDER = "gsrd-intel-fcs-lib"
+    IMAGE_INSTALL:append = " wolfssl wolfcrypttest wolfcryptbenchmark"
+    # Remove after the first wolfSSL release that contains the Agilex 5 port.
+    SRC_URI:pn-wolfssl = "git://github.com/wolfssl/wolfssl.git;nobranch=1;protocol=https"
+    SRCREV:pn-wolfssl = "c177f861d0ecba3a998e1cae3d18d21103572aed"
+
+  wolfboot-agilex5: |
+    WOLFBOOT_ENABLE = "1"
+    WOLFBOOT_CONFIG = "agilex5_013b_sdcard.config"
+    WOLFBOOT_LINUX_BOOTARGS_ROOT = "/dev/mmcblk0p4"
+    WOLFBOOT_IMAGE_VERSION = "1"
+    WOLFBOOT_FIT_IMAGE = "kernel.itb"
+    KERNEL_PN = "linux-socfpga-lts"
+
+    WKS_FILE = "agilex5-wolfboot.wks.in"
+    WKS_SEARCH_PATH:append = ":${WOLFSSL_LAYERDIR}/files/wic"
+    EXTRA_IMAGEDEPENDS:append = " wolfboot wolfboot-signed-image"
+    do_image_wic[depends] += "wolfboot:do_deploy wolfboot-signed-image:do_deploy"
+
+    # wolfBoot master with the Agilex 5 port and its lib/wolfssl submodule.
+    SRCREV_wolfboot:pn-wolfboot = "bd3b0c81015fe36e0477d8ea27081fbab956f88a"
+    SRCREV_wolfssl:pn-wolfboot = "f99453320ff306fe5bfb10788117f18c9bfeaf6b"
+    SRCREV_wolfboot:pn-wolfboot-keytools-native = "bd3b0c81015fe36e0477d8ea27081fbab956f88a"
+    SRCREV_wolfssl:pn-wolfboot-keytools-native = "f99453320ff306fe5bfb10788117f18c9bfeaf6b"
